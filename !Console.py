@@ -134,6 +134,8 @@ def nircmd(preset="Man", a=None, b=None, c=None, d=None, every=False):
         foreground()
 
 class szipC:
+    def __init__(self, path):
+        self.path = path
     def create_archive(self, archive, filenames, switches=None, workpath=None, archive_type="zip"):
         if archive[len(archive)-1] == archive_type[len(archive_type)-1] and archive[len(archive)-2] == archive_type[len(archive_type)-2] and archive[len(archive)-3] == archive_type[len(archive_type)-3]:
             if archive_type == "zip" : # is the archive_type supported?
@@ -147,7 +149,7 @@ class szipC:
                     for x in range(len(filenames)):
                         filenames[x] = workpath + "\\" + filenames[x]
 
-                os.chdir("Programs\\7z")
+                os.chdir(self.path)
 
                 if switches is None:
                     command = ["7za.exe", "a", "-t" + archive_type, archive] + list(filenames)
@@ -172,7 +174,7 @@ class szipC:
             else:
                 archive = workpath + "\\" +  archive
 
-            os.chdir("Programs\\7z")
+            os.chdir(self.path)
 
             if switches is None:
                 if output is None:
@@ -193,7 +195,7 @@ class szipC:
         else:
             print("error archive not found")
 
-szip = szipC
+szip = szipC("Programs\\7z")
 
 def title_time_now():
     return datetime.datetime.now().strftime("%H:%M:%S")

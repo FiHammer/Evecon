@@ -20,6 +20,7 @@ def exit_now():
         exit()
 
 
+
 cdir = os.getcwd()
 if cdir == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\Programs\\Evecon\\Updater":
     os.chdir("..")
@@ -79,6 +80,70 @@ def light(preset="Man"):
         print("    7 = Hellgrau    F = Weiss")
 
         os.system("color %s" % input("\n"))
+
+class szipC:
+    def __init__(self, path):
+        self.path = path
+    def create_archive(self, archive, filenames, switches=None, workpath=None, archive_type="zip"):
+        if archive[len(archive)-1] == archive_type[len(archive_type)-1] and archive[len(archive)-2] == archive_type[len(archive_type)-2] and archive[len(archive)-3] == archive_type[len(archive_type)-3]:
+            if archive_type == "zip" : # is the archive_type supported?
+                dir_tmp = os.getcwd()
+                if workpath is None:
+                    archive = dir_tmp + "\\" + archive
+                    for x in range(len(filenames)):
+                        filenames[x] = dir_tmp + "\\" + filenames[x]
+                else:
+                    archive = workpath + "\\" + archive
+                    for x in range(len(filenames)):
+                        filenames[x] = workpath + "\\" + filenames[x]
+
+                os.chdir(self.path)
+
+                if switches is None:
+                    command = ["7za.exe", "a", "-t" + archive_type, archive] + list(filenames)
+                else:
+                    command = ["7za.exe", "a", "-t" + archive_type] + list(switches) + [archive] + list(filenames)
+
+                subprocess.call(command)
+
+                time.sleep(0.25)
+                os.chdir(dir_tmp)
+
+            else:
+                print("error archive type is not supported")
+        else:
+            print("error archive type is not the same as the archive name")
+
+    def extract_archive(self, archive, output=None, switches=None, workpath=None):
+        if os.path.exists(archive) or os.path.exists(workpath + "\\" + archive):
+            dir_tmp = os.getcwd()
+            if workpath is None:
+                archive = dir_tmp + "\\" + archive
+            else:
+                archive = workpath + "\\" +  archive
+
+            os.chdir(self.path)
+
+            if switches is None:
+                if output is None:
+                    command = ["7za.exe", "x", archive]
+                else:
+                    command = ["7za.exe", "x", "-o" + output, archive]
+            else:
+                if output is None:
+                    command = ["7za.exe", "x"] + list(switches) + [archive]
+                else:
+                    command = ["7za.exe", "x", "-o" + output] + list(switches) + [archive]
+
+
+            subprocess.call(command)
+
+            time.sleep(0.25)
+            os.chdir(dir_tmp)
+        else:
+            print("error archive not found")
+
+szip = szipC("Programs\\7z")
 
 def computerconfig_schoolpc():
     pass
@@ -856,6 +921,20 @@ def update():
                         # von Mainstick auf PC
                         Mainstick_to_PC()
 
+def zipme():
+    pass
+
+
+def upload():
+    # TODO-fast: Upload
+    # aktuelles Evecon in eine Zipfile komprimieren! (7-Zip)
+    # dazu gehört: '!Console', 'dev' bzw darin NUR *.py und 'dll', 'data\Info\Changelog.txt + version'
+    # diese zip-File dann auf Mega.nz mit dem Konto -------@tutanota.com und PW -------- hochladen.
+    # bzw. auf Mega einige Ordner erstellen UND die aktuelle Versions-Datei ersetzen! (die normale 'version')
+
+    zipme()
+
+    pass
 
 def upgrade():
     cls()
