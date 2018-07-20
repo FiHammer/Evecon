@@ -133,6 +133,67 @@ def nircmd(preset="Man", a=None, b=None, c=None, d=None, every=False):
     elif preset == "foreground":
         foreground()
 
+class szipC:
+    def create_archive(self, archive, filenames, switches=None, workpath=None, archive_type="zip"):
+        if archive[len(archive)-1] == archive_type[len(archive_type)-1] and archive[len(archive)-2] == archive_type[len(archive_type)-2] and archive[len(archive)-3] == archive_type[len(archive_type)-3]:
+            if archive_type == "zip" : # is the archive_type supported?
+                dir_tmp = os.getcwd()
+                if workpath is None:
+                    archive = dir_tmp + "\\" + archive
+                    for x in range(len(filenames)):
+                        filenames[x] = dir_tmp + "\\" + filenames[x]
+                else:
+                    archive = workpath + "\\" + archive
+                    for x in range(len(filenames)):
+                        filenames[x] = workpath + "\\" + filenames[x]
+
+                os.chdir("Programs\\7z")
+
+                if switches is None:
+                    command = ["7za.exe", "a", "-t" + archive_type, archive] + list(filenames)
+                else:
+                    command = ["7za.exe", "a", "-t" + archive_type] + list(switches) + [archive] + list(filenames)
+
+                subprocess.call(command)
+
+                time.sleep(0.25)
+                os.chdir(dir_tmp)
+
+            else:
+                print("error archive type is not supported")
+        else:
+            print("error archive type is not the same as the archive name")
+
+    def extract_archive(self, archive, output=None, switches=None, workpath=None):
+        if os.path.exists(archive) or os.path.exists(workpath + "\\" + archive):
+            dir_tmp = os.getcwd()
+            if workpath is None:
+                archive = dir_tmp + "\\" + archive
+            else:
+                archive = workpath + "\\" +  archive
+
+            os.chdir("Programs\\7z")
+
+            if switches is None:
+                if output is None:
+                    command = ["7za.exe", "x", archive]
+                else:
+                    command = ["7za.exe", "x", "-o" + output, archive]
+            else:
+                if output is None:
+                    command = ["7za.exe", "x"] + list(switches) + [archive]
+                else:
+                    command = ["7za.exe", "x", "-o" + output] + list(switches) + [archive]
+
+
+            subprocess.call(command)
+
+            time.sleep(0.25)
+            os.chdir(dir_tmp)
+        else:
+            print("error archive not found")
+
+szip = szipC
 
 def title_time_now():
     return datetime.datetime.now().strftime("%H:%M:%S")
