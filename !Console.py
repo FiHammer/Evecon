@@ -18,6 +18,7 @@ def cls():
     os.system("cls")
 
 
+
 def exit_now(killmex = False):
     global ttime_stop, ttime_pause, ttime_pt
     ttime_stop = False
