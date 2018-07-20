@@ -922,7 +922,10 @@ def update():
                         Mainstick_to_PC()
 
 def zipme():
-    pass
+    version()
+    global this_version
+    newarchive = "Evecon\\data\\Update\\Evecon-" + this_version[1] + ".zip"
+    szip.create_archive(newarchive, [])
 
 
 def upload():
