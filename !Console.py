@@ -97,7 +97,7 @@ def nircmd(preset="Man", a=None, b=None, c=None, d=None, every=False):
         time.sleep(0.25)
         os.chdir(dir_tmp)
 
-    def max():
+    def maxi():
         dir_tmp = os.getcwd()
         os.chdir("Programs\\nircmd")
         subprocess.call(["nircmdc", "win", "max", "process", "py.exe"])
@@ -127,8 +127,8 @@ def nircmd(preset="Man", a=None, b=None, c=None, d=None, every=False):
             setsize(a, b)
     elif preset == "volume":
         volume(a)
-    elif preset == "max":
-        max()
+    elif preset == "maxi":
+        maxi()
     elif preset == "foreground":
         foreground()
 
@@ -702,6 +702,7 @@ title("Loading Arguments")
 def Evecons(findversions=0):
     global Evecons_multi, Evecons_mainstick, Evecons_mainstick_path, Evecons_mainstick_pathkey, Evecons_PC, Evecons_PC_path, Evecons_ministick, Evecons_ministick_path, Evecons_ministick_pathkey
     global version_PC, version_MiniPC, version_BigPC, version_MainStick, version_MiniStick
+    global mainstickversion, ministickversion, PCversion
 
     Eveconss = []
     Evecons_multi = 0
@@ -709,6 +710,11 @@ def Evecons(findversions=0):
     Evecons_mainstick_path = 0
     Evecons_mainstick_pathkey = 0
     Evecons_PC = 0
+
+    mainstickversion = []
+    ministickversion = []
+    PCversion = []
+
     if os.path.isfile("C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\data\\Info\\exist"):
         Evecons_PC_path = "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon"
     elif  os.path.isfile(""):   # BigPC noch einfügen
@@ -732,7 +738,7 @@ def Evecons(findversions=0):
 
                 def mainstick_version():
                     file_mainstick_version_raw = open("%s:\\Evecon\\data\\Info\\version" % Evecons_mainstick_pathkey, "r")
-                    mainstickversion = []
+
                     for x in file_mainstick_version_raw:
                         mainstickversion.append(x.strip())
                     file_mainstick_version_raw.close()
@@ -749,7 +755,7 @@ def Evecons(findversions=0):
 
                 def ministick_version():
                     file_ministick_version_raw = open("%s:\\Evecon\\data\\Info\\version" % Evecons_ministick_pathkey, "r")
-                    ministickversion = []
+
                     for x in file_ministick_version_raw:
                         ministickversion.append(x.strip())
                     file_ministick_version_raw.close()
@@ -765,9 +771,9 @@ def Evecons(findversions=0):
 
             def pc_version():
                 file_pc_version_raw = open("C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\data\\Info\\version", "r")
-                pcversion = []
+
                 for x in file_pc_version_raw:
-                    pcversion.append(x.strip())
+                    PCversion.append(x.strip())
                 file_pc_version_raw.close()
 
             if findversions == 1:
@@ -780,9 +786,8 @@ def Evecons(findversions=0):
 
             def pc_version():
                 file_pc_version_raw = open("", "r") # BigPC einfügen
-                pcversion = []
                 for x in file_pc_version_raw:
-                    pcversion.append(x.strip())
+                    PCversion.append(x.strip())
                 file_pc_version_raw.close()
 
             if findversions == 1:
@@ -796,10 +801,9 @@ def Evecons(findversions=0):
 
             def pc_version():
                 file_pc_version_raw = open("C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\data\\Info\\version", "r")
-                pcversion = []
                 for x in file_pc_version_raw:
-                    pcversion.append(x.strip())
-                    file_pc_version_raw.close()
+                    PCversion.append(x.strip())
+                file_pc_version_raw.close()
 
             if findversions == 1:
                 pc_version()
@@ -811,9 +815,8 @@ def Evecons(findversions=0):
 
             def pc_version():
                 file_pc_version_raw = open("", "r")
-                pcversion = []
                 for x in file_pc_version_raw:
-                    pcversion.append(x.strip())
+                    PCversion.append(x.strip())
                     file_pc_version_raw.close()
 
             if findversions == 1:
@@ -837,6 +840,7 @@ def update():
     version()
     global this_version
     Evecons(1)
+    global mainstickversion, ministickversion, PCversion
     global Evecons_multi, Evecons_mainstick, Evecons_PC, Evecons_ministick
     if Evecons_multi == 0:
         if Evecons_PC == 1:
@@ -1041,7 +1045,7 @@ def games(preset="Man"):
         restart = True
 
 
-        class Titleclass(threadthreading.Thread):
+        class Titleclass(threading.Thread):
 
             def run(self):
                 global Title_run, nowtime, beginn, score, moves, Things
@@ -1959,7 +1963,7 @@ def Timeprint():
 
     if user_input.lower() == "r":
 
-        nircmd("max")
+        nircmd("maxi")
 
         space = "\t" * 24
 
