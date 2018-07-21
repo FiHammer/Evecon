@@ -13,6 +13,8 @@ import webbrowser
 import shutil
 import EveconExceptions
 import psutil
+import random
+
 #import win32api
 #import win32gui
 #import win32con
@@ -1679,10 +1681,28 @@ def Music(preset="Man"):
         musicwaitvol = False
         musicwaitvolp = False
         musicwaitseek = False
+        musicwaitSpl = False
         musicback = False
         music_time = 0
         musicvolume = 0.5
         musicvolumep = 1
+
+
+        splRUN = False
+        splStart = False
+        splTimeLeft = 0
+        splTimeLeftStart = 0
+        splRounds = 0
+        splPlaytime = 0
+        splPlaytimeStart = 0
+        splRoundOver = True
+
+        splWR = False
+        splWRthis = Splatoonweapon(False)
+        splWRnext = Splatoonweapon(False)
+
+        while splWRthis == splWRnext:
+            splWRnext = Splatoonweapon(False)
 
 
         title("Musicplayer", " ", "Loading Music")
@@ -1695,6 +1715,8 @@ def Music(preset="Man"):
         class MusicThread(threading.Thread):
             def run(self):
                 global musicplayer, musicplaying, thismusicnumber, lastmusicnumber, nextmusicnumber, musicpause, musicwait, musicwaitvolp, musicvolume, musicvolumep, musicback, musicwaitseek, music_time
+                nonlocal splRUN, splTimeLeft, splTimeLeftStart, splRounds, splPlaytime, splPlaytimeStart, splWR, splWRthis, splWRnext, splRoundOver, musicwaitSpl
+
                 while musicrun:
 
                     if musiclistname[thismusicnumber][len(musiclistname[thismusicnumber]) - 3] == "m" and \
@@ -1770,6 +1792,50 @@ def Music(preset="Man"):
                         elif musicwaitseek:
                             print("Jump to (in sec) (DO NOT WORK!):")
 
+                        elif musicwaitSpl:
+
+                            splTimeLeft = 180 - round(time.time() - splTimeLeftStart)
+
+                            if splStart:
+                                splPlaytime = round(time.time() - splPlaytimeStart)
+                            else:
+                                splPlaytime = 0
+
+                            if splRoundOver:
+                                splTimeLeftFor = "No Round Started"
+                            else:
+                                if (splTimeLeft % 60) < 10:
+                                    splTimeLeftFor = "%s:%s%s" % (splTimeLeft // 60, 0, splTimeLeft % 60)
+                                else:
+                                    splTimeLeftFor = "%s:%s" % (splTimeLeft // 60, splTimeLeft % 60)
+
+                            if (splPlaytime % 60) < 10:
+                                splPlaytimeFor = "%s:%s%s" % (splPlaytime // 60, 0, splPlaytime % 60)
+                            else:
+                                splPlaytimeFor = "%s:%s" % (splPlaytime // 60, splPlaytime % 60)
+
+                            if splTimeLeft == 0:
+                                splRoundOver = True
+
+                            print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL), Mute (MUTE), Unmute (UNMU)")
+
+                            print("\nSplatoon 2\n")
+                            print("Time:\t\t %s" % splTimeLeftFor)
+                            print("Round:\t\t %s" % splRounds)
+                            print("Playtime:\t %s" % splPlaytimeFor)
+                            if splWR:
+                                print("\nWeapon Randomizer:")
+                                print("This Round:\t %s" % splWRthis)
+                                print("Next Round:\t %s" % splWRnext)
+
+                            if splWR:
+                                print("\nWeapon Randomizer (WR), Reroll Next Weapon(REROLL)")
+                            else:
+                                print("\nWeapon Randomizer (WR)")
+
+                            if splRoundOver:
+                                print("\nStart Next Round?")
+
                         time.sleep(0.25)
                         for x in range(5):
                             if musicplayer.time == 0:
@@ -1780,6 +1846,7 @@ def Music(preset="Man"):
                         while musicpause:
                             cls()
                             music_time_wait = time.time()
+                            splPlaytimeWait = time.time()
                             title("OLD", "OLD", "Paused")
                             print("Musicplayer\n\nPaused:")
                             print(musiclistname[thismusicnumber])
@@ -1805,10 +1872,43 @@ def Music(preset="Man"):
                                 round(musiclist[thismusicnumber].duration) % 60))
 
                             print("\n\nPlay (PLAY), Stop (STOP)")
+
+
+                            splTimeLeftFor = "No Round Started"
+
+
+                            if (splPlaytime % 60) < 10:
+                                splPlaytimeFor = "%s:%s%s" % (splPlaytime // 60, 0, splPlaytime % 60)
+                            else:
+                                splPlaytimeFor = "%s:%s" % (splPlaytime // 60, splPlaytime % 60)
+
+                            splRoundOver = True
+
+                            print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL), Mute (MUTE), Unmute (UNMU)")
+
+                            print("\nSplatoon 2\n")
+                            print("Time:\t\t %s" % splTimeLeftFor)
+                            print("Round:\t\t %s" % splRounds)
+                            print("Playtime:\t %s" % splPlaytimeFor)
+                            if splWR:
+                                print("\nWeapon Randomizer:")
+                                print("This Round:\t %s" % splWRthis)
+                                print("Next Round:\t %s" % splWRnext)
+
+                            if splWR:
+                                print("\nWeapon Randomizer (WR), Reroll Next Weapon(REROLL)")
+                            else:
+                                print("\nWeapon Randomizer (WR)")
+
+                            if splRoundOver:
+                                print("\nStart Next Round?")
+
+
                             while musicpause:
                                 time.sleep(0.25)
                             title("OLD", "OLD", "Now Playing:")
                             music_time += time.time() - music_time_wait
+                            splPlaytimeStart += time.time() - splPlaytimeWait
 
                     musicplayer.next()
                     if not musicback:
@@ -1829,10 +1929,33 @@ def Music(preset="Man"):
             musiccon_user_input = input()
 
             if musiccon_user_input.lower() == "":
-                musicplaying = False
-                if musicpause:
-                    musicpause = False
-                    musicplayer.play()
+                if not splRUN:
+                    musicplaying = False
+                    if musicpause:
+                        musicpause = False
+                        musicplayer.play()
+                else:
+                    if splRoundOver:
+                        if not splStart:
+                            splPlaytimeStart = time.time()
+                        splTimeLeftStart = time.time()
+                        splRounds += 1
+
+                        if splStart:
+                            splWRthisTMP = splWRthis
+                            splWRthis = splWRnext
+                            splWRnext = Splatoonweapon(False)
+
+                            while splWRthisTMP == splWRnext or splWRthis == splWRnext:
+                                splWRnext = Splatoonweapon(False)
+
+                        splRoundOver = False
+                        splStart = True
+                    else:
+                        musicplaying = False
+                        if musicpause:
+                            musicpause = False
+                            musicplayer.play()
 
             elif musiccon_user_input.lower() == "play" or musiccon_user_input.lower() == "pau" or musiccon_user_input.lower() == "p":
                 if musicpause:
@@ -1845,6 +1968,7 @@ def Music(preset="Man"):
             elif musiccon_user_input.lower() == "stop" or musiccon_user_input.lower() == "exit":
                 musicrun = False
                 musicplaying = False
+                musicpause = False
 
             elif musiccon_user_input.lower() == "next" or musiccon_user_input.lower() == "n":
                 musicplaying = False
@@ -1867,6 +1991,8 @@ def Music(preset="Man"):
                 nircmd("volume", musicvolume)
                 musicwait = False
                 musicwaitvol = False
+                if splRUN:
+                    musicwait = True
 
             elif musiccon_user_input.lower() == "mute":
                 nircmd("volume", 0)
@@ -1883,6 +2009,8 @@ def Music(preset="Man"):
                 musicplayer.volume = musicvolumep
                 musicwait = False
                 musicwaitvolp = False
+                if splRUN:
+                    musicwait = True
 
             elif musiccon_user_input.lower() == "mutep":
                 musicvolumep = musicplayer.volume
@@ -1910,8 +2038,54 @@ def Music(preset="Man"):
                     music_time = time.time() - musicseek
                 musicwait = False
                 musicwaitseek = False
-            elif musiccon_user_input == "x":
+                if splRUN:
+                    musicwait = True
+
+            elif musiccon_user_input.lower() == "debugme":
                 print(musicrun, musicwait, musicpause, musicplaying, playerthread.is_alive())
+
+
+            elif musiccon_user_input.lower() == "spl":
+                if not splRUN:
+                    splRUN = True
+                    musicwait = True
+                    musicwaitSpl = True
+                else:
+                    splRUN = False
+                    musicwait = False
+                    musicwaitSpl = False
+            elif musiccon_user_input.lower() == "wr":
+                if splRUN:
+                    if splWR:
+                        splWR = False
+                    else:
+                        splWR = True
+            elif musiccon_user_input.lower() == "reroll" or musiccon_user_input.lower() == "rerol" or musiccon_user_input.lower() == "rero":
+                if splRUN:
+                    splWRnextTMP = splWRnext
+                    splWRnext = Splatoonweapon(False)
+
+                    while splWRthis == splWRnext or splWRnextTMP == splWRnext:
+                        splWRnext = Splatoonweapon(False)
+            else:
+                if splRUN:
+                    if splRoundOver:
+                        if not splStart:
+                            splPlaytimeStart = time.time()
+                        splTimeLeftStart = time.time()
+                        splRounds += 1
+
+                        if splStart:
+                            splWRthisTMP = splWRthis
+                            splWRthis = splWRnext
+                            splWRnext = Splatoonweapon(False)
+
+                            while splWRthisTMP == splWRnext or splWRthis == splWRnext:
+                                splWRnext = Splatoonweapon(False)
+
+                        splRoundOver = False
+                        splStart = True
+
     mu_dir = os.getcwd()
 
     music_playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing"]
@@ -3704,18 +3878,147 @@ def passwordmanager():
         for xl in pwlist:
             if user_input_p == xl.rstrip("\n"):
                 pw(user_input_p)
-
-
-
-
-
-
     cls()
 
     print("Password:\n")
 
     if input() == "Luis":
         start()
+
+
+def Splatoonweapon(printweapon=False):
+    weapons = ["Disperser", "Disperser Neo", "Junior-Klechser", "Junior-Klechser Plus", "Fein-Disperser",
+               "Fein-Disperser Neo", "Airbrush MG", "Airbrush RG", "Klechser", "Tentatek-Klechser",
+               "Heldenwaffe Replik (Klechser)", "Okto-Klechser Replik", ".52 Gallon", ".52 Gallon Deko", "N-ZAP85",
+               "N-ZAP89", "Profi-Klechser", "Focus-Profi-Kleckser", ".96 Gallon", ".96 Gallon Deko", "Platscher",
+               "Platscher SE", "Luna-Blaster", "Luna-Blaster Neo", "Blaster", "Blaster SE", "Helden-Blaster Replik",
+               "Fern-Blaster", "Fern-Blaster SE", "Kontra-Blaster", "Kontra-Blaster Neo", "Turbo-Blaster",
+               "Turbo-Blaster Deko", "Turbo-Blaster Plus", "Turbo-Blaster Plus Deko", "L3 Tintenwerfer",
+               "L3 Tintenwerfer D", "S3 Tintenwerfer", "S3 Tintenwerfer D", "L3 Tintenwerfer", "Quetscher",
+               "Quetscher Fol", "Karbonroller", "Karbonroller Deko", "Klecksroller", "Medusa-Klecksroller",
+               "Helden-Roller Replik", "Dynaroller", "Dynaroller Tesla", "Flex-Roller", "Flex-Roller Fol", "Quasto",
+               "Quasto Fresco", "Kalligraf", "Kalligraf Fresco", "Helden-Pinsel Replik", "Sepiator Alpha",
+               "Sepiator Beta", "Klecks-Konzentrator", "Rilax-Klecks-Konzentrator", "Helden-Konzentrator Replik",
+               "Ziel-Konzentrator", "Rilax-Ziel-Konzentrator", "E-liter 4K", "E-liter 4K SE", "Ziel-E-liter 4K",
+               "Ziel-E-liter 4K SE", "Klotzer 14-A", "Klotzer 14-B", "T-Tuber", "T-Tuber SE", "Schwapper",
+               "Schwapper Deko", "Helden-Schwapper Replik", "3R-Schwapper", "3R-Schwapper Fresco", "Knall-Schwapper",
+               "Trommel-Schwapper", "Trommel-Schwapper Neo", "Klecks-Splatling", "Sagitron-Klecks-Splatling",
+               "Splatling", "Splatling Deko", "Helden-Splatling Replik", "Hydrant", "Kuli-Splatling", "Sprenkler",
+               "Sprenkler Fresco", "Klecks-Doppler", "Enperry-Klecks-Doppler", "Helden-Doppler Replik", "Kelvin 525",
+               "Kelvin 525 Deko", "Dual-Platscher", "Dual-Platscher SE", "Quadhopper Noir", "Parapulviator",
+               "Sorella-Parapulviator", "Helden-Pulviator Replik", "Camp-Pulviator", "Sorella-Camp-Pulviator",
+               "UnderCover", "Sorella-UnderCover"]
+
+    number = random.randint(0, len(weapons)-1)
+    if printweapon:
+        print("Your Weapon:\n%s" % weapons[number])
+
+    return weapons[number]
+
+def Splatoon():
+    # Kill counter?
+    splRUN = True
+    splStart = False
+    splTimeLeft = 0
+    splTimeLeftStart = 0
+    splRounds = 0
+    splPlaytime = 0
+    splPlaytimeStart = 0
+    splRoundOver = True
+
+    splWR = False
+    splWRthis = Splatoonweapon(False)
+    splWRnext = Splatoonweapon(False)
+
+    while splWRthis == splWRnext:
+        splWRnext = Splatoonweapon(False)
+
+
+    class Printer(threading.Thread):
+        def run(self):
+            nonlocal splRUN, splTimeLeft, splTimeLeftStart, splRounds, splPlaytime, splPlaytimeStart, splWR, splWRthis, splWRnext, splRoundOver
+            while splRUN:
+                splTimeLeft = 180 - round(time.time() - splTimeLeftStart)
+
+                if splStart:
+                    splPlaytime = round(time.time() - splPlaytimeStart)
+                else:
+                    splPlaytime = 0
+
+                if splRoundOver:
+                    splTimeLeftFor = "No Round Started"
+                else:
+                    if (splTimeLeft % 60) < 10:
+                        splTimeLeftFor = "%s:%s%s" % (splTimeLeft // 60, 0, splTimeLeft % 60)
+                    else:
+                        splTimeLeftFor = "%s:%s" % (splTimeLeft // 60, splTimeLeft % 60)
+
+                if (splPlaytime % 60) < 10:
+                    splPlaytimeFor = "%s:%s%s" % (splPlaytime // 60, 0, splPlaytime % 60)
+                else:
+                    splPlaytimeFor = "%s:%s" % (splPlaytime // 60, splPlaytime % 60)
+
+                if splTimeLeft == 0:
+                    splRoundOver = True
+
+                cls()
+                print("Splatoon 2\n")
+                print("Time:\t\t %s" % splTimeLeftFor)
+                print("Round:\t\t %s" % splRounds)
+                print("Playtime:\t %s" % splPlaytimeFor)
+                if splWR:
+                    print("\nWeapon Randomizer:")
+                    print("This Round:\t %s" % splWRthis)
+                    print("Next Round:\t %s" % splWRnext)
+
+                if splWR:
+                    print("\nWeapon Randomizer (WR), Reroll Next Weapon(REROLL)")
+                else:
+                    print("\nWeapon Randomizer (WR)")
+
+                if splRoundOver:
+                    print("\nStart Next Round?")
+
+                time.sleep(1)
+
+    SplPrinter = Printer()
+    SplPrinter.start()
+
+    while splRUN:
+        spl_user_input = input()
+
+        if spl_user_input.lower() == "wr":
+            if splWR:
+                splWR = False
+            else:
+                splWR = True
+        elif spl_user_input.lower() == "exit" or spl_user_input.lower() == "stop":
+            splRUN = False
+        elif spl_user_input.lower() == "reroll" or spl_user_input.lower() == "rero" or spl_user_input.lower() == "rerol" or spl_user_input.lower() == "re":
+            splWRnextTMP = splWRnext
+            splWRnext = Splatoonweapon(False)
+
+            while splWRthis == splWRnext or splWRnextTMP == splWRnext:
+                splWRnext = Splatoonweapon(False)
+        else:
+            if splRoundOver:
+                if not splStart:
+                    splPlaytimeStart = time.time()
+                splTimeLeftStart = time.time()
+                splRounds += 1
+
+                if splStart:
+                    splWRthisTMP = splWRthis
+                    splWRthis = splWRnext
+                    splWRnext = Splatoonweapon(False)
+
+                    while splWRthisTMP == splWRnext or splWRthis == splWRnext:
+                        splWRnext = Splatoonweapon(False)
+
+                splRoundOver = False
+                splStart = True
+
+
 
 def main():
     version()
