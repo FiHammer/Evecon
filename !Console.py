@@ -9,9 +9,10 @@ import socket
 import threading
 import subprocess
 import webbrowser
-from IPython.core.autocall import ExitAutocall
+#from IPython.core.autocall import ExitAutocall
 import shutil
 import EveconExceptions
+import psutil
 #import win32api
 #import win32gui
 #import win32con
@@ -239,6 +240,7 @@ class MegacmdC:
                 os.chdir(dir_tmp)
 
                 cls()
+                print("Started Server!")
         else:
             raise EveconExceptions.MegaIsRunning(False)
 
@@ -251,6 +253,7 @@ class MegacmdC:
                 self.logout()
                 self.MegacmdServer.kill()
                 self.Running = False
+            print("Stopped Server!")
         else:
             raise EveconExceptions.MegaNotRunning
     def login(self, email, pw):
@@ -259,6 +262,7 @@ class MegacmdC:
             self.email = email
             self.pw = pw
             self.__start__(["login", email, pw])
+            print("Logged In!")
         else:
             raise EveconExceptions.MegaLoggedIn
     def logout(self):
@@ -267,43 +271,55 @@ class MegacmdC:
             self.email = None
             self.pw = None
             self.__start__(["logout"])
+            print("Logged Out!")
         else:
             raise EveconExceptions.MegaNotLoggedIn("logout")
-    def upload(self, localfilesx, remotepath): # put
+    def upload(self, localfilesx, remotepath, Eveconpath=True): # put \test.txt /Evecon
         if self.LoggedIn:
             localfiles = []
-            if type(localfilesx) == list:
-                for x in range(len(localfilesx)):
-                    if localfilesx[x][0] == "E" and localfilesx[x][1] == "v" and localfilesx[x][2] == "e" and localfilesx[x][
-                        3] == "c" and localfilesx[x][4] == "o" and localfilesx[x][5] == "n":
-
-                        localfiles.append(os.getcwd() + localfilesx[x])
-                    else:
-                        localfiles.append(localfilesx[x])
+            if Eveconpath:
+                if type(localfilesx) == list:
+                    for x in range(len(localfilesx)):
+                        localfiles.append(os.getcwd() + "\\" + localfilesx[x])
+                else:
+                    localfiles = [os.getcwd() + "\\" + localfilesx]
             else:
-                if localfilesx[0] == "E" and localfilesx[1] == "v" and localfilesx[2] == "e" and localfilesx[3] == "c" and localfilesx[4] == "o" and localfilesx[5] == "n":
-                    localfiles = [os.getcwd() + localfilesx]
+                localfiles = [localfilesx]
 
-            self.__start__(["put"] + localfiles + list(remotepath))
+            self.__start__(["put"] + localfiles + [remotepath])
+            print(["put"] + localfiles + [remotepath])
+            print("Upload successful!")
         else:
             raise EveconExceptions.MegaNotLoggedIn("upload")
-    def download(self, remotepath, localpathx): # get ! remotepath could also be a normal download link
-        if localpathx[0] == "E" and localpathx[1] == "v" and localpathx[2] == "e" and localpathx[3] == "c" and \
-                localpathx[4] == "o" and localpathx[5] == "n":
-            localpath = [os.getcwd() + localpathx]
+    def download(self, remotepath, localpathx, Eveconpath = True): # get ! remotepath could also be a normal download link
+        if Eveconpath:
+            localpath = [os.getcwd() + "\\" + localpathx]
         else:
             localpath = [localpathx]
-        self.__start__(["get"] + list(remotepath) + localpath)
+
+        self.__start__(["get"] + [remotepath] + localpath)
+        print("Download successful!")
     def rm(self, remotepath): # rm (removes folder, file)
-        self.__start__(["rm"] + list(remotepath))
+        self.__start__(["rm"] + [remotepath])
     def mkdir(self, remotepath): # mkdir
-        self.__start__(["mkdir"] + list(remotepath))
+        self.__start__(["mkdir"] + [remotepath])
     def cd(self, remotepath): # cd
-        self.__start__(["mkdir"] + list(remotepath))
-    def stop(self):
+        self.__start__(["mkdir"] + [remotepath])
+    def exit(self):
         self.logout()
         self.stopServer()
-
+    def debug_reset(self):
+        self.LoggedIn = False
+        self.email = None
+        self.pw = None
+        if self.Running:
+            self.stopServer()
+        else:
+            self.Running = False
+        self.MegacmdServer = False
+    def debug_start(self):
+        self.LoggedIn = True
+        self.Running = True
 
 Megacmd = MegacmdC("Programs\\MEGAcmd")
 
@@ -604,7 +620,6 @@ def Tools(preset=None, wait=0):
 def np(preset="Man"):
     title("Loading Notepad")
 
-    import psutil
     def shota():
         file_shota_raw = open("data\\Notepad\\Notiespez\\NotieFoxishota.txt", "r")
         file_shota = []

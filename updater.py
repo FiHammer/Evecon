@@ -7,8 +7,7 @@ import datetime
 import socket
 import subprocess
 import shutil
-import threading
-from IPython.core.autocall import ExitAutocall
+#from IPython.core.autocall import ExitAutocall
 import EveconExceptions
 import psutil
 
