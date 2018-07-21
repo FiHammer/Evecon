@@ -930,7 +930,7 @@ def zipme():
 
 def upload():
     # TODO-fast: Upload
-    # aktuelles Evecon in eine Zipfile komprimieren! (7-Zip)
+    # aktuelles Evecon in eine Zipfile komprimieren! (7-Zip) (FIN)
     # dazu gehört: '!Console', 'dev' bzw darin NUR *.py und 'dll', 'data\Info\Changelog.txt + version'
     # diese zip-File dann auf Mega.nz mit dem Konto -------@tutanota.com und PW -------- hochladen.
     # bzw. auf Mega einige Ordner erstellen UND die aktuelle Versions-Datei ersetzen! (die normale 'version')

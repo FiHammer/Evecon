@@ -197,6 +197,7 @@ class szipC:
 
 szip = szipC("Programs\\7z")
 
+
 def title_time_now():
     return datetime.datetime.now().strftime("%H:%M:%S")
 
