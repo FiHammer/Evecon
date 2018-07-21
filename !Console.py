@@ -200,6 +200,114 @@ class szipC:
 szip = szipC("Programs\\7z")
 
 
+class MegacmdC:
+    def __init__(self, path):
+        self.path = path
+        self.MegacmdServer = False
+        self.Running = False
+        self.LoggedIn = False
+        self.email = None
+        self.pw = None
+    def __start__(self, command):
+        if self.Running:
+            dir_tmp = os.getcwd()
+            os.chdir(self.path)
+            subprocess.call(["MEGAclient.exe"] + list(command))
+            time.sleep(0.25)
+            os.chdir(dir_tmp)
+        else:
+            self.startServer()
+            time.sleep(0.25)
+            dir_tmp = os.getcwd()
+            os.chdir(self.path)
+            subprocess.call(["MEGAclient.exe"] + list(command))
+            time.sleep(0.25)
+            os.chdir(dir_tmp)
+    def startServer(self):
+        if not self.Running:
+            if "MEGAcmdServer.exe" in (p.name() for p in psutil.process_iter()):
+                raise EveconExceptions.MegaIsRunning(True)
+            else:
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+                dir_tmp = os.getcwd()
+                os.chdir(self.path)
+                self.MegacmdServer = subprocess.Popen(["MEGAcmdServer.exe"], startupinfo=startupinfo, shell=False)
+                self.Running = True
+                time.sleep(1)
+                os.chdir(dir_tmp)
+
+                cls()
+        else:
+            raise EveconExceptions.MegaIsRunning(False)
+
+    def stopServer(self):
+        if self.Running:
+            if not self.LoggedIn:
+                self.MegacmdServer.kill()
+                self.Running = False
+            else:
+                self.logout()
+                self.MegacmdServer.kill()
+                self.Running = False
+        else:
+            raise EveconExceptions.MegaNotRunning
+    def login(self, email, pw):
+        if not self.LoggedIn:
+            self.LoggedIn = True
+            self.email = email
+            self.pw = pw
+            self.__start__(["login", email, pw])
+        else:
+            raise EveconExceptions.MegaLoggedIn
+    def logout(self):
+        if self.LoggedIn:
+            self.LoggedIn = False
+            self.email = None
+            self.pw = None
+            self.__start__(["logout"])
+        else:
+            raise EveconExceptions.MegaNotLoggedIn("logout")
+    def upload(self, localfilesx, remotepath): # put
+        if self.LoggedIn:
+            localfiles = []
+            if type(localfilesx) == list:
+                for x in range(len(localfilesx)):
+                    if localfilesx[x][0] == "E" and localfilesx[x][1] == "v" and localfilesx[x][2] == "e" and localfilesx[x][
+                        3] == "c" and localfilesx[x][4] == "o" and localfilesx[x][5] == "n":
+
+                        localfiles.append(os.getcwd() + localfilesx[x])
+                    else:
+                        localfiles.append(localfilesx[x])
+            else:
+                if localfilesx[0] == "E" and localfilesx[1] == "v" and localfilesx[2] == "e" and localfilesx[3] == "c" and localfilesx[4] == "o" and localfilesx[5] == "n":
+                    localfiles = [os.getcwd() + localfilesx]
+
+            self.__start__(["put"] + localfiles + list(remotepath))
+        else:
+            raise EveconExceptions.MegaNotLoggedIn("upload")
+    def download(self, remotepath, localpathx): # get ! remotepath could also be a normal download link
+        if localpathx[0] == "E" and localpathx[1] == "v" and localpathx[2] == "e" and localpathx[3] == "c" and \
+                localpathx[4] == "o" and localpathx[5] == "n":
+            localpath = [os.getcwd() + localpathx]
+        else:
+            localpath = [localpathx]
+        self.__start__(["get"] + list(remotepath) + localpath)
+    def rm(self, remotepath): # rm (removes folder, file)
+        self.__start__(["rm"] + list(remotepath))
+    def mkdir(self, remotepath): # mkdir
+        self.__start__(["mkdir"] + list(remotepath))
+    def cd(self, remotepath): # cd
+        self.__start__(["mkdir"] + list(remotepath))
+    def stop(self):
+        self.logout()
+        self.stopServer()
+
+
+Megacmd = MegacmdC("Programs\\MEGAcmd")
+
+
 def title_time_now():
     return datetime.datetime.now().strftime("%H:%M:%S")
 

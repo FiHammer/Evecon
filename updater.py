@@ -154,7 +154,24 @@ class MegacmdC:
         self.path = path
         self.MegacmdServer = False
         self.Running = False
-
+        self.LoggedIn = False
+        self.email = None
+        self.pw = None
+    def __start__(self, command):
+        if self.Running:
+            dir_tmp = os.getcwd()
+            os.chdir(self.path)
+            subprocess.call(["MEGAclient.exe"] + list(command))
+            time.sleep(0.25)
+            os.chdir(dir_tmp)
+        else:
+            self.startServer()
+            time.sleep(0.25)
+            dir_tmp = os.getcwd()
+            os.chdir(self.path)
+            subprocess.call(["MEGAclient.exe"] + list(command))
+            time.sleep(0.25)
+            os.chdir(dir_tmp)
     def startServer(self):
         if not self.Running:
             if "MEGAcmdServer.exe" in (p.name() for p in psutil.process_iter()):
@@ -171,30 +188,86 @@ class MegacmdC:
                 os.chdir(dir_tmp)
 
                 cls()
+                print("Started Server!")
         else:
             raise EveconExceptions.MegaIsRunning(False)
 
     def stopServer(self):
         if self.Running:
-            self.MegacmdServer.kill()
-            self.Running = False
+            if not self.LoggedIn:
+                self.MegacmdServer.kill()
+                self.Running = False
+            else:
+                self.logout()
+                self.MegacmdServer.kill()
+                self.Running = False
+            print("Stopped Server!")
         else:
             raise EveconExceptions.MegaNotRunning
     def login(self, email, pw):
-        pass
+        if not self.LoggedIn:
+            self.LoggedIn = True
+            self.email = email
+            self.pw = pw
+            self.__start__(["login", email, pw])
+            print("Logged In!")
+        else:
+            raise EveconExceptions.MegaLoggedIn
     def logout(self):
-        pass
-    def upload(self): # put
-        pass
-    def download(self): # get
-        pass
-    def rm(self): # rm (removes folder, file)
-        pass
-    def mkdir(self): # mkdir
-        pass
-    def cd(self): # cd
-        pass
+        if self.LoggedIn:
+            self.LoggedIn = False
+            self.email = None
+            self.pw = None
+            self.__start__(["logout"])
+            print("Logged Out!")
+        else:
+            raise EveconExceptions.MegaNotLoggedIn("logout")
+    def upload(self, localfilesx, remotepath, Eveconpath=True): # put \test.txt /Evecon
+        if self.LoggedIn:
+            localfiles = []
+            if Eveconpath:
+                if type(localfilesx) == list:
+                    for x in range(len(localfilesx)):
+                        localfiles.append(os.getcwd() + "\\" + localfilesx[x])
+                else:
+                    localfiles = [os.getcwd() + "\\" + localfilesx]
+            else:
+                localfiles = [localfilesx]
 
+            self.__start__(["put"] + localfiles + [remotepath])
+            print(["put"] + localfiles + [remotepath])
+            print("Upload successful!")
+        else:
+            raise EveconExceptions.MegaNotLoggedIn("upload")
+    def download(self, remotepath, localpathx, Eveconpath = True): # get ! remotepath could also be a normal download link
+        if Eveconpath:
+            localpath = [os.getcwd() + "\\" + localpathx]
+        else:
+            localpath = [localpathx]
+
+        self.__start__(["get"] + [remotepath] + localpath)
+        print("Download successful!")
+    def rm(self, remotepath): # rm (removes folder, file)
+        self.__start__(["rm"] + [remotepath])
+    def mkdir(self, remotepath): # mkdir
+        self.__start__(["mkdir"] + [remotepath])
+    def cd(self, remotepath): # cd
+        self.__start__(["mkdir"] + [remotepath])
+    def exit(self):
+        self.logout()
+        self.stopServer()
+    def debug_reset(self):
+        self.LoggedIn = False
+        self.email = None
+        self.pw = None
+        if self.Running:
+            self.stopServer()
+        else:
+            self.Running = False
+        self.MegacmdServer = False
+    def debug_start(self):
+        self.LoggedIn = True
+        self.Running = True
 
 Megacmd = MegacmdC("Programs\\MEGAcmd")
 
@@ -989,23 +1062,37 @@ def zipme():
 
     if os.path.isfile(newarchive):
         print("Success")
-        return True
     else:
         print("ERROR")
-        return False
+        raise EveconExceptions.UpdateZip
 
 
 def upload():
-    # TODO-fast: Upload (3/4)
+    #
     # aktuelles Evecon in eine Zipfile komprimieren! (7-Zip) (FIN)
     # dazu gehört: '!Console', 'dev' bzw darin NUR *.py und 'dll', 'data\Info\Changelog.txt + version' (FIN)
-    # diese zip-File dann auf Mega.nz mit dem Konto -------@tutanota.com und PW -------- hochladen.
+    # diese zip-File dann auf Mega.nz mit dem Konto -------@*.com und PW -------- hochladen.
     # bzw. auf Mega einige Ordner erstellen UND die aktuelle Versions-Datei ersetzen! (die normale 'version')
 
-    succ = zipme()
+    zipme()
 
-    if succ:
-        pass
+    version()
+    global this_version
+
+    logindata = open("data\\Info\\updater_megalogin", "r")
+    email = logindata.readline().rstrip()
+    pw = logindata.readline().rstrip()
+    logindata.close()
+
+    Megacmd.login(email, pw)
+    Megacmd.rm("/Evecon/version")
+    Megacmd.upload("\\data\\Info\\version", "/Evecon")
+    Megacmd.mkdir("/Evecon/Versions/%s" % this_version[1])
+    Megacmd.upload("data\\Update\\Evecon-" + this_version[1] + ".zip", "/Evecon/Versions/%s" % this_version[1])
+    Megacmd.exit()
+    time.sleep(0.5)
+    cls()
+    os.remove("data\\Update\\Evecon-" + this_version[1] + ".zip")
 
 
 def upgrade():
@@ -1083,6 +1170,8 @@ def upgrade():
         shutil.rmtree("!Evecon\\!Console")
         shutil.copytree("!Evecon\\dev\\dist\\!Console", "!Evecon\\!Console")
         shutil.copy("!Evecon\\dev\\dll\\avbin64.dll", "!Evecon\\!Console")
+
+        upload()
 
     # 2. Changelog und neue version abfragen mit alte zeigen (version) 3. backup 4. os.system("pyinstaller x") 5. kopieren 6. neustart wenn mit arg -re mit !Evecon.bat
     else:

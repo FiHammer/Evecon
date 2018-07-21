@@ -1,13 +1,5 @@
+# All
 
-# !Console
-
-
-
-
-
-
-
-# Updater
 
 
 class MegaIsRunning(Exception):
@@ -21,3 +13,30 @@ class MegaNotRunning(Exception):
     def __init__(self):
         print("The MEGAcmdServer is not running!")
 
+class MegaLoggedIn(Exception):
+    def __init__(self):
+        print("You are already logged in!")
+
+class MegaNotLoggedIn(Exception):
+    def __init__(self, details):
+        if details == "upload":
+            print("You are NOT logged in, so you can not upload files!")
+        elif details == "logout":
+            print("You are already logged out!")
+
+
+# !Console
+
+
+
+
+
+
+
+# Updater
+
+
+
+class UpdateZip(Exception):
+    def __init__(self):
+        print("zipping was not succsessful")
