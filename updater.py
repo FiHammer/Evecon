@@ -925,7 +925,8 @@ def zipme():
     version()
     global this_version
     newarchive = "Evecon\\data\\Update\\Evecon-" + this_version[1] + ".zip"
-    szip.create_archive(newarchive, [])
+    allfiles = []
+    szip.create_archive(newarchive, [allfiles])
 
 
 def upload():
@@ -937,7 +938,7 @@ def upload():
 
     zipme()
 
-    pass
+
 
 def upgrade():
     cls()
