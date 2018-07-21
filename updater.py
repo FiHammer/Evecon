@@ -234,7 +234,6 @@ class MegacmdC:
                 localfiles = [localfilesx]
 
             self.__start__(["put"] + localfiles + [remotepath])
-            print(["put"] + localfiles + [remotepath])
             print("Upload successful!")
         else:
             raise EveconExceptions.MegaNotLoggedIn("upload")
