@@ -1085,7 +1085,7 @@ def upload():
 
     Megacmd.login(email, pw)
     Megacmd.rm("/Evecon/version")
-    Megacmd.upload("\\data\\Info\\version", "/Evecon")
+    Megacmd.upload("data\\Info\\version", "/Evecon")
     Megacmd.mkdir("/Evecon/Versions/%s" % this_version[1])
     Megacmd.upload("data\\Update\\Evecon-" + this_version[1] + ".zip", "/Evecon/Versions/%s" % this_version[1])
     Megacmd.exit()
