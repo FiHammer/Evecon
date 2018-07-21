@@ -7,6 +7,10 @@ import datetime
 import socket
 import subprocess
 import shutil
+import threading
+from IPython.core.autocall import ExitAutocall
+import EveconExceptions
+import psutil
 
 def cls():
     os.system("cls")
@@ -144,6 +148,55 @@ class szipC:
             print("error archive not found")
 
 szip = szipC("Programs\\7z")
+
+class MegacmdC:
+    def __init__(self, path):
+        self.path = path
+        self.MegacmdServer = False
+        self.Running = False
+
+    def startServer(self):
+        if not self.Running:
+            if "MEGAcmdServer.exe" in (p.name() for p in psutil.process_iter()):
+                raise EveconExceptions.MegaIsRunning(True)
+            else:
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+                dir_tmp = os.getcwd()
+                os.chdir(self.path)
+                self.MegacmdServer = subprocess.Popen(["MEGAcmdServer.exe"], startupinfo=startupinfo, shell=False)
+                self.Running = True
+                time.sleep(1)
+                os.chdir(dir_tmp)
+
+                cls()
+        else:
+            raise EveconExceptions.MegaIsRunning(False)
+
+    def stopServer(self):
+        if self.Running:
+            self.MegacmdServer.kill()
+            self.Running = False
+        else:
+            raise EveconExceptions.MegaNotRunning
+    def login(self, email, pw):
+        pass
+    def logout(self):
+        pass
+    def upload(self): # put
+        pass
+    def download(self): # get
+        pass
+    def rm(self): # rm (removes folder, file)
+        pass
+    def mkdir(self): # mkdir
+        pass
+    def cd(self): # cd
+        pass
+
+
+Megacmd = MegacmdC("Programs\\MEGAcmd")
 
 def computerconfig_schoolpc():
     pass
@@ -922,23 +975,37 @@ def update():
                         Mainstick_to_PC()
 
 
+
+
 def zipme():
     version()
     global this_version
-    newarchive = "Evecon\\data\\Update\\Evecon-" + this_version[1] + ".zip"
-    allfiles = []
-    szip.create_archive(newarchive, [allfiles])
+    newarchive = "data\\Update\\Evecon-" + this_version[1] + ".zip"
+    allfiles = ["!Evecon\\dev\\!Console.py", "!Evecon\\dev\\updater.py",
+                "data\\Info\\Changelog.txt", "data\\Info\\version"]
+    alldic = ["!Evecon\\!Console"]
+
+    szip.create_archive(newarchive, allfiles + alldic)
+
+    if os.path.isfile(newarchive):
+        print("Success")
+        return True
+    else:
+        print("ERROR")
+        return False
 
 
 def upload():
-    # TODO-fast: Upload
+    # TODO-fast: Upload (3/4)
     # aktuelles Evecon in eine Zipfile komprimieren! (7-Zip) (FIN)
-    # dazu gehört: '!Console', 'dev' bzw darin NUR *.py und 'dll', 'data\Info\Changelog.txt + version'
+    # dazu gehört: '!Console', 'dev' bzw darin NUR *.py und 'dll', 'data\Info\Changelog.txt + version' (FIN)
     # diese zip-File dann auf Mega.nz mit dem Konto -------@tutanota.com und PW -------- hochladen.
     # bzw. auf Mega einige Ordner erstellen UND die aktuelle Versions-Datei ersetzen! (die normale 'version')
 
-    zipme()
+    succ = zipme()
 
+    if succ:
+        pass
 
 
 def upgrade():

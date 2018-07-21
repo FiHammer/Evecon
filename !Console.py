@@ -9,7 +9,9 @@ import socket
 import threading
 import subprocess
 import webbrowser
+from IPython.core.autocall import ExitAutocall
 import shutil
+import EveconExceptions
 #import win32api
 #import win32gui
 #import win32con
@@ -590,7 +592,7 @@ def np(preset="Man"):
 
         if "firefox.exe" in (p.name() for p in psutil.process_iter()):
             dir_tmp = os.getcwd()
-            subprocess.call(["firefox.exe", "-new-window", file_foxname])
+            os.chdir("C:\\Program Files\\Mozilla Firefox")
             subprocess.call(["firefox.exe", "-new-window", file_foxname])
             time.sleep(0.25)
             os.chdir(dir_tmp)
@@ -1789,61 +1791,68 @@ def Music(preset="Man"):
                 print(musicrun, musicwait, musicpause, musicplaying, playerthread.is_alive())
     mu_dir = os.getcwd()
 
+    music_playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing"]
+    music_playlists_short = ["lis", "an", "phu", "cp", "es"]
+    music_playlists_print = "LiS (LIS), Anime (AN), Phunk (PHU), Caravan Palace (CP), Electro Swing (ES)"
+
     cls()
     print("Playlists:")
     print("\nFix Playlists:")
-    print("LiS (LIS), Anime (AN), Phunk (PHU), Caravan Palace (CP), Electro Swing (ES)")
+    print(music_playlists_print)
     print("\nCustom:")
     print("User's Playlist (US), User defined (UD), Mix (MIX), Multiple PL (MPL)\n")
     music_user_input = input()
 
-    cls()
-    print("Loading...")
-
-    musicman_list = []
 
     def loadm(ms):
+        cls()
+        print("Loading...")
+
         if ms == "us":
             os.chdir("Music\\User")
             loadmusic()
             os.chdir(mu_dir)
-            musicman_list.append("User's list")
+            return True
 
         elif ms == "lis":
             os.chdir("Music\\Presets\\Life is Strange")
             loadmusic()
             os.chdir(mu_dir)
-            musicman_list.append("Life is Strange")
+            return True
 
         elif ms == "an":
             os.chdir("Music\\Presets\\Anime")
             loadmusic()
             os.chdir(mu_dir)
-            musicman_list.append("Anime")
+            return True
 
         elif ms == "phu":
             os.chdir("Music\\Presets\\Phunk")
             loadmusic()
             os.chdir(mu_dir)
-            musicman_list.append("Phunk")
+            return True
 
         elif ms == "cp":
             os.chdir("Music\\Presets\\Caravan Palace")
             loadmusic()
             os.chdir(mu_dir)
-            musicman_list.append("Caravan Palace")
+            return True
 
         elif ms == "es":
             os.chdir("Music\\Presets\\Electro Swing")
             loadmusic()
             os.chdir(mu_dir)
+            return True
 
         elif ms == "ud":
             cls()
             os.chdir(input("Your path:\n"))
             loadmusic()
             os.chdir(mu_dir)
-            musicman_list.append("unkown list")
+            return "ul"
+
+        else:
+            return False
 
 
     if music_user_input.lower() == "mix":
@@ -1854,44 +1863,44 @@ def Music(preset="Man"):
 
     elif music_user_input.lower() == "mpl":
         musicman_search = True
+
+        music_playlists.append("User's List")
+
+        musicman_list = []
+        music_playlists_used = {}
+
+        for x in music_playlists_short:
+            music_playlists_used[x] = " "
+
         while musicman_search:
+            music_playlists_used_List = []
+            for x in music_playlists_short:
+                music_playlists_used_List.append(music_playlists_used[x])
             cls()
             print("Playlists:\n")
-            print("LiS (LIS), Anime (AN), Phunk (PHU), Caravan Palace (CP), Electro Swing (ES)")
-            print("User's list (US), User defined (UD)")
-            print("\nLoaded:")
-            for xl in musicman_list:
-                print(xl)
+            #print(music_playlists_print)
+            #print("User's list (US), User defined (UD)")
+            #print("\nLoaded:")
+            for xl, x2, x3 in zip(music_playlists_used_List, music_playlists, music_playlists_short):
+                print(" " + xl + " " + x2 + " (" + x3.upper() + ")")
+            for x in musicman_list:
+                print(" X " + x)
             print("\nFinish (FIN)\n")
 
             musicman_user_input = input()
 
-            cls()
-            print("Loading...")
 
             if musicman_user_input.lower() == "fin":
                 musicman_search = False
 
-            elif musicman_user_input.lower() == "us":
-                loadm("us")
-            elif musicman_user_input.lower() == "ud":  # user definded
-                cls()
-                os.chdir(input("Your path:\n"))
-                loadmusic()
-                os.chdir(mu_dir)
+            else:
+                x = loadm(musicman_user_input.lower())
 
-            elif musicman_user_input.lower() == "lis":
-                loadm("lis")
+                if x:
+                    music_playlists_used[musicman_user_input.lower()] = "X"
+                elif x == "ul":
+                    musicman_list.append("unkown list")
 
-            elif musicman_user_input.lower() == "an":
-                loadm("")
-
-            elif musicman_user_input.lower() == "phu":
-                loadm("")
-
-            elif musicman_user_input.lower() == "cp":
-                loadm("")
-                musicman_list.append("Caravan Palace")
     else:
         loadm(music_user_input.lower())
 
