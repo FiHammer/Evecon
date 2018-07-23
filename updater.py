@@ -10,6 +10,7 @@ import shutil
 #from IPython.core.autocall import ExitAutocall
 import EveconExceptions
 import psutil
+import threading
 
 def cls():
     os.system("cls")
@@ -22,7 +23,16 @@ def exit_now():
     if version_PC != 1:
         exit()
 
+WORK = True
 
+class ddbug(threading.Thread):
+    def run(self):
+        global WORK
+        while WORK:
+            time.sleep(1)
+
+ddbugger = ddbug()
+ddbugger.start()
 
 cdir = os.getcwd()
 if cdir == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\Programs\\Evecon\\Updater":
@@ -1049,6 +1059,7 @@ def update():
 
 
 def zipme():
+    title("Upgrade", "Zipping")
     version()
     global this_version
     newarchive = "data\\Update\\Evecon-" + this_version[1] + ".zip"
@@ -1073,9 +1084,10 @@ def upload():
     # bzw. auf Mega einige Ordner erstellen UND die aktuelle Versions-Datei ersetzen! (die normale 'version')
 
     zipme()
-
+    title("Upgrade", "Uploading")
     version()
     global this_version
+
 
     logindata = open("data\\Info\\updater_megalogin", "r")
     email = logindata.readline().rstrip()
@@ -1110,7 +1122,7 @@ def upgrade():
                 print("In this Update:")
                 for x in range(len(newupdate)):
                     print(newupdate[x])
-            newupdate_input = input("Type 'END' to exit\n\n")
+            newupdate_input = input("\nType 'END' to exit\n\n")
             if newupdate_input.lower() == "end":
                 break
             newupdate.append(newupdate_input)
@@ -1123,8 +1135,14 @@ def upgrade():
             datetime.datetime.now().strftime("%d.%m.%Y"),
             datetime.datetime.now().strftime("%H:%M:%S"), this_version[1]))
         backuptime.close()
+
         shutil.rmtree("data\\Backup\\!Evecon")
-        shutil.copytree("!Evecon", "data\\Backup\\!Evecon")
+
+        shutil.copytree("!Evecon\\!Console", "data\\Backup\\!Evecon\\!Console")
+        shutil.copy("!Evecon\\dev\\!Console.py", "data\\Backup\\!Evecon\\dev")
+        shutil.copy("!Evecon\\dev\\EveconExceptions.py", "data\\Backup\\!Evecon\\dev")
+        shutil.copy("!Evecon\\dev\\ss_time.py", "data\\Backup\\!Evecon\\dev")
+        shutil.copy("!Evecon\\dev\\updater.py", "data\\Backup\\!Evecon\\dev")
 
         os.remove("data\\Backup\\data\\Info\\version")
         shutil.copy("data\\Info\\version", "data\\Backup\\data\\Info")
@@ -1223,3 +1241,4 @@ if exitnow == 0:
         time.sleep(0)
 
         exit_now()
+        WORK = False
