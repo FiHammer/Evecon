@@ -4585,6 +4585,7 @@ def Splatoon():
             splRoundOver = False
             splStart = True
 
+
     class Printer(threading.Thread):
         def run(self):
             nonlocal splRUN, splTimeLeft, splTimeLeftStart, splRounds, splPlaytime, splPlaytimeStart, splWR, splWRthis, splWRnext, splRoundOver, splEffect
