@@ -1769,6 +1769,8 @@ def Music(preset="Man"):
 
                     title("OLD", musiclistname[thismusicnumber], "Now Playing")
 
+                    musicplaying = True
+
                     while musicplaying:
                         cls()
                         print("Musicplayer\n\nNow Playing:")
@@ -1816,54 +1818,57 @@ def Music(preset="Man"):
                             print("Jump to (in sec) (DO NOT WORK!):")
 
                         elif musicwaitSpl:
+                            if splRUN:
+                                splTimeLeft = 180 - round(time.time() - splTimeLeftStart)
 
-                            splTimeLeft = 180 - round(time.time() - splTimeLeftStart)
-
-                            if splStart:
-                                splPlaytime = round(time.time() - splPlaytimeStart)
-                            else:
-                                splPlaytime = 0
-
-                            if splRoundOver:
-                                splTimeLeftFor = "No Round Started"
-                            else:
-                                if (splTimeLeft % 60) < 10:
-                                    splTimeLeftFor = "%s:%s%s" % (splTimeLeft // 60, 0, splTimeLeft % 60)
+                                if splStart:
+                                    splPlaytime = round(time.time() - splPlaytimeStart)
                                 else:
-                                    splTimeLeftFor = "%s:%s" % (splTimeLeft // 60, splTimeLeft % 60)
+                                    splPlaytime = 0
 
-                            if (splPlaytime % 60) < 10:
-                                splPlaytimeFor = "%s:%s%s" % (splPlaytime // 60, 0, splPlaytime % 60)
-                            else:
-                                splPlaytimeFor = "%s:%s" % (splPlaytime // 60, splPlaytime % 60)
+                                if splRoundOver:
+                                    splTimeLeftFor = "No Round Started"
+                                else:
+                                    if (splTimeLeft % 60) < 10:
+                                        splTimeLeftFor = "%s:%s%s" % (splTimeLeft // 60, 0, splTimeLeft % 60)
+                                    else:
+                                        splTimeLeftFor = "%s:%s" % (splTimeLeft // 60, splTimeLeft % 60)
 
-                            if splTimeLeft == 0:
-                                splRoundOver = True
+                                if (splPlaytime % 60) < 10:
+                                    splPlaytimeFor = "%s:%s%s" % (splPlaytime // 60, 0, splPlaytime % 60)
+                                else:
+                                    splPlaytimeFor = "%s:%s" % (splPlaytime // 60, splPlaytime % 60)
 
-                            print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL), Mute (MUTE), Unmute (UNMU)")
+                                if splTimeLeft == 0:
+                                    splRoundOver = True
 
-                            print("\nSplatoon 2\n")
-                            print("Time:\t\t %s" % splTimeLeftFor)
-                            print("Round:\t\t %s" % splRounds)
+                                print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL), Mute (MUTE), Unmute (UNMU)")
 
-                            if splEffect is not None and splEffect != 0:
-                                print("Effect:\t\t %s" % splEffect)
-                            elif splEffect == 0:
-                                print("Effect:\t\t No Effect Active")
+                                print("\nSplatoon 2\n")
+                                print("Time:\t\t %s" % splTimeLeftFor)
+                                print("Round:\t\t %s" % splRounds)
 
-                            print("Playtime:\t %s" % splPlaytimeFor)
-                            if splWR:
-                                print("\nWeapon Randomizer:")
-                                print("This Round:\t %s" % splWRthis)
-                                print("Next Round:\t %s" % splWRnext)
+                                if splEffect is not None and splEffect != 0:
+                                    print("Effect:\t\t %s" % splEffect)
+                                elif splEffect == 0:
+                                    print("Effect:\t\t No Effect Active")
 
-                            if splWR:
-                                print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon(REROLL)")
-                            else:
-                                print("\nWeapon Randomizer (WR), Effect ('E'+number)")
+                                print("Playtime:\t %s" % splPlaytimeFor)
+                                if splWR:
+                                    print("\nWeapon Randomizer:")
+                                    print("This Round:\t %s" % splWRthis)
+                                    print("Next Round:\t %s" % splWRnext)
 
-                            if splRoundOver:
-                                print("\nStart Next Round?")
+                                if splWR:
+                                    print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon(REROLL)")
+                                else:
+                                    print("\nWeapon Randomizer (WR), Effect ('E'+number)")
+
+                                if splRoundOver:
+                                    print("\nStart Next Round?")
+
+                        else:
+                            print("BUGGI")
 
                         time.sleep(0.25)
                         for x in range(5):
@@ -1902,48 +1907,51 @@ def Music(preset="Man"):
 
                             print("\n\nPlay (PLAY), Stop (STOP)")
 
+                            if splRUN:
 
-                            splTimeLeftFor = "No Round Started"
+                                splTimeLeftFor = "No Round Started"
 
 
-                            if (splPlaytime % 60) < 10:
-                                splPlaytimeFor = "%s:%s%s" % (splPlaytime // 60, 0, splPlaytime % 60)
-                            else:
-                                splPlaytimeFor = "%s:%s" % (splPlaytime // 60, splPlaytime % 60)
+                                if (splPlaytime % 60) < 10:
+                                    splPlaytimeFor = "%s:%s%s" % (splPlaytime // 60, 0, splPlaytime % 60)
+                                else:
+                                    splPlaytimeFor = "%s:%s" % (splPlaytime // 60, splPlaytime % 60)
 
-                            splRoundOver = True
+                                splRoundOver = True
 
-                            print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL), Mute (MUTE), Unmute (UNMU)")
+                                print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL), Mute (MUTE), Unmute (UNMU)")
 
-                            print("\nSplatoon 2\n")
-                            print("Time:\t\t %s" % splTimeLeftFor)
-                            print("Round:\t\t %s" % splRounds)
+                                print("\nSplatoon 2\n")
+                                print("Time:\t\t %s" % splTimeLeftFor)
+                                print("Round:\t\t %s" % splRounds)
 
-                            if splEffect is not None and splEffect != 0:
-                                print("Effect:\t\t %s" % splEffect)
-                            elif splEffect == 0:
-                                print("Effect:\t\t No Effect Active")
+                                if splEffect is not None and splEffect != 0:
+                                    print("Effect:\t\t %s" % splEffect)
+                                elif splEffect == 0:
+                                    print("Effect:\t\t No Effect Active")
 
-                            print("Playtime:\t %s" % splPlaytimeFor)
-                            if splWR:
-                                print("\nWeapon Randomizer:")
-                                print("This Round:\t %s" % splWRthis)
-                                print("Next Round:\t %s" % splWRnext)
+                                print("Playtime:\t %s" % splPlaytimeFor)
+                                if splWR:
+                                    print("\nWeapon Randomizer:")
+                                    print("This Round:\t %s" % splWRthis)
+                                    print("Next Round:\t %s" % splWRnext)
 
-                            if splWR:
-                                print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon(REROLL)")
-                            else:
-                                print("\nWeapon Randomizer (WR), Effect ('E'+number)")
+                                if splWR:
+                                    print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon(REROLL)")
+                                else:
+                                    print("\nWeapon Randomizer (WR), Effect ('E'+number)")
 
-                            if splRoundOver:
-                                print("\nStart Next Round?")
+                                if splRoundOver:
+                                    print("\nStart Next Round?")
 
 
                             while musicpause:
                                 time.sleep(0.25)
                             title("OLD", "OLD", "Now Playing:")
                             music_time += time.time() - music_time_wait
-                            splPlaytimeStart += time.time() - splPlaytimeWait
+
+                            if splRUN:
+                                splPlaytimeStart += time.time() - splPlaytimeWait
 
                     musicplayer.next()
                     if not musicback:
@@ -4643,6 +4651,7 @@ def Splatoon():
     SplPrinter.start()
 
     while splRUN:
+        spl_user_input = None
         spl_user_input = input()
 
         if spl_user_input.lower() == "wr":
