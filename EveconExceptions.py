@@ -27,8 +27,11 @@ class MegaNotLoggedIn(Exception):
 
 # !Console
 
+class EnergyPlanNotFound(Exception):
+    def __init__(self):
+        print("This Energy Plan is unkown")
 
-
+#class EnergyUnicodeError(Exception):
 
 
 

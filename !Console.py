@@ -23,7 +23,7 @@ def cls():
     os.system("cls")
 
 
-
+exitnow = 0
 def exit_now(killmex = False):
     global ttime_stop, ttime_pause, ttime_pt
     ttime_stop = False
@@ -40,10 +40,12 @@ def exit_now(killmex = False):
         time.sleep(0.5)
         killme()
 
+    #sys.exit()
+
 def killme():
     subprocess.call(["taskkill", "/PID", str(os.getpid())])
 
-mobile = False
+
 musicrun = False
 ss_active = False
 
@@ -51,10 +53,8 @@ cdir = os.getcwd()
 os.chdir("..")
 os.chdir("..")
 
-title_oldstatus = "Loading"
-title_oldstart = "Error"
-title_oldpc = "Error"
-exitnow = 0
+
+
 Alphabet = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 
 def Log(functioni, info, typei = "Normal"):
@@ -74,6 +74,49 @@ def Log(functioni, info, typei = "Normal"):
 
     log_file.write(log_write)
     log_file.close()
+
+
+title_oldstatus = "Loading"
+title_oldstart = "Error"
+title_oldpc = "Error"
+
+def title(status="OLD", something="OLD", pc="OLD"):
+
+    global title_oldstatus, title_oldstart, title_oldpc
+    if status == "OLD":
+        status = title_oldstatus
+    else:
+        title_oldstatus = status
+
+    if something == "OLD":
+        something = title_oldstart
+    else:
+        title_oldstart = something
+
+    if pc == "OLD":
+        pc = title_oldpc
+    else:
+        title_oldpc = pc
+
+    nowtime = datetime.datetime.now().strftime("%H:%M:%S")
+
+    space_status = (60 - len(status) * 2) * " "
+    space_pc = (64 - len(pc) * 2) * " "
+    space_something = (40 - len(something) * 2) * " "
+    space_time = 55 * " "
+
+    if musicrun:
+        space_status = 7 * " " # old: abs(60 - len(status) * 2 - 30)
+        space_pc = 10 * " " # old: abs(64 - len(pc) * 2 - 30)
+        space_something = (175 - (len(status + pc + space_status + space_pc) + round(len(something) * 1.5) + 1)) * " "
+        if len(space_something) < 20:
+            space_something = (160 - (len(status + pc + space_status + space_pc) + round(len(something) * 1.5) + 1)) * " "
+        space_time = 1 * " "
+
+
+    ctypes.windll.kernel32.SetConsoleTitleW("EVECON: %s%s%s%s%s%s%sTime: %s" %
+    (status, space_status, pc, space_pc, something, space_something, space_time, nowtime))
+
 
 
 def nircmd(preset="Man", a=None, b=None, c=None, d=None, every=False):
@@ -329,39 +372,6 @@ Megacmd = MegacmdC("Programs\\MEGAcmd")
 def title_time_now():
     return datetime.datetime.now().strftime("%H:%M:%S")
 
-
-def title(status="OLD", something="OLD", pc="OLD"):
-
-    global title_oldstatus, title_oldstart, title_oldpc
-    if status == "OLD":
-        status = title_oldstatus
-    else:
-        title_oldstatus = status
-
-    if something == "OLD":
-        something = title_oldstart
-    else:
-        title_oldstart = something
-
-    if pc == "OLD":
-        pc = title_oldpc
-    else:
-        title_oldpc = pc
-
-    nowtime = datetime.datetime.now().strftime("%H:%M:%S")
-
-    space_status = (60 - len(status) * 2) * " "
-    space_pc = (64 - len(pc) * 2) * " "
-    space_something = (40 - len(something) * 2) * " "
-    space_time = 55 * " "
-    if musicrun:
-        space_status = abs(60 - len(status) * 2 - 30) * " "
-        space_pc = abs(64 - len(pc) * 2 - 30) * " "
-        space_something = 15 * " "
-        space_time = 5 * " "
-    ctypes.windll.kernel32.SetConsoleTitleW("EVECON: %s%s%s%s%s%s%sTime: %s" %
-    (status, space_status, pc, space_pc, something, space_something, space_time, nowtime))
-
 title("Loading Light")
 
 def light(preset="Man"):
@@ -396,7 +406,7 @@ class title_time(threading.Thread):
     def __init__(self, freq):
         threading.Thread.__init__(self)
         self.stop = 0
-        title_time.freq = freq
+        self.freq = freq
 
     def run(self):
         global ttime_stop, ttime_pause, ttime_pt
@@ -407,7 +417,7 @@ class title_time(threading.Thread):
             while ttime_pause:
                 title()
                 # wenn man hier kein old title mitgibt geht es nicht! warum? Versuch lösche über mir weg
-                time.sleep(title_time.freq)
+                time.sleep(self.freq)
             time.sleep(0.1)
             while ttime_pt:
                 first = time.time()
@@ -448,7 +458,8 @@ def computerconfig_schoolpc():
 
 
 def computerconfig_minipc():
-    pass
+    global MusicDir
+    MusicDir = "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Musik\\Musik\\!Fertige Musik"
 
 
 def computerconfig_bigpc():
@@ -491,6 +502,8 @@ if Computername == "Computer-Testet":
     Computerfind_Laptop = 0
     computerconfig_minipc()
 
+    HomePC = True
+
 elif Computername == "XX":  #  BIG PC EINFÜGEN
     title("OLD", "OLD", "somebody@BigPC")
     Computerfind_MiniPC = 0
@@ -498,6 +511,8 @@ elif Computername == "XX":  #  BIG PC EINFÜGEN
     Computerfind_PapaAldi = 0
     Computerfind_Laptop = 0
     computerconfig_bigpc()
+
+    HomePC = True
 
 elif Computername == "Test":
     title("OLD", "OLD", "somebody@Aldi-Laptop")
@@ -530,16 +545,6 @@ file_proversion_raw.close()
 
 def normaltitle():
     global ss_active
-    if mobile:
-        if ProVersion == "PC-Version":
-            title("OLD", "PC-Version (Mobile)")
-
-        elif ProVersion == "MainStick-Version":
-            title("OLD", "Stick-Version (Mobile)")
-        elif ProVersion == "MiniStick-Version":
-            title("OLD", "Stick-Version (Mobile)")
-        else:
-            title("OLD", "OLD")
     if ss_active:
         title("Screensaver", "")
     else:
@@ -599,25 +604,75 @@ else:
 
 title("Load first Programs")
 
-def Tools(preset=None, wait=0):
-    def Shutdown():
-        pass
-    def Sleep():
-        pass
-    def energypl(): # energieplan ändern
-        pass
+class ToolsC:
+    def __init__(self):
+        self.EnergyPlan = self.EnergyPlanC()
+        self.Run = True
+    class EnergyPlanC:
+        def __init__(self):
+            self.cEP = None
+            self.cEP_code = None
+            self.cEP_id = None
+            self.getEP()
+            self.Plans = ["381b4222-f694-41f0-9685-ff5bb260df2e", "a1841308-3541-4fab-bc81-f71556f20b4a", "472405ce-5d19-4c83-94d7-a473c87dedad"]
+            self.Plans_Dic = {"Ausbalanciert" : "381b4222-f694-41f0-9685-ff5bb260df2e", "Energiesparmodus" : "a1841308-3541-4fab-bc81-f71556f20b4a",
+                              "0Sys" : "472405ce-5d19-4c83-94d7-a473c87dedad"}
 
-    if preset == "shutdown":
-        Shutdown()
-    p = subprocess.Popen(["powercfg", "/GETACTIVESCHEME"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-    output, err = p.communicate(b"input data that is passed to subprocess' stdin")
+        def getEP(self, printit=False):
+            p = subprocess.Popen(["powercfg", "/GETACTIVESCHEME"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            output, err = p.communicate(b"input data that is passed to subprocess' stdin")
+            try:
+                eplan_tmp = output.decode("utf-8")
+            except UnicodeDecodeError:
+                eplan_tmp = 'GUID des Energieschemas: a1841308-3541-4fab-bc81-f71556f20b4a  (Energiesparmodus)'
 
-    eplan_tmp = output.decode("utf-8")
-    eplan = ""
-    for x in range(len(eplan_tmp)):
-        if 25 <= x <= 60:
-            eplan += eplan_tmp[x]
+            eplan_tmp2 = eplan_tmp.lstrip("GUID des Energieschemas").lstrip(": ")
+            eplan_code = ""
+            for x in range(36):
+                eplan_code += eplan_tmp2[x]
+
+            self.cEP_code = eplan_code
+
+            if eplan_code == '381b4222-f694-41f0-9685-ff5bb260df2e':
+                self.cEP = "Ausbalanciert"
+                self.cEP_id = 0
+            elif eplan_code == 'a1841308-3541-4fab-bc81-f71556f20b4a':
+                self.cEP = "Energiesparmodus"
+                self.cEP_id = 1
+            elif eplan_code == '472405ce-5d19-4c83-94d7-a473c87dedad':
+                self.cEP = "0Sys"
+                self.cEP_id = 2
+            else:
+                raise EveconExceptions.EnergyPlanNotFound
+
+            if printit:
+                print("Current Plan:")
+                print(self.cEP)
+                print("Code: " + self.cEP_code)
+
+            return self.cEP_id
+
+        def Change(self, ID):
+            subprocess.call(["powercfg", "/s", str(self.Plans[ID])])
+        def Switch(self):
+            self.getEP()
+            if self.cEP_id == 0:
+                self.Change(1)
+            elif self.cEP_id == 1:
+                self.Change(0)
+            elif self.cEP_id == 2:
+                self.Change(1)
+
+    def Shutdown(self, wait=0):
+        self.Run = False
+        subprocess.call(["shutdown", "/s", "/f", "/t", wait])
+    def Sleep(self, wait=0):
+        self.Run = False
+        subprocess.call(["shutdown", "/h", "/t", wait])
+
+Tools = ToolsC()
+
 
 def np(preset="Man"):
     title("Loading Notepad")
@@ -1616,56 +1671,7 @@ def Music(preset="Man"):
     musiclistname = []
     musiclistpath = []
 
-    def loadmusic():
-        title("Musicplayer", "OLD", "Loading Music")
 
-        global musiclist, musiclistname, musiclistpath
-
-
-        dir1 = os.listdir(os.getcwd())
-        for x1 in range(len(os.listdir(os.getcwd()))):
-            if os.path.isdir(dir1[x1]):
-                os.chdir(dir1[x1])
-                dir2 = os.listdir(os.getcwd())
-                for x2 in range(len(os.listdir(os.getcwd()))):
-                    if os.path.isdir(dir2[x2]):
-                        os.chdir(dir2[x2])
-                        dir3 = os.listdir(os.getcwd())
-                        for x3 in range(len(os.listdir(os.getcwd()))):
-                            if os.path.isdir(dir3[x3]):
-                                os.chdir(dir3[x3])
-                                os.chdir("..")
-                            if os.path.isfile(dir3[x3]):
-                                if dir3[x3][len(dir3[x3])-3] == "m" and dir3[x3][len(dir3[x3])-2] == "p" and dir3[x3][len(dir3[x3])-1] == "3":
-                                    musiclist.append(pyglet.media.load(dir3[x3]))
-                                    musiclistname.append(dir3[x3])
-                                    musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
-                                elif dir3[x3][len(dir3[x3])-3] == "m" and dir3[x3][len(dir3[x3])-2] == "p" and dir3[x3][len(dir3[x3])-1] == "4":
-                                    musiclist.append(pyglet.media.load(dir3[x3]))
-                                    musiclistname.append(dir3[x3])
-                                    musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
-                        os.chdir("..")
-                    if os.path.isfile(dir2[x2]):
-                        if dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][len(dir2[x2]) - 1] == "3":
-                            musiclist.append(pyglet.media.load(dir2[x2]))
-                            musiclistname.append(dir2[x2])
-                            musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
-                        elif dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][len(dir2[x2]) - 1] == "4":
-                            musiclist.append(pyglet.media.load(dir2[x2]))
-                            musiclistname.append(dir2[x2])
-                            musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
-
-                os.chdir("..")
-            if os.path.isfile(dir1[x1]):
-                if dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][len(dir1[x1]) - 1] == "3":
-                    musiclist.append(pyglet.media.load(dir1[x1]))
-                    musiclistname.append(dir1[x1])
-                    musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
-                elif dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][len(dir1[x1]) - 1] == "4":
-                    musiclist.append(pyglet.media.load(dir1[x1]))
-                    musiclistname.append(dir1[x1])
-                    musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
-        os.chdir("..")
 
 
 
@@ -1674,6 +1680,7 @@ def Music(preset="Man"):
 
 
         #global musicplayer, musicplaying, nextmusic, musicrun, thismusicnumber, lastmusicnumber, nextmusicnumber, musicpause, musicwaitvol, musicwaitvolp, musicwait, musicvolume, musicvolumep, musicback, musicwaitseek, music_time
+        global musicrun
 
         musicrun = True
         musicpause = False
@@ -2141,11 +2148,67 @@ def Music(preset="Man"):
                         splRoundOver = False
                         splStart = True
 
+    def loadmusic():
+        title("Musicplayer", "OLD", "Loading Music")
+
+        global musiclist, musiclistname, musiclistpath
+
+
+        dir1 = os.listdir(os.getcwd())
+        for x1 in range(len(os.listdir(os.getcwd()))):
+            if os.path.isdir(dir1[x1]):
+                os.chdir(dir1[x1])
+                dir2 = os.listdir(os.getcwd())
+                for x2 in range(len(os.listdir(os.getcwd()))):
+                    if os.path.isdir(dir2[x2]):
+                        os.chdir(dir2[x2])
+                        dir3 = os.listdir(os.getcwd())
+                        for x3 in range(len(os.listdir(os.getcwd()))):
+                            if os.path.isdir(dir3[x3]):
+                                os.chdir(dir3[x3])
+                                os.chdir("..")
+                            if os.path.isfile(dir3[x3]):
+                                if dir3[x3][len(dir3[x3])-3] == "m" and dir3[x3][len(dir3[x3])-2] == "p" and dir3[x3][len(dir3[x3])-1] == "3":
+                                    musiclist.append(pyglet.media.load(dir3[x3]))
+                                    musiclistname.append(dir3[x3])
+                                    musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
+                                elif dir3[x3][len(dir3[x3])-3] == "m" and dir3[x3][len(dir3[x3])-2] == "p" and dir3[x3][len(dir3[x3])-1] == "4":
+                                    musiclist.append(pyglet.media.load(dir3[x3]))
+                                    musiclistname.append(dir3[x3])
+                                    musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
+                        os.chdir("..")
+                    if os.path.isfile(dir2[x2]):
+                        if dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][len(dir2[x2]) - 1] == "3":
+                            musiclist.append(pyglet.media.load(dir2[x2]))
+                            musiclistname.append(dir2[x2])
+                            musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
+                        elif dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][len(dir2[x2]) - 1] == "4":
+                            musiclist.append(pyglet.media.load(dir2[x2]))
+                            musiclistname.append(dir2[x2])
+                            musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
+
+                os.chdir("..")
+            if os.path.isfile(dir1[x1]):
+                if dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][len(dir1[x1]) - 1] == "3":
+                    musiclist.append(pyglet.media.load(dir1[x1]))
+                    musiclistname.append(dir1[x1])
+                    musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
+                elif dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][len(dir1[x1]) - 1] == "4":
+                    musiclist.append(pyglet.media.load(dir1[x1]))
+                    musiclistname.append(dir1[x1])
+                    musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
+        os.chdir("..")
+
     mu_dir = os.getcwd()
 
-    music_playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing"]
-    music_playlists_short = ["lis", "an", "phu", "cp", "es"]
-    music_playlists_print = "LiS (LIS), Anime (AN), Phunk (PHU), Caravan Palace (CP), Electro Swing (ES)"
+    music_playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing", "Parov Stelar", "jPOP & etc"]
+    music_playlists_key = ["lis", "an", "phu", "cp", "es", "ps", "jpop"]
+
+
+    music_playlists_print = ""
+    for x, y in zip(music_playlists, music_playlists_key):
+        music_playlists_print += x + " (" + y.upper() + "), "
+    music_playlists_print = music_playlists_print.rstrip(", ")
 
     cls()
     print("Playlists:")
@@ -2157,54 +2220,130 @@ def Music(preset="Man"):
 
 
     def loadm(ms):
-        cls()
-        print("Loading...")
 
-        if ms == "us":
-            os.chdir("Music\\User")
-            loadmusic()
-            os.chdir(mu_dir)
-            return True
-
-        elif ms == "lis":
-            os.chdir("Music\\Presets\\Life is Strange")
-            loadmusic()
-            os.chdir(mu_dir)
-            return True
-
-        elif ms == "an":
-            os.chdir("Music\\Presets\\Anime")
-            loadmusic()
-            os.chdir(mu_dir)
-            return True
-
-        elif ms == "phu":
-            os.chdir("Music\\Presets\\Phunk")
-            loadmusic()
-            os.chdir(mu_dir)
-            return True
-
-        elif ms == "cp":
-            os.chdir("Music\\Presets\\Caravan Palace")
-            loadmusic()
-            os.chdir(mu_dir)
-            return True
-
-        elif ms == "es":
-            os.chdir("Music\\Presets\\Electro Swing")
-            loadmusic()
-            os.chdir(mu_dir)
-            return True
-
-        elif ms == "ud":
+        if not Computerfind_MiniPC:
             cls()
-            os.chdir(input("Your path:\n"))
-            loadmusic()
-            os.chdir(mu_dir)
-            return "ul"
+            print("Loading...")
+
+            if ms == "us":
+                os.chdir("Music\\User")
+                loadmusic()
+                os.chdir(mu_dir)
+                return True
+
+            elif ms == "lis":
+                os.chdir("Music\\Presets\\Life is Strange")
+                loadmusic()
+                os.chdir(mu_dir)
+                return True
+
+            elif ms == "an":
+                os.chdir("Music\\Presets\\Anime")
+                loadmusic()
+                os.chdir(mu_dir)
+                return True
+
+            elif ms == "phu":
+                os.chdir("Music\\Presets\\Phunk")
+                loadmusic()
+                os.chdir(mu_dir)
+                return True
+
+            elif ms == "cp":
+                os.chdir("Music\\Presets\\Caravan Palace")
+                loadmusic()
+                os.chdir(mu_dir)
+                return True
+
+            elif ms == "es":
+                os.chdir("Music\\Presets\\Electro Swing")
+                loadmusic()
+                os.chdir(mu_dir)
+                return True
+
+            elif ms == "ud":
+                cls()
+                os.chdir(input("Your path:\n"))
+                loadmusic()
+                os.chdir(mu_dir)
+                return "ul"
+
+            elif ms == "ps":
+                os.chdir("Music\\Presets\\Parov Stelar")
+                loadmusic()
+                os.chdir(mu_dir)
+                return "ps"
+
+            elif ms == "jpop":
+                os.chdir("Music\\Presets\\jPOP-etc")
+                loadmusic()
+                os.chdir(mu_dir)
+                return "jpop"
+
+            else:
+                return False
 
         else:
-            return False
+            cls()
+            print("Loading...")
+
+            if ms == "us":
+                os.chdir("Music\\User")
+                loadmusic()
+                os.chdir(mu_dir)
+                return True
+
+            elif ms == "lis":
+                os.chdir(MusicDir + "\\Games\\Life is Strange")
+                loadmusic()
+                os.chdir(mu_dir)
+                return True
+
+            elif ms == "an":
+                os.chdir(MusicDir + "\\Anime")
+                loadmusic()
+                os.chdir(mu_dir)
+                return True
+
+            elif ms == "phu":
+                os.chdir(MusicDir + "\\Phunk")
+                loadmusic()
+                os.chdir(mu_dir)
+                return True
+
+            elif ms == "cp":
+                os.chdir(MusicDir + "\\Caravan Palace")
+                loadmusic()
+                os.chdir(mu_dir)
+                return True
+
+            elif ms == "es":
+                os.chdir(MusicDir + "\\Electro Swing")
+                loadmusic()
+                os.chdir(mu_dir)
+                return True
+
+            elif ms == "ud":
+                cls()
+                os.chdir(input("Your path:\n"))
+                loadmusic()
+                os.chdir(mu_dir)
+                return "ul"
+
+            elif ms == "ps":
+                os.chdir(MusicDir + "\\Parov Stelar")
+                loadmusic()
+                os.chdir(mu_dir)
+                return "ps"
+
+            elif ms == "jpop":
+                os.chdir(MusicDir + "\\jPOP-etc")
+                loadmusic()
+                os.chdir(mu_dir)
+                return "jpop"
+
+            else:
+                return False
 
 
     if music_user_input.lower() == "mix":
@@ -2212,6 +2351,7 @@ def Music(preset="Man"):
         loadm("phu")
         loadm("cp")
         loadm("es")
+        loadm("jpop")
 
     elif music_user_input.lower() == "mpl":
         musicman_search = True
@@ -2221,19 +2361,19 @@ def Music(preset="Man"):
         musicman_list = []
         music_playlists_used = {}
 
-        for x in music_playlists_short:
+        for x in music_playlists_key:
             music_playlists_used[x] = " "
 
         while musicman_search:
             music_playlists_used_List = []
-            for x in music_playlists_short:
+            for x in music_playlists_key:
                 music_playlists_used_List.append(music_playlists_used[x])
             cls()
             print("Playlists:\n")
             #print(music_playlists_print)
             #print("User's list (US), User defined (UD)")
             #print("\nLoaded:")
-            for xl, x2, x3 in zip(music_playlists_used_List, music_playlists, music_playlists_short):
+            for xl, x2, x3 in zip(music_playlists_used_List, music_playlists, music_playlists_key):
                 print(" " + xl + " " + x2 + " (" + x3.upper() + ")")
             for x in musicman_list:
                 print(" X " + x)
@@ -2262,6 +2402,8 @@ def Music(preset="Man"):
         print("No track found")
 
     normaltitle()
+
+
 
 def screensaver(preset = None):
     #   thread für time zähler,
@@ -4786,6 +4928,14 @@ def Arg():
         if sys.argv[x] == "-screensaver":
             title("Load Argument", "Screensaver")
             screensaver()
+        if sys.argv[x] == "-ep_switch":
+            title("Load Argument", "Switch Energy Plan")
+            Tools.EnergyPlan.Switch()
+            exit_now()
+        if sys.argv[x] == "-shutdown":
+            title("Load Argument", "Shutdown")
+            Tools.Shutdown()
+            exit_now()
 
 if sys.argv:
     Arg()
