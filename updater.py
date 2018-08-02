@@ -1139,6 +1139,7 @@ def upgrade():
         shutil.rmtree("data\\Backup\\!Evecon")
 
         shutil.copytree("!Evecon\\!Console", "data\\Backup\\!Evecon\\!Console")
+        os.mkdir("data\\Backup\\!Evecon\\dev")
         shutil.copy("!Evecon\\dev\\!Console.py", "data\\Backup\\!Evecon\\dev")
         shutil.copy("!Evecon\\dev\\EveconExceptions.py", "data\\Backup\\!Evecon\\dev")
         shutil.copy("!Evecon\\dev\\ss_time.py", "data\\Backup\\!Evecon\\dev")

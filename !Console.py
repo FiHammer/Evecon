@@ -666,10 +666,10 @@ class ToolsC:
 
     def Shutdown(self, wait=0):
         self.Run = False
-        subprocess.call(["shutdown", "/s", "/f", "/t", wait])
+        subprocess.call(["shutdown", "/s", "/f", "/t", str(wait)])
     def Sleep(self, wait=0):
         self.Run = False
-        subprocess.call(["shutdown", "/h", "/t", wait])
+        subprocess.call(["shutdown", "/h", "/t", str(wait)])
 
 Tools = ToolsC()
 
@@ -4930,10 +4930,14 @@ def Arg():
             screensaver()
         if sys.argv[x] == "-ep_switch":
             title("Load Argument", "Switch Energy Plan")
+            ttime_stop = False
             Tools.EnergyPlan.Switch()
+            Tools.EnergyPlan.getEP(True)
+            time.sleep(2)
             exit_now()
         if sys.argv[x] == "-shutdown":
             title("Load Argument", "Shutdown")
+            ttime_stop = False
             Tools.Shutdown()
             exit_now()
 
