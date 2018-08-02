@@ -374,14 +374,46 @@ def title_time_now():
 
 title("Loading Light")
 
-def light(preset="Man"):
-    if preset == "dark":
-        os.system("color 07")
+class colorC:
+    def __init__(self):
+        self.CurColor = "07"
+        self.colors = {"0" : "black", "1" : "blue", "2" : "green", "3" : "cyan", "4" : "red", "5" : "purple",
+                       "6" : "yellow", "7" : "light gray", "8" : "gray", "9" : "light blue", "A" : "light green",
+                       "B" : "light cyan", "C" : "light red", "D" : "light purple", "E" : "light yellow", "F" : "white"}
+        self.colorsinv = {"black" : "0", "blue" : "1", "green" : "2", "cyan": "3", "red": "4", "purple": "5",
+                       "yellow": "6", "light gray": "7", "gray": "8", "light blue" : "9", "light green": "A",
+                       "light cyan": "B", "light red": "C", "light purple": "D", "light yellow": "E", "white": "F"}
+        self.colorKeys = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"]
 
-    if preset == "bright":
-        os.system("color F0")
+    def encode(self, code, printit=False):
+        background = self.colors[code[0]]
+        foreground = self.colors[code[1]]
+        if printit:
+            print("Color:\n")
+            print("Background: " + background)
+            print("Foreground: " + foreground)
+        return background, foreground
 
-    if preset == "Man":
+    def decode(self, background, foreground, printit=False):
+        code = ""
+        code += self.colorsinv[background]
+        code += self.colorsinv[foreground]
+        if printit:
+            print("Code: " + code)
+        return code
+
+    def change(self, code):
+        self.CurColor = code
+        #subprocess.call(["color", code])
+        os.system("color " + code)
+
+    def switch(self):
+        if self.CurColor == "07":
+            self.change("F0")
+        elif self.CurColor == "F0":
+            self.change("07")
+
+    def Man(self):
         cls()
         print("Color change")
         print("First is background")
@@ -396,7 +428,12 @@ def light(preset="Man"):
         print("    6 = Gelb        E = Hellgelb")
         print("    7 = Hellgrau    F = Weiss")
 
-        os.system("color %s" % input("\n"))
+        code = input("\n")
+        self.CurColor = code
+        os.system("color %s" % code)
+
+color = colorC()
+
 
 title("Loading Title Time")
 
@@ -454,8 +491,7 @@ title("Loading: Finding Computers")
 
 
 def computerconfig_schoolpc():
-    light("bright")
-
+    color.change("F0")
 
 def computerconfig_minipc():
     global MusicDir
@@ -2215,7 +2251,7 @@ def Music(preset="Man"):
     print("\nFix Playlists:")
     print(music_playlists_print)
     print("\nCustom:")
-    print("User's Playlist (US), User defined (UD), Mix (MIX), Multiple PL (MPL)\n")
+    print("User's Playlist (US), User defined (UD), Mix (MIX), Multiple PL (MPL), All (ALL)\n")
     music_user_input = input()
 
 
@@ -2352,6 +2388,10 @@ def Music(preset="Man"):
         loadm("cp")
         loadm("es")
         loadm("jpop")
+
+    elif music_user_input.lower() == "all":
+        for x in music_playlists_key:
+            loadm(x)
 
     elif music_user_input.lower() == "mpl":
         musicman_search = True
@@ -3601,10 +3641,10 @@ def Timerprint(hourT, minuT, secT):
         time.sleep(1)
 
 
-def Alarmprint():
+def Alarmprint(x=230, y=65, colorCh=False):
     # insgesamter Block: 135x60
-    afk = True
-    def randi():
+
+    def randi(x):
         randlist = ["1", "2", " "]
         key = random.randint(0, 100)
         if key == 0:
@@ -3622,27 +3662,47 @@ def Alarmprint():
                      ".",
                      ":", ",", ";", "{", "[", "]", "}", ">", "<", "|"]
             randlist = [listx[random.randint(0, len(listx) - 1)], listx[random.randint(0, len(listx) - 1)], listx[random.randint(0, len(listx) - 1)]]
-        for x in range(random.randint(1, 5)):
+        for z in range(random.randint(1, 5)):
             randlist.append(randlist[random.randint(0, len(randlist) - 1)])
 
         block = ""
-        for x in range(230):
+        for z in range(x):
             block += str(randlist[random.randint(0, len(randlist) - 1)])
         return block
+
+
+    afk = True
+
+    oldColor = color.CurColor
+
     class printre(threading.Thread):
+        def __init__(self, x, y, colorCh):
+            super().__init__()
+
+            self.x = x
+            self.y = y
+            self.colorCh = colorCh
+
         def run(self):
             nonlocal afk
             while afk:
+
+                if self.colorCh:
+                    randcolor = ""
+                    randcolor += color.colorKeys[random.randint(0, len(color.colorKeys) - 1)]
+                    randcolor += "0"
+                    color.change(randcolor)
                 cls()
-                for x in range(65):
-                    print(randi())
+                for x in range(self.y):
+                    print(randi(self.x))
                 time.sleep(0.75)
 
-    printri = printre()
+    printri = printre(x, y, colorCh)
     printri.start()
 
     input()
     afk = False
+    color.change(oldColor)
 
 def randompw(returnpw = False, length = 150):
     import random
@@ -4839,7 +4899,7 @@ def main():
     if user_input.lower() == "npshota":
         np("shota")
     if user_input.lower() == "l":
-        light()
+        color.Man()
     if user_input.lower() == "ug":
         upgrade()
     if user_input.lower() == "debug":
@@ -4878,10 +4938,10 @@ def Arg():
             break
         if sys.argv[x] == "-l_dark":
             title("Load Argument", "Argument: Dark")
-            light("dark")
+            color.change("07")
         if sys.argv[x] == "-l_bright":
             title("Load Argument", "Argument: Bright")
-            light("bright")
+            color.change("F0")
         if sys.argv[x] == "-np_fox":
             title("Load Argument", "Notie: FOX")
             ttime_stop = False

@@ -23,7 +23,65 @@ time.sleep(0.1)
 os.chdir(dir_tmp)
 
 
+class colorC:
+    def __init__(self):
+        self.CurColor = "07"
+        self.colors = {"0" : "black", "1" : "blue", "2" : "green", "3" : "cyan", "4" : "red", "5" : "purple",
+                       "6" : "yellow", "7" : "light gray", "8" : "gray", "9" : "light blue", "A" : "light green",
+                       "B" : "light cyan", "C" : "light red", "D" : "light purple", "E" : "light yellow", "F" : "white"}
+        self.colorsinv = {"black" : "0", "blue" : "1", "green" : "2", "cyan": "3", "red": "4", "purple": "5",
+                       "yellow": "6", "light gray": "7", "gray": "8", "light blue" : "9", "light green": "A",
+                       "light cyan": "B", "light red": "C", "light purple": "D", "light yellow": "E", "white": "F"}
+        self.colorKeys = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"]
 
+    def encode(self, code, printit=False):
+        background = self.colors[code[0]]
+        foreground = self.colors[code[1]]
+        if printit:
+            print("Color:\n")
+            print("Background: " + background)
+            print("Foreground: " + foreground)
+        return background, foreground
+
+    def decode(self, background, foreground, printit=False):
+        code = ""
+        code += self.colorsinv[background]
+        code += self.colorsinv[foreground]
+        if printit:
+            print("Code: " + code)
+        return code
+
+    def change(self, code):
+        self.CurColor = code
+        #subprocess.call(["color", code])
+        os.system("color " + code)
+
+    def switch(self):
+        if self.CurColor == "07":
+            self.change("F0")
+        elif self.CurColor == "F0":
+            self.change("07")
+
+    def Man(self):
+        cls()
+        print("Color change")
+        print("First is background")
+        print("Second is foreground")
+        print("Standard: 07 (White on black)\n")
+        print("    0 = Schwarz     8 = Grau")
+        print("    1 = Blau        9 = Hellblau")
+        print("    2 = Gruen       A = Hellgruen")
+        print("    3 = Tuerkis     B = Helltuerkis")
+        print("    4 = Rot         C = Hellrot")
+        print("    5 = Lila        D = Helllila")
+        print("    6 = Gelb        E = Hellgelb")
+        print("    7 = Hellgrau    F = Weiss")
+
+        code = input("\n")
+        self.CurColor = code
+        os.system("color %s" % code)
+
+color = colorC()
 
 
 class colorsearcher(threading.Thread):
@@ -34,15 +92,15 @@ class colorsearcher(threading.Thread):
             if os.path.exists("data\\tmp\\sscolor"):
 
                 color_data = open("data\\tmp\\sscolor", "r")
-                color = color_data.readline()
+                colorX = color_data.readline()
                 color_data.close()
 
                 os.remove("data\\tmp\\sscolor")
 
-                if color == "dark":
-                    os.system("color 07")
-                elif color == "bright":
-                    os.system("color F0")
+                if colorX == "dark":
+                    color.change("07")
+                elif colorX == "bright":
+                    color.change("F0")
 
             time.sleep(0.15)
 
@@ -1082,11 +1140,11 @@ def Timerprint(hourT, minuT, secT):
         printtime()
         time.sleep(1)
 
-def Alarmprint():
-    import random
+def Alarmprint(x=230, y=65, colorCh=False):
     # insgesamter Block: 135x60
-    afk = True
-    def randi():
+    import random
+    
+    def randi(x):
         randlist = ["1", "2", " "]
         key = random.randint(0, 100)
         if key == 0:
@@ -1104,28 +1162,47 @@ def Alarmprint():
                      ".",
                      ":", ",", ";", "{", "[", "]", "}", ">", "<", "|"]
             randlist = [listx[random.randint(0, len(listx) - 1)], listx[random.randint(0, len(listx) - 1)], listx[random.randint(0, len(listx) - 1)]]
-        for x in range(random.randint(1, 5)):
+        for z in range(random.randint(1, 5)):
             randlist.append(randlist[random.randint(0, len(randlist) - 1)])
 
         block = ""
-        for x in range(230):
+        for z in range(x):
             block += str(randlist[random.randint(0, len(randlist) - 1)])
         return block
+
+
+    afk = True
+
+    oldColor = color.CurColor
+
     class printre(threading.Thread):
+        def __init__(self, x, y, colorCh):
+            super().__init__()
+
+            self.x = x
+            self.y = y
+            self.colorCh = colorCh
+
         def run(self):
             nonlocal afk
             while afk:
+
+                if self.colorCh:
+                    randcolor = ""
+                    randcolor += color.colorKeys[random.randint(0, len(color.colorKeys) - 1)]
+                    randcolor += "0"
+                    color.change(randcolor)
                 cls()
-                for x in range(65):
-                    print(randi())
+                for x in range(self.y):
+                    print(randi(self.x))
                 time.sleep(0.75)
 
-    printri = printre()
+    printri = printre(x, y, colorCh)
     printri.start()
 
     input()
     afk = False
-
+    color.change(oldColor)
 
 Timeprint()
 
@@ -1170,5 +1247,5 @@ while True:
                 secx = 0
 
         Timerprint(hoursx, minux, secx)
-        Alarmprint()
+        Alarmprint(colorCh=True)
         Timeprint()
