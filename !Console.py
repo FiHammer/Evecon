@@ -710,6 +710,56 @@ class ToolsC:
 Tools = ToolsC()
 
 
+
+def Search(searchkeyU, searchlistU, exact=False):
+
+    if len(searchkeyU) == 0:
+        return None
+
+    if not exact:
+        searchkey = searchkeyU.lower()
+        searchlist = []
+        for x in searchlistU:
+            searchlist.append(x.lower())
+    else:
+        searchkey = searchkeyU
+        searchlist = []
+        for x in searchlistU:
+            searchlist.append(x)
+
+    OutputNum = []
+
+    for sListNum in range(len(searchlist)): # wort aus der liste
+        if len(searchkey) > len(searchlist[sListNum]):
+            continue  # suchwort größer als anderes wort
+
+        for letterNum in range(len(searchlist[sListNum])): # buchstabe aus wort
+            if searchlist[sListNum][letterNum] == searchkey[0]: # wahr=
+                test = True
+
+                for keyNum in range(len(searchkey)):
+                    if test:
+                        test = False
+                        if keyNum == len(searchkey) - 1:
+                            OutputNum.append(sListNum)
+                            break
+                        continue
+                    if len(searchlist[sListNum]) - 1 < keyNum + letterNum:
+                        break
+                    pass
+                    if searchlist[sListNum][keyNum + letterNum] == searchkey[keyNum]:
+                        if keyNum == len(searchkey) - 1:
+                            OutputNum.append(sListNum)
+                            break
+                    else:
+                        break
+
+                break
+
+    return OutputNum
+
+
+
 def np(preset="Man"):
     title("Loading Notepad")
 
@@ -1279,12 +1329,11 @@ def update():
                     os.chdir(dir_tmp)
 
 def upgrade():
-    title("Updating this Program", "Closing")
+    title("Updating this Program", "")
     dir_tmp = os.getcwd()
     os.chdir("Programs\\Evecon\\Updater")
     subprocess.call(["updater.exe", "-upgrade"])
-    time.sleep(0.25)
-    os.chdir(dir_tmp)
+
     exit_now()
 
 
@@ -1701,12 +1750,13 @@ def games(preset="Man"):
 
 def Music(preset="Man"):
     import pyglet, random
-    global musiclist, musiclistname, musiclistpath
 
     musiclist = []
     musiclistname = []
     musiclistpath = []
 
+    musiclistdirname = []
+    musiclistdirnamefull = []
 
 
 
@@ -1962,8 +2012,6 @@ def Music(preset="Man"):
 
                                 splRoundOver = True
 
-                                print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL), Mute (MUTE), Unmute (UNMU)")
-
                                 print("\nSplatoon 2\n")
                                 print("Time:\t\t %s" % splTimeLeftFor)
                                 print("Round:\t\t %s" % splRounds)
@@ -2184,19 +2232,31 @@ def Music(preset="Man"):
                         splRoundOver = False
                         splStart = True
 
-    def loadmusic():
+    def loadmusic(loadMu):
         title("Musicplayer", "OLD", "Loading Music")
 
-        global musiclist, musiclistname, musiclistpath
+        nonlocal musiclist, musiclistname, musiclistpath, musiclistdirname, musiclistdirnamefull
 
+        dirtmp = os.getcwd()
+        os.chdir("..")
+        nowtmp = os.getcwd()
+        os.chdir(dirtmp)
+
+        dirx = dirtmp.lstrip(nowtmp)
+        musiclistdirname.append(dirx)
+        musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dirx)
 
         dir1 = os.listdir(os.getcwd())
         for x1 in range(len(os.listdir(os.getcwd()))):
             if os.path.isdir(dir1[x1]):
+                musiclistdirname.append(dir1[x1])
+                musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dir1[x1])
                 os.chdir(dir1[x1])
                 dir2 = os.listdir(os.getcwd())
                 for x2 in range(len(os.listdir(os.getcwd()))):
                     if os.path.isdir(dir2[x2]):
+                        musiclistdirname.append(dir2[x2])
+                        musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dir2[x2])
                         os.chdir(dir2[x2])
                         dir3 = os.listdir(os.getcwd())
                         for x3 in range(len(os.listdir(os.getcwd()))):
@@ -2205,40 +2265,46 @@ def Music(preset="Man"):
                                 os.chdir("..")
                             if os.path.isfile(dir3[x3]):
                                 if dir3[x3][len(dir3[x3])-3] == "m" and dir3[x3][len(dir3[x3])-2] == "p" and dir3[x3][len(dir3[x3])-1] == "3":
-                                    musiclist.append(pyglet.media.load(dir3[x3]))
+                                    if loadMu:
+                                        musiclist.append(pyglet.media.load(dir3[x3]))
                                     musiclistname.append(dir3[x3])
                                     musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
                                 elif dir3[x3][len(dir3[x3])-3] == "m" and dir3[x3][len(dir3[x3])-2] == "p" and dir3[x3][len(dir3[x3])-1] == "4":
-                                    musiclist.append(pyglet.media.load(dir3[x3]))
+                                    if loadMu:
+                                        musiclist.append(pyglet.media.load(dir3[x3]))
                                     musiclistname.append(dir3[x3])
                                     musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
                         os.chdir("..")
                     if os.path.isfile(dir2[x2]):
                         if dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][len(dir2[x2]) - 1] == "3":
-                            musiclist.append(pyglet.media.load(dir2[x2]))
+                            if loadMu:
+                                musiclist.append(pyglet.media.load(dir2[x2]))
                             musiclistname.append(dir2[x2])
                             musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
                         elif dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][len(dir2[x2]) - 1] == "4":
-                            musiclist.append(pyglet.media.load(dir2[x2]))
+                            if loadMu:
+                                musiclist.append(pyglet.media.load(dir2[x2]))
                             musiclistname.append(dir2[x2])
                             musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
 
                 os.chdir("..")
             if os.path.isfile(dir1[x1]):
                 if dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][len(dir1[x1]) - 1] == "3":
-                    musiclist.append(pyglet.media.load(dir1[x1]))
+                    if loadMu:
+                        musiclist.append(pyglet.media.load(dir1[x1]))
                     musiclistname.append(dir1[x1])
                     musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
                 elif dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][len(dir1[x1]) - 1] == "4":
-                    musiclist.append(pyglet.media.load(dir1[x1]))
+                    if loadMu:
+                        musiclist.append(pyglet.media.load(dir1[x1]))
                     musiclistname.append(dir1[x1])
                     musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
         os.chdir("..")
 
     mu_dir = os.getcwd()
 
-    music_playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing", "Parov Stelar", "jPOP & etc"]
-    music_playlists_key = ["lis", "an", "phu", "cp", "es", "ps", "jpop"]
+    music_playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing", "Parov Stelar", "jPOP & etc", "OMFG"]
+    music_playlists_key = ["lis", "an", "phu", "cp", "es", "ps", "jpop", "omfg"]
 
 
     music_playlists_print = ""
@@ -2255,7 +2321,7 @@ def Music(preset="Man"):
     music_user_input = input()
 
 
-    def loadm(ms):
+    def loadm(ms, loadMu=True):
 
         if not Computerfind_MiniPC:
             cls()
@@ -2263,58 +2329,64 @@ def Music(preset="Man"):
 
             if ms == "us":
                 os.chdir("Music\\User")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return True
 
             elif ms == "lis":
                 os.chdir("Music\\Presets\\Life is Strange")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return True
 
             elif ms == "an":
                 os.chdir("Music\\Presets\\Anime")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return True
 
             elif ms == "phu":
                 os.chdir("Music\\Presets\\Phunk")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return True
 
             elif ms == "cp":
                 os.chdir("Music\\Presets\\Caravan Palace")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return True
 
             elif ms == "es":
                 os.chdir("Music\\Presets\\Electro Swing")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return True
 
             elif ms == "ud":
                 cls()
                 os.chdir(input("Your path:\n"))
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return "ul"
 
             elif ms == "ps":
                 os.chdir("Music\\Presets\\Parov Stelar")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return "ps"
 
             elif ms == "jpop":
                 os.chdir("Music\\Presets\\jPOP-etc")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return "jpop"
+
+            elif ms == "omfg":
+                os.chdir("Music\\Presets\\OMFG")
+                loadmusic(loadMu)
+                os.chdir(mu_dir)
+                return "omfg"
 
             else:
                 return False
@@ -2325,58 +2397,64 @@ def Music(preset="Man"):
 
             if ms == "us":
                 os.chdir("Music\\User")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return True
 
             elif ms == "lis":
                 os.chdir(MusicDir + "\\Games\\Life is Strange")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return True
 
             elif ms == "an":
                 os.chdir(MusicDir + "\\Anime")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return True
 
             elif ms == "phu":
                 os.chdir(MusicDir + "\\Phunk")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return True
 
             elif ms == "cp":
                 os.chdir(MusicDir + "\\Caravan Palace")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return True
 
             elif ms == "es":
                 os.chdir(MusicDir + "\\Electro Swing")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return True
 
             elif ms == "ud":
                 cls()
                 os.chdir(input("Your path:\n"))
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return "ul"
 
             elif ms == "ps":
                 os.chdir(MusicDir + "\\Parov Stelar")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return "ps"
 
             elif ms == "jpop":
                 os.chdir(MusicDir + "\\jPOP-etc")
-                loadmusic()
+                loadmusic(loadMu)
                 os.chdir(mu_dir)
                 return "jpop"
+
+            elif ms == "omfg":
+                os.chdir(MusicDir + "\\OMFG")
+                loadmusic(loadMu)
+                os.chdir(mu_dir)
+                return "omfg"
 
             else:
                 return False
@@ -2433,6 +2511,33 @@ def Music(preset="Man"):
                 elif x == "ul":
                     musicman_list.append("unkown list")
 
+    elif music_user_input.lower() == "search":
+        for x in music_playlists_key:
+            loadm(x, False)
+
+        cls()
+        print("What do you want to hear?")
+
+        user_input_search = input()
+
+        searchdir = Search(user_input_search, musiclistdirname)
+        searchtrack = Search(user_input_search, musiclistname)
+
+        musiclistpathold = musiclistpath
+        musiclistpath = []
+        musiclistnameold = musiclistname
+        musiclistname = []
+
+        for x in searchdir:
+            os.chdir(musiclistdirnamefull[x])
+            loadmusic(True)
+            os.chdir(mu_dir)
+
+        for x in searchtrack:
+            musiclist.append(pyglet.media.load(musiclistpathold[x]))
+            musiclistpath.append(musiclistpathold[x])
+            musiclistname.append(musiclistnameold[x])
+
     else:
         loadm(music_user_input.lower())
 
@@ -2463,6 +2568,9 @@ def screensaver(preset = None):
         global color, ss_active, killmem
 
         title("Screensaver", "")
+
+        oldEP = Tools.EnergyPlan.getEP()
+        Tools.EnergyPlan.Change(1)
 
         ttime.pt()
 
@@ -2555,7 +2663,7 @@ def screensaver(preset = None):
 
         # schreibe in die Datei ...
         ss_pause = time.time() - ss_start
-
+        Tools.EnergyPlan.Change(oldEP)
         exit_now(killmem)
 
     if preset is None:
@@ -4729,22 +4837,35 @@ def Splatoonweapon(printweapon=False):
                "Fein-Disperser Neo", "Airbrush MG", "Airbrush RG", "Klechser", "Tentatek-Klechser",
                "Heldenwaffe Replik (Klechser)", "Okto-Klechser Replik", ".52 Gallon", ".52 Gallon Deko", "N-ZAP85",
                "N-ZAP89", "Profi-Klechser", "Focus-Profi-Kleckser", ".96 Gallon", ".96 Gallon Deko", "Platscher",
-               "Platscher SE", "Luna-Blaster", "Luna-Blaster Neo", "Blaster", "Blaster SE", "Helden-Blaster Replik",
+               "Platscher SE",
+
+               "Luna-Blaster", "Luna-Blaster Neo", "Blaster", "Blaster SE", "Helden-Blaster Replik",
                "Fern-Blaster", "Fern-Blaster SE", "Kontra-Blaster", "Kontra-Blaster Neo", "Turbo-Blaster",
-               "Turbo-Blaster Deko", "Turbo-Blaster Plus", "Turbo-Blaster Plus Deko", "L3 Tintenwerfer",
-               "L3 Tintenwerfer D", "S3 Tintenwerfer", "S3 Tintenwerfer D", "L3 Tintenwerfer", "Quetscher",
-               "Quetscher Fol", "Karbonroller", "Karbonroller Deko", "Klecksroller", "Medusa-Klecksroller",
-               "Helden-Roller Replik", "Dynaroller", "Dynaroller Tesla", "Flex-Roller", "Flex-Roller Fol", "Quasto",
-               "Quasto Fresco", "Kalligraf", "Kalligraf Fresco", "Helden-Pinsel Replik", "Sepiator Alpha",
-               "Sepiator Beta", "Klecks-Konzentrator", "Rilax-Klecks-Konzentrator", "Helden-Konzentrator Replik",
-               "Ziel-Konzentrator", "Rilax-Ziel-Konzentrator", "E-liter 4K", "E-liter 4K SE", "Ziel-E-liter 4K",
-               "Ziel-E-liter 4K SE", "Klotzer 14-A", "Klotzer 14-B", "T-Tuber", "T-Tuber SE", "Schwapper",
-               "Schwapper Deko", "Helden-Schwapper Replik", "3R-Schwapper", "3R-Schwapper Fresco", "Knall-Schwapper",
-               "Trommel-Schwapper", "Trommel-Schwapper Neo", "Klecks-Splatling", "Sagitron-Klecks-Splatling",
-               "Splatling", "Splatling Deko", "Helden-Splatling Replik", "Hydrant", "Kuli-Splatling", "Sprenkler",
-               "Sprenkler Fresco", "Klecks-Doppler", "Enperry-Klecks-Doppler", "Helden-Doppler Replik", "Kelvin 525",
-               "Kelvin 525 Deko", "Dual-Platscher", "Dual-Platscher SE", "Quadhopper Noir", "Parapulviator",
-               "Sorella-Parapulviator", "Helden-Pulviator Replik", "Camp-Pulviator", "Sorella-Camp-Pulviator",
+               "Turbo-Blaster Deko", "Turbo-Blaster Plus", "Turbo-Blaster Plus Deko",
+
+               "L3 Tintenwerfer", "L3 Tintenwerfer D", "S3 Tintenwerfer", "S3 Tintenwerfer D", "L3 Tintenwerfer",
+               "Quetscher", "Quetscher Fol",
+
+               "Karbonroller", "Karbonroller Deko", "Klecksroller", "Medusa-Klecksroller", "Helden-Roller Replik",
+               "Dynaroller", "Dynaroller Tesla", "Flex-Roller", "Flex-Roller Fol",
+               "Quasto", "Quasto Fresco", "Kalligraf", "Kalligraf Fresco", "Helden-Pinsel Replik",
+
+               "Sepiator Alpha", "Sepiator Beta", "Klecks-Konzentrator", "Rilax-Klecks-Konzentrator",
+               "Helden-Konzentrator Replik", "Ziel-Konzentrator", "Rilax-Ziel-Konzentrator", "E-liter 4K",
+               "E-liter 4K SE", "Ziel-E-liter 4K", "Ziel-E-liter 4K SE", "Klotzer 14-A", "Klotzer 14-B", "T-Tuber",
+               "T-Tuber SE",
+
+               "Schwapper", "Schwapper Deko", "Helden-Schwapper Replik", "3R-Schwapper", "3R-Schwapper Fresco",
+               "Knall-Schwapper", "Trommel-Schwapper", "Trommel-Schwapper Neo", "Wannen-Schwapper",
+
+               "Klecks-Splatling", "Sagitron-Klecks-Splatling", "Splatling", "Splatling Deko",
+               "Helden-Splatling Replik", "Hydrant", "Hydrant SE", "Kuli-Splatling", "Nautilus 47",
+
+               "Sprenkler", "Sprenkler Fresco", "Klecks-Doppler", "Enperry-Klecks-Doppler", "Helden-Doppler Replik",
+               "Kelvin 525", "Kelvin 525 Deko", "Dual-Platscher", "Dual-Platscher SE", "Quadhopper Noir",
+               "Quadhopper Blanc",
+
+               "Parapulviator", "Sorella-Parapulviator", "Helden-Pulviator Replik", "Camp-Pulviator", "Sorella-Camp-Pulviator",
                "UnderCover", "Sorella-UnderCover"]
 
     number = random.randint(0, len(weapons)-1)
