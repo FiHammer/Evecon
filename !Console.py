@@ -117,7 +117,77 @@ def title(status="OLD", something="OLD", pc="OLD"):
     ctypes.windll.kernel32.SetConsoleTitleW("EVECON: %s%s%s%s%s%s%sTime: %s" %
     (status, space_status, pc, space_pc, something, space_something, space_time, nowtime))
 
+class TimerC:
+    def __init__(self):
+        self.starttime = 0
+        self.stoptime = 0
+        self.startpausetime = 0
+        self.stoppausetime = 0
+        self.Time = 0
+        self.Pause = 0
 
+        self.Running = False
+        self.Paused = False
+        self.End = False
+
+    def start(self):
+        self.reset()
+        self.Running = True
+        self.starttime = time.time()
+
+    def stop(self):
+        if self.Running:
+            if self.Paused:
+                self.unpause()
+            self.stoptime = time.time()
+            self.reload()
+            self.End = True
+
+    def pause(self):
+        if not self.End:
+            if not self.Paused:
+                self.Paused = True
+                self.startpausetime += time.time()
+
+    def unpause(self):
+        if not self.End:
+            if self.Paused:
+                self.Paused = False
+                self.stoppausetime += time.time()
+                self.reload()
+
+    def reset(self):
+        self.starttime = 0
+        self.stoptime = 0
+        self.startpausetime = 0
+        self.stoppausetime = 0
+        self.Time = 0
+        self.Pause = 0
+
+        self.Running = False
+        self.Paused = False
+        self.End = False
+
+    def switch(self):
+        if not self.Paused:
+            self.pause()
+        else:
+            self.unpause()
+
+    def reload(self):
+        if self.Paused:
+            self.Pause = time.time() - self.startpausetime
+        else:
+            self.Pause = self.stoppausetime - self.startpausetime
+
+        if self.End:
+            self.Time = self.stoptime - self.starttime - self.Pause
+        else:
+            self.Time = time.time() - self.starttime - self.Pause
+
+    def getTime(self):
+        self.reload()
+        return self.Time
 
 def nircmd(preset="Man", a=None, b=None, c=None, d=None, every=False):
 
@@ -2466,7 +2536,9 @@ def Music(preset="Man"):
         loadm("cp")
         loadm("es")
         loadm("jpop")
-
+    elif music_user_input.lower() == "j":
+        loadm("an")
+        loadm("jpop")
     elif music_user_input.lower() == "all":
         for x in music_playlists_key:
             loadm(x)
