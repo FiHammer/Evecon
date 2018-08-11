@@ -15,6 +15,7 @@ import EveconExceptions
 import psutil
 import random
 import win32process
+import pyglet
 
 #import win32api
 #import win32gui
@@ -194,6 +195,13 @@ class TimerC:
     def getTime(self):
         self.reload()
         return self.Time
+    def getTimeFor(self):
+        self.reload()
+        if (self.Time % 60) < 10:
+            TimeFor = "%s:%s%s" % (round(self.Time) // 60, 0, round(self.Time) % 60)
+        else:
+            TimeFor = "%s:%s" % (round(self.Time) // 60, round(self.Time) % 60)
+        return TimeFor
 
 def nircmd(preset="Man", a=None, b=None, c=None, d=None, every=False):
 
@@ -730,7 +738,55 @@ else:
     version_MiniStick = 0
 
 
+from win32api import *
+from win32gui import *
+import win32con
 
+
+class WindowsBalloonTip:
+    def __init__(self, title, msg):
+        message_map = {
+                win32con.WM_DESTROY: self.OnDestroy,
+        }
+        # Register the Window class.
+        wc = WNDCLASS()
+        hinst = wc.hInstance = GetModuleHandle(None)
+        wc.lpszClassName = "PythonTaskbar"
+        wc.lpfnWndProc = message_map # could also specify a wndproc.
+        classAtom = RegisterClass(wc)
+        # Create the Window.
+        style = win32con.WS_OVERLAPPED | win32con.WS_SYSMENU
+        self.hwnd = CreateWindow( classAtom, "Taskbar", style, \
+                0, 0, win32con.CW_USEDEFAULT, win32con.CW_USEDEFAULT, \
+                0, 0, hinst, None)
+        UpdateWindow(self.hwnd)
+        iconPathName = os.path.abspath(os.path.join( sys.path[0], "balloontip.ico" ))
+        icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
+        try:
+           hicon = LoadImage(hinst, iconPathName, \
+                    win32con.IMAGE_ICON, 0, 0, icon_flags)
+        except:
+          hicon = LoadIcon(0, win32con.IDI_APPLICATION)
+        flags = NIF_ICON | NIF_MESSAGE | NIF_TIP
+        nid = (self.hwnd, 0, flags, win32con.WM_USER+20, hicon, "tooltip")
+        Shell_NotifyIcon(NIM_ADD, nid)
+        Shell_NotifyIcon(NIM_MODIFY, \
+                         (self.hwnd, 0, NIF_INFO, win32con.WM_USER+20,\
+                          hicon, "Balloon  tooltip",msg,200,title))
+        # self.show_balloon(title, msg)
+        time.sleep(10)
+        DestroyWindow(self.hwnd)
+    def OnDestroy(self, hwnd, msg, wparam, lparam):
+        nid = (self.hwnd, 0)
+        Shell_NotifyIcon(NIM_DELETE, nid)
+        PostQuitMessage(0) # Terminate the app.
+
+def balloon_tip(title, msg):
+    class tip(threading.Thread):
+        def run(self):
+            w=WindowsBalloonTip(title, msg)
+    tipp = tip()
+    tipp.start()
 
 
 
@@ -802,11 +858,14 @@ class ToolsC:
     def Sleep(self, wait=0):
         self.Run = False
         subprocess.call(["shutdown", "/h", "/t", str(wait)])
+    def Reboot(self, wait=0):
+        self.Run = False
+        subprocess.call(["shutdown", "/r", "/t", str(wait)])
 
 Tools = ToolsC()
 
 class ServerC:
-    def __init__(self, host, port, reac = None, reacSendData = False):
+    def __init__(self, host, port, reac = None, reacSendData = False, mess = False):
         super().__init__()
         self.host = host
         self.port = port
@@ -819,6 +878,7 @@ class ServerC:
         self.conAddress = None
         self.con = None
 
+        self.mess = mess
         self.reac = reac
         self.reacSData = reacSendData
 
@@ -846,21 +906,27 @@ class ServerC:
     def run(self):
         self.Running = True
         self.bind()
-        data = None
-        if self.Running:
+        while self.Running:
             self.s.listen(1)
             self.con, self.conAddress = self.s.accept()
             self.Connected = True
-            print("Connected with ", self.conAddress)
+            print("Connected with", self.conAddress)
+            balloon_tip("Coonected", "Connected with " + str(self.conAddress[0]))
             while self.Connected:
                 try:
                     data = self.con.recv(1024)
                 except ConnectionResetError:
                     self.Connected = False
+                    break
                 if not data:
                     break
                 self.allDataRec.append(data)
                 self.react(data)
+                if data == b"stop_server" or data == b"stopserver":
+                    self.Connected = False
+                    self.Running = False
+            print("Disconneted")
+            balloon_tip("Disconneted", "Connected fron " + str(self.conAddress[0]))
 
         self.stop()
 
@@ -868,7 +934,7 @@ class ServerC:
         self.s.bind((self.host, self.port))
 
 class ServerThC(threading.Thread):
-    def __init__(self, host, port, reac = None, reacSendData = False):
+    def __init__(self, host, port, reac = None, reacSendData = False, mess = False):
         super().__init__()
         self.host = host
         self.port = port
@@ -881,6 +947,7 @@ class ServerThC(threading.Thread):
         self.conAddress = None
         self.con = None
 
+        self.mess = mess
         self.reac = reac
         self.reacSData = reacSendData
 
@@ -906,22 +973,24 @@ class ServerThC(threading.Thread):
     def run(self):
         self.Running = True
         self.bind()
-        data = None
-        if self.Running:
+        while self.Running:
             self.s.listen(1)
             self.con, self.conAddress = self.s.accept()
             self.Connected = True
-            print("Connected with ", self.conAddress)
-
+            print("Connected with", self.conAddress)
+            balloon_tip("Coonected", "Connected with " + str(self.conAddress[0]))
             while self.Connected:
                 try:
                     data = self.con.recv(1024)
                 except ConnectionResetError:
                     self.Connected = False
+                    break
                 if not data:
                     break
                 self.allDataRec.append(data)
                 self.react(data)
+            print("Disconneted")
+            balloon_tip("Disconneted", "Connected fron " + str(self.conAddress[0]))
 
         self.stop()
 
@@ -1053,6 +1122,9 @@ def StartupServerTasks(data_un):
         Tools.Sleep()
     elif data == "ep_energysave":
         Tools.EnergyPlan.Change(1)
+    elif data == "reboot":
+        Tools.Reboot()
+
 
 def np(preset="Man"):
     title("Loading Notepad")
@@ -2042,499 +2114,128 @@ def games(preset="Man"):
             snake()
 
 
-def Music(preset="Man"):
-    import pyglet, random
 
-    musiclist = []
-    musiclistname = []
-    musiclistpath = []
+class MusicPlayerC(threading.Thread):
+    def __init__(self):
+        super().__init__()
+        self.unerror = 0
 
-    musiclistdirname = []
-    musiclistdirnamefull = []
+        self.musiclist = []
+        self.musiclistname = []
+        self.musiclistpath = []
+        self.musiclistdirname = []
+        self.musiclistdirnamefull = []
 
-
-
-
-
-    def Play():
-
-
-        #global musicplayer, musicplaying, nextmusic, musicrun, thismusicnumber, lastmusicnumber, nextmusicnumber, musicpause, musicwaitvol, musicwaitvolp, musicwait, musicvolume, musicvolumep, musicback, musicwaitseek, music_time
         global musicrun
-
         musicrun = True
-        musicpause = False
-        musicwait = False
-        musicwaitvol = False
-        musicwaitvolp = False
-        musicwaitseek = False
-        musicwaitSpl = False
-        musicback = False
-        music_time = 0
-        musicvolume = 0.5
-        musicvolumep = 1
-        musicplayer = None
-        musicplaying = True
 
-        splRUN = False
-        splStart = False
-        splTimeLeft = 0
-        splTimeLeftStart = 0
-        splRounds = 0
-        splPlaytime = 0
-        splPlaytimeStart = 0
-        splRoundOver = True
-        splEffect = None
+        self.musicpause = False
+        self.musicwait = False
+        self.musicwaitvol = False
+        self.musicwaitvolp = False
+        self.musicwaitseek = False
+        self.musicwaitSpl = False
+        self.musicback = False
+        self.music_time = 0
+        self.musicvolume = 0.5
+        self.musicvolumep = 1
+        self.musicplayer = None
+        self.musicplaying = True
+
+        self.lastmusicnumber = 0
+        self.thismusicnumber = 0
+        self.nextmusicnumber = 0
+
+        self.music_playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing", "Parov Stelar", "jPOP & etc", "OMFG"]
+        self.music_playlists_key = ["lis", "an", "phu", "cp", "es", "ps", "jpop", "omfg"]
+
+        self.spl = False
+        self.splmp = SplatoonC()
+
+    def addMusic(self, key, loadMu=True): # key (AN, LIS)
+        if not Computerfind_MiniPC:
+            cls()
+            print("Loading...")
+
+            if key == "us":
+                self.searchMusic("Music\\User", loadMu)
+                return True
+            elif key == "lis":
+                self.searchMusic("Music\\Presets\\Life is Strange", loadMu)
+                return True
+            elif key == "an":
+                self.searchMusic("Music\\Presets\\Anime", loadMu)
+                return True
+            elif key == "phu":
+                self.searchMusic("Music\\Presets\\Phunk", loadMu)
+                return True
+            elif key == "cp":
+                self.searchMusic("Music\\Presets\\Caravan Palace", loadMu)
+                return True
+            elif key == "es":
+                self.searchMusic("Music\\Presets\\Electro Swing", loadMu)
+                return True
+            elif key == "ud":
+                cls()
+                self.searchMusic(input("Your path:\n"), loadMu)
+                return True
+            elif key == "ps":
+                self.searchMusic("Music\\Presets\\Parov Stelar", loadMu)
+                return True
+            elif key == "jpop":
+                self.searchMusic("Music\\Presets\\jPOP-etc", loadMu)
+                return True
+            elif key == "omfg":
+                self.searchMusic("Music\\Presets\\OMFG", loadMu)
+                return True
 
-        splWR = False
-        splWRthis = Splatoonweapon(False)
-        splWRnext = Splatoonweapon(False)
-
-        while splWRthis == splWRnext:
-            splWRnext = Splatoonweapon(False)
-
-        def splRoundOverfun():
-            nonlocal splRoundOver, splStart, splRounds, splEffect, splWRthis, splWRnext, splPlaytimeStart, splTimeLeftStart
-            if splRoundOver:
-                if not splStart:
-                    splPlaytimeStart = time.time()
-                splTimeLeftStart = time.time()
-                splRounds += 1
-
-                if splEffect is not None and splEffect != 0:
-                    splEffect -= 1
-
-                if splStart:
-                    splWRthisTMP = splWRthis
-                    splWRthis = splWRnext
-                    splWRnext = Splatoonweapon(False)
-
-                    while splWRthisTMP == splWRnext or splWRthis == splWRnext:
-                        splWRnext = Splatoonweapon(False)
-
-                splRoundOver = False
-                splStart = True
-
-
-        title("Musicplayer", " ", "Loading Music")
-
-
-        thismusicnumber = random.randint(0, len(musiclist) - 1)
-        lastmusicnumber = thismusicnumber
-        nextmusicnumber = random.randint(0, len(musiclist) - 1)
-
-        class MusicThread(threading.Thread):
-            def run(self):
-                nonlocal musicplayer, musicplaying, thismusicnumber, lastmusicnumber, nextmusicnumber, musicpause, musicwait, musicwaitvolp, musicvolume, musicvolumep, musicback, musicwaitseek, music_time
-                nonlocal splRUN, splTimeLeft, splTimeLeftStart, splRounds, splPlaytime, splPlaytimeStart, splWR, splWRthis, splWRnext, splRoundOver, musicwaitSpl, splEffect
-
-                while musicrun:
-
-                    if musiclistname[thismusicnumber][len(musiclistname[thismusicnumber]) - 3] == "m" and \
-                            musiclistname[thismusicnumber][len(musiclistname[thismusicnumber]) - 2] == "p" and \
-                            musiclistname[thismusicnumber][len(musiclistname[thismusicnumber]) - 1] == "3":
-                        musictype = "mp3"
-                    elif musiclistname[thismusicnumber][len(musiclistname[thismusicnumber]) - 3] == "m" and \
-                            musiclistname[thismusicnumber][len(musiclistname[thismusicnumber]) - 2] == "p" and \
-                            musiclistname[thismusicnumber][len(musiclistname[thismusicnumber]) - 1] == "4":
-                        musictype = "mp4"
-                    else:
-                        musictype = None
-
-
-                    if musiclist[thismusicnumber].is_queued:
-                        musiclist[thismusicnumber] = pyglet.media.load(musiclistpath[thismusicnumber])
-
-                    musicplayer = pyglet.media.Player()
-                    musicplayer.queue(musiclist[thismusicnumber])
-                    #musicplayer.seek(0)
-                    #musicplayer.volume = musicvolumep
-                    musicplayer.play()
-                    musicplayer.volume = musicvolumep
-                    music_time = time.time()
-
-
-                    title("OLD", musiclistname[thismusicnumber], "Now Playing")
-
-                    musicplaying = True
-
-                    while musicplaying:
-                        cls()
-                        print("Musicplayer\n\nNow Playing:")
-                        if musictype == "mp3":
-                            print(musiclistname[thismusicnumber].rstrip(".mp3"))
-                        elif musictype == "mp4":
-                            print(musiclistname[thismusicnumber].rstrip(".mp4"))
-
-                        if (round(time.time() - music_time) % 60) < 10 and (
-                                round(musiclist[thismusicnumber].duration) % 60) < 10:
-                            print(r"%s:%s%s\%s:%s%s" % (
-                                round(time.time() - music_time) // 60, 0, round(time.time() - music_time) % 60,
-                                round(musiclist[thismusicnumber].duration) // 60, 0,
-                                round(musiclist[thismusicnumber].duration) % 60))
-                        elif (round(time.time() - music_time) % 60) < 10:
-                            print(r"%s:%s%s\%s:%s" % (
-                                round(time.time() - music_time) // 60, 0, round(time.time() - music_time) % 60,
-                                round(musiclist[thismusicnumber].duration) // 60,
-                                round(musiclist[thismusicnumber].duration) % 60))
-                        elif (round(musiclist[thismusicnumber].duration) % 60) < 10:
-                            print(r"%s:%s\%s:%s%s" % (
-                                round(time.time() - music_time) // 60, round(time.time() - music_time) % 60,
-                                round(musiclist[thismusicnumber].duration) // 60, 0,
-                                round(musiclist[thismusicnumber].duration) % 60))
-                        else:
-                            print(r"%s:%s\%s:%s" % (
-                                round(time.time() - music_time) // 60, round(time.time() - music_time) % 60,
-                                round(musiclist[thismusicnumber].duration) // 60,
-                                round(musiclist[thismusicnumber].duration) % 60))
-
-                        print("\nNext Track:")
-                        if musictype == "mp3":
-                            print(musiclistname[nextmusicnumber].rstrip(".mp3"))
-                        elif musictype == "mp4":
-                            print(musiclistname[nextmusicnumber].rstrip(".mp4"))
-
-                        print("\n")
-                        if not musicwait:
-                            print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL), Mute (MUTE), Unmute (UNMU)")
-                        elif musicwaitvol:
-                            print("Volume (Now: %s)\n" % musicvolume)
-                        elif musicwaitvolp:
-                            print("Volume Player:")
-                        elif musicwaitseek:
-                            print("Jump to (in sec) (DO NOT WORK!):")
-
-                        elif musicwaitSpl:
-                            if splRUN:
-                                splTimeLeft = 180 - round(time.time() - splTimeLeftStart)
-
-                                if splStart:
-                                    splPlaytime = round(time.time() - splPlaytimeStart)
-                                else:
-                                    splPlaytime = 0
-
-                                if splRoundOver:
-                                    splTimeLeftFor = "No Round Started"
-                                else:
-                                    if (splTimeLeft % 60) < 10:
-                                        splTimeLeftFor = "%s:%s%s" % (splTimeLeft // 60, 0, splTimeLeft % 60)
-                                    else:
-                                        splTimeLeftFor = "%s:%s" % (splTimeLeft // 60, splTimeLeft % 60)
-
-                                if (splPlaytime % 60) < 10:
-                                    splPlaytimeFor = "%s:%s%s" % (splPlaytime // 60, 0, splPlaytime % 60)
-                                else:
-                                    splPlaytimeFor = "%s:%s" % (splPlaytime // 60, splPlaytime % 60)
-
-                                if splTimeLeft == 0:
-                                    splRoundOver = True
-
-                                print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL), Mute (MUTE), Unmute (UNMU)")
-
-                                print("\nSplatoon 2\n")
-                                print("Time:\t\t %s" % splTimeLeftFor)
-                                print("Round:\t\t %s" % splRounds)
-
-                                if splEffect is not None and splEffect != 0:
-                                    print("Effect:\t\t %s" % splEffect)
-                                elif splEffect == 0:
-                                    print("Effect:\t\t No Effect Active")
-
-                                print("Playtime:\t %s" % splPlaytimeFor)
-                                if splWR:
-                                    print("\nWeapon Randomizer:")
-                                    print("This Round:\t %s" % splWRthis)
-                                    print("Next Round:\t %s" % splWRnext)
-
-                                if splWR:
-                                    print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon(REROLL)")
-                                else:
-                                    print("\nWeapon Randomizer (WR), Effect ('E'+number)")
-
-                                if splRoundOver:
-                                    print("\nStart Next Round?")
-
-                        else:
-                            print("BUGGI")
-
-                        time.sleep(0.25)
-                        for x in range(5):
-                            if musicplayer.time == 0:
-                                musicplaying = False
-                            elif round(musiclist[thismusicnumber].duration) == round(time.time() - music_time):
-                                musicplaying = False
-                            time.sleep(0.05)
-                        while musicpause:
-                            cls()
-                            music_time_wait = time.time()
-                            splPlaytimeWait = time.time()
-                            title("OLD", "OLD", "Paused")
-                            print("Musicplayer\n\nPaused:")
-                            print(musiclistname[thismusicnumber])
-                            if (round(time.time() - music_time) % 60) < 10:
-                                print(r"%s:%s%s\%s:%s" % (
-                                round(time.time() - music_time) // 60, 0, round(time.time() - music_time) % 60,
-                                round(musiclist[thismusicnumber].duration) // 60,
-                                round(musiclist[thismusicnumber].duration) % 60))
-                            elif (round(musiclist[thismusicnumber].duration) % 60) < 10:
-                                print(r"%s:%s\%s:%s%s" % (
-                                round(time.time() - music_time) // 60, round(time.time() - music_time) % 60,
-                                round(musiclist[thismusicnumber].duration) // 60, 0,
-                                round(musiclist[thismusicnumber].duration) % 60))
-                            elif (round(time.time() - music_time) % 60) < 10 and (round(musiclist[thismusicnumber].duration) % 60) < 10:
-                                print(r"%s:%s%s\%s:%s%s" % (
-                                round(time.time() - music_time) // 60, 0, round(time.time() - music_time) % 60,
-                                round(musiclist[thismusicnumber].duration) // 60, 0,
-                                round(musiclist[thismusicnumber].duration) % 60))
-                            else:
-                                print(r"%s:%s\%s:%s" % (
-                                round(time.time() - music_time) // 60, round(time.time() - music_time) % 60,
-                                round(musiclist[thismusicnumber].duration) // 60,
-                                round(musiclist[thismusicnumber].duration) % 60))
-
-                            print("\n\nPlay (PLAY), Stop (STOP)")
-
-                            if splRUN:
-
-                                splTimeLeftFor = "No Round Started"
-
-
-                                if (splPlaytime % 60) < 10:
-                                    splPlaytimeFor = "%s:%s%s" % (splPlaytime // 60, 0, splPlaytime % 60)
-                                else:
-                                    splPlaytimeFor = "%s:%s" % (splPlaytime // 60, splPlaytime % 60)
-
-                                splRoundOver = True
-
-                                print("\nSplatoon 2\n")
-                                print("Time:\t\t %s" % splTimeLeftFor)
-                                print("Round:\t\t %s" % splRounds)
-
-                                if splEffect is not None and splEffect != 0:
-                                    print("Effect:\t\t %s" % splEffect)
-                                elif splEffect == 0:
-                                    print("Effect:\t\t No Effect Active")
-
-                                print("Playtime:\t %s" % splPlaytimeFor)
-                                if splWR:
-                                    print("\nWeapon Randomizer:")
-                                    print("This Round:\t %s" % splWRthis)
-                                    print("Next Round:\t %s" % splWRnext)
-
-                                if splWR:
-                                    print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon(REROLL)")
-                                else:
-                                    print("\nWeapon Randomizer (WR), Effect ('E'+number)")
-
-                                if splRoundOver:
-                                    print("\nStart Next Round?")
-
-
-                            while musicpause:
-                                time.sleep(0.25)
-                            title("OLD", "OLD", "Now Playing:")
-                            music_time += time.time() - music_time_wait
-
-                            if splRUN:
-                                splPlaytimeStart += time.time() - splPlaytimeWait
-
-                    musicplayer.next()
-                    if not musicback:
-                        lastmusicnumber = thismusicnumber
-                        thismusicnumber = nextmusicnumber
-                        nextmusicnumber = random.randint(0, len(musiclist) - 1)
-                    else:
-                        nextmusicnumber = thismusicnumber
-                        thismusicnumber = lastmusicnumber
-                        musicback = False
-
-
-        playerthread = MusicThread()
-        playerthread.start()
-
-
-
-        while musicrun:
-            musiccon_user_input = input()
-
-            if musiccon_user_input.lower() == "":
-                if not splRUN:
-                    musicplaying = False
-                    if musicpause:
-                        musicpause = False
-                        musicplayer.play()
-                else:
-                    if splRoundOver:
-                        if not splStart:
-                            splPlaytimeStart = time.time()
-                        splTimeLeftStart = time.time()
-                        splRounds += 1
-
-                        if splEffect is not None and splEffect == 0:
-                            splEffect -= 1
-
-                        if splStart:
-                            splWRthisTMP = splWRthis
-                            splWRthis = splWRnext
-                            splWRnext = Splatoonweapon(False)
-
-                            while splWRthisTMP == splWRnext or splWRthis == splWRnext:
-                                splWRnext = Splatoonweapon(False)
-
-                        splRoundOver = False
-                        splStart = True
-                    else:
-                        musicplaying = False
-                        if musicpause:
-                            musicpause = False
-                            musicplayer.play()
-
-            elif musiccon_user_input.lower() == "play" or musiccon_user_input.lower() == "pau" or musiccon_user_input.lower() == "p":
-                if musicpause:
-                    musicpause = False
-                    musicplayer.play()
-                else:
-                    musicpause = True
-                    musicplayer.pause()
-
-            elif musiccon_user_input.lower() == "stop" or musiccon_user_input.lower() == "exit":
-                musicrun = False
-                musicplaying = False
-                musicpause = False
-
-            elif musiccon_user_input.lower() == "next" or musiccon_user_input.lower() == "n":
-                musicplaying = False
-                if musicpause:
-                    musicpause = False
-                    musicplayer.play()
-
-            elif musiccon_user_input.lower() == "del":
-                del musiclist[thismusicnumber]
-                del musiclistname[thismusicnumber]
-                musicplaying = False
-                if musicpause:
-                    musicpause = False
-                    musicplayer.play()
-
-            elif musiccon_user_input.lower() == "vol":
-                musicwait = True
-                musicwaitvol = True
-                musicvolume = float(input("Volume (Now: %s)\n" % musicvolume))
-                nircmd("volume", musicvolume)
-                musicwait = False
-                musicwaitvol = False
-                if splRUN:
-                    musicwait = True
-
-            elif musiccon_user_input.lower() == "mute":
-                nircmd("volume", 0)
-
-            elif musiccon_user_input.lower() == "unmu" or musiccon_user_input.lower() == "unmute":
-                if musicvolume == 0:
-                    musicvolume = 0.5
-                nircmd("volume", musicvolume)
-
-            elif musiccon_user_input.lower() == "volp":
-                musicwait = True
-                musicwaitvolp = True
-                musicvolumep = float(input("Volume Player"))
-                musicplayer.volume = musicvolumep
-                musicwait = False
-                musicwaitvolp = False
-                if splRUN:
-                    musicwait = True
-
-            elif musiccon_user_input.lower() == "mutep":
-                musicvolumep = musicplayer.volume
-                musicplayer.volume = 0
-
-            elif musiccon_user_input.lower() == "unmup" or musiccon_user_input.lower() == "unmutep":
-                musicplayer.volume = musicvolumep
-                if musicvolumep == 0:
-                    musicplayer.volume = 1
-                    musicvolumep = 1
-
-            elif musiccon_user_input.lower() == "back" or musiccon_user_input.lower() == "b":
-                musicplaying = False
-                musicback = True
-                if musicpause:
-                    musicpause = False
-                    musicplayer.play()
-
-            elif musiccon_user_input.lower() == "jumb" or musiccon_user_input.lower() == "seek" or musiccon_user_input.lower() == "s":
-                musicwait = True
-                musicwaitseek = True
-                musicseek = float(input().lower())
-                if musicseek < musiclist[thismusicnumber].duration:
-                    musicplayer.seek(musicseek)
-                    music_time = time.time() - musicseek
-                musicwait = False
-                musicwaitseek = False
-                if splRUN:
-                    musicwait = True
-
-            elif music_user_input.lower() == "r" or music_user_input.lower() == "re" or music_user_input.lower() == "reroll":
-                nextmusicnumber = random.randint(0, len(musiclist) - 1)
-
-
-
-            elif musiccon_user_input.lower() == "debugme":
-                print(musicrun, musicwait, musicpause, musicplaying, playerthread.is_alive())
-
-
-            elif musiccon_user_input.lower() == "spl":
-                if not splRUN:
-                    splRUN = True
-                    musicwait = True
-                    musicwaitSpl = True
-                else:
-                    splRUN = False
-                    musicwait = False
-                    musicwaitSpl = False
-            elif musiccon_user_input.lower() == "wr":
-                if splRUN:
-                    if splWR:
-                        splWR = False
-                    else:
-                        splWR = True
-            elif musiccon_user_input.lower() == "reroll" or musiccon_user_input.lower() == "rerol" or musiccon_user_input.lower() == "rero":
-                if splRUN:
-                    splWRnextTMP = splWRnext
-                    splWRnext = Splatoonweapon(False)
-
-                    while splWRthis == splWRnext or splWRnextTMP == splWRnext:
-                        splWRnext = Splatoonweapon(False)
-            elif musiccon_user_input.lower() != "":  # die LETZTE ELIF SONST DRÜBER!
-                if musiccon_user_input.lower()[0] == "e":
-                    splEffect = int(musiccon_user_input.lower().lstrip("e"))
-                else:
-                    splRoundOverfun()
             else:
-                if splRUN:
-                    if splRoundOver:
-                        if not splStart:
-                            splPlaytimeStart = time.time()
-                        splTimeLeftStart = time.time()
-                        splRounds += 1
+                return False
 
-                        if splEffect is not None and splEffect == 0:
-                            splEffect -= 1
+        else:
+            cls()
+            print("Loading...")
 
-                        if splStart:
-                            splWRthisTMP = splWRthis
-                            splWRthis = splWRnext
-                            splWRnext = Splatoonweapon(False)
+            if key == "us":
+                self.searchMusic("Music\\User", loadMu)
+                return True
+            elif key == "lis":
+                self.searchMusic(MusicDir + "\\Games\\Life is Strange", loadMu)
+                return True
+            elif key == "an":
+                self.searchMusic(MusicDir + "\\Anime", loadMu)
+                return True
+            elif key == "phu":
+                self.searchMusic(MusicDir + "\\Phunk", loadMu)
+                return True
+            elif key == "cp":
+                self.searchMusic(MusicDir + "\\Caravan Palace", loadMu)
+                return True
+            elif key == "es":
+                self.searchMusic(MusicDir + "\\Electro Swing", loadMu)
+                return True
+            elif key == "ud":
+                cls()
+                self.searchMusic(input("Your path:\n"), loadMu)
+                return "ul"
+            elif key == "ps":
+                self.searchMusic(MusicDir + "\\Parov Stelar", loadMu)
+                return True
+            elif key == "jpop":
+                self.searchMusic(MusicDir + "\\jPOP-etc", loadMu)
+                return True
+            elif key == "omfg":
+                self.searchMusic(MusicDir + "\\OMFG" ,loadMu)
+                return True
+            else:
+                return False
+    def reloadMusic(self, tracknum):
+        print(tracknum)
+        self.musiclist[tracknum] = pyglet.media.load(self.musiclistpath[tracknum])
 
-                            while splWRthisTMP == splWRnext or splWRthis == splWRnext:
-                                splWRnext = Splatoonweapon(False)
-
-                        splRoundOver = False
-                        splStart = True
-
-    def loadmusic(loadMu):
-        title("Musicplayer", "OLD", "Loading Music")
-
-        nonlocal musiclist, musiclistname, musiclistpath, musiclistdirname, musiclistdirnamefull
+    def searchMusic(self, mDir, loadMu=True): # sucht nur
+        firstDir = os.getcwd()
+        os.chdir(mDir)
 
         dirtmp = os.getcwd()
         os.chdir("..")
@@ -2542,20 +2243,20 @@ def Music(preset="Man"):
         os.chdir(dirtmp)
 
         dirx = dirtmp.lstrip(nowtmp)
-        musiclistdirname.append(dirx)
-        musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dirx)
+        self.musiclistdirname.append(dirx)
+        self.musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dirx)
 
         dir1 = os.listdir(os.getcwd())
         for x1 in range(len(os.listdir(os.getcwd()))):
             if os.path.isdir(dir1[x1]):
-                musiclistdirname.append(dir1[x1])
-                musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dir1[x1])
+                self.musiclistdirname.append(dir1[x1])
+                self.musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dir1[x1])
                 os.chdir(dir1[x1])
                 dir2 = os.listdir(os.getcwd())
                 for x2 in range(len(os.listdir(os.getcwd()))):
                     if os.path.isdir(dir2[x2]):
-                        musiclistdirname.append(dir2[x2])
-                        musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dir2[x2])
+                        self.musiclistdirname.append(dir2[x2])
+                        self.musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dir2[x2])
                         os.chdir(dir2[x2])
                         dir3 = os.listdir(os.getcwd())
                         for x3 in range(len(os.listdir(os.getcwd()))):
@@ -2563,51 +2264,333 @@ def Music(preset="Man"):
                                 os.chdir(dir3[x3])
                                 os.chdir("..")
                             if os.path.isfile(dir3[x3]):
-                                if dir3[x3][len(dir3[x3])-3] == "m" and dir3[x3][len(dir3[x3])-2] == "p" and dir3[x3][len(dir3[x3])-1] == "3":
+                                if dir3[x3][len(dir3[x3]) - 3] == "m" and dir3[x3][len(dir3[x3]) - 2] == "p" and \
+                                        dir3[x3][len(dir3[x3]) - 1] == "3":
                                     if loadMu:
-                                        musiclist.append(pyglet.media.load(dir3[x3]))
-                                    musiclistname.append(dir3[x3])
-                                    musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
-                                elif dir3[x3][len(dir3[x3])-3] == "m" and dir3[x3][len(dir3[x3])-2] == "p" and dir3[x3][len(dir3[x3])-1] == "4":
+                                        self.musiclist.append(pyglet.media.load(dir3[x3]))
+                                    self.musiclistname.append(dir3[x3])
+                                    self.musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
+                                elif dir3[x3][len(dir3[x3]) - 3] == "m" and dir3[x3][len(dir3[x3]) - 2] == "p" and \
+                                        dir3[x3][len(dir3[x3]) - 1] == "4":
                                     if loadMu:
-                                        musiclist.append(pyglet.media.load(dir3[x3]))
-                                    musiclistname.append(dir3[x3])
-                                    musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
+                                        self.musiclist.append(pyglet.media.load(dir3[x3]))
+                                    self.musiclistname.append(dir3[x3])
+                                    self.musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
                         os.chdir("..")
                     if os.path.isfile(dir2[x2]):
-                        if dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][len(dir2[x2]) - 1] == "3":
+                        if dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][
+                            len(dir2[x2]) - 1] == "3":
                             if loadMu:
-                                musiclist.append(pyglet.media.load(dir2[x2]))
-                            musiclistname.append(dir2[x2])
-                            musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
-                        elif dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][len(dir2[x2]) - 1] == "4":
+                                self.musiclist.append(pyglet.media.load(dir2[x2]))
+                            self.musiclistname.append(dir2[x2])
+                            self.musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
+                        elif dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][
+                            len(dir2[x2]) - 1] == "4":
                             if loadMu:
-                                musiclist.append(pyglet.media.load(dir2[x2]))
-                            musiclistname.append(dir2[x2])
-                            musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
+                                self.musiclist.append(pyglet.media.load(dir2[x2]))
+                            self.musiclistname.append(dir2[x2])
+                            self.musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
 
                 os.chdir("..")
             if os.path.isfile(dir1[x1]):
-                if dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][len(dir1[x1]) - 1] == "3":
+                if dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][
+                    len(dir1[x1]) - 1] == "3":
                     if loadMu:
-                        musiclist.append(pyglet.media.load(dir1[x1]))
-                    musiclistname.append(dir1[x1])
-                    musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
-                elif dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][len(dir1[x1]) - 1] == "4":
+                        self.musiclist.append(pyglet.media.load(dir1[x1]))
+                    self.musiclistname.append(dir1[x1])
+                    self.musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
+                elif dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][
+                    len(dir1[x1]) - 1] == "4":
                     if loadMu:
-                        musiclist.append(pyglet.media.load(dir1[x1]))
-                    musiclistname.append(dir1[x1])
-                    musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
+                        self.musiclist.append(pyglet.media.load(dir1[x1]))
+                    self.musiclistname.append(dir1[x1])
+                    self.musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
         os.chdir("..")
+        os.chdir(firstDir)
 
-    mu_dir = os.getcwd()
+    def istype(self, mType, exact=False):
+        self.unerror += 1
+        if mType[len(mType) - 3] == "m" and mType[len(mType) - 2] == "p" and mType[len(mType) - 1] == "3":
+            if exact:
+                return "mp3"
+            else:
+                return True
+        elif mType[len(mType) - 3] == "m" and mType[len(mType) - 2] == "p" and mType[len(mType) - 1] == "4":
+            if exact:
+                return "mp4"
+            else:
+                return True
+        else:
+            return False
 
-    music_playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing", "Parov Stelar", "jPOP & etc", "OMFG"]
-    music_playlists_key = ["lis", "an", "phu", "cp", "es", "ps", "jpop", "omfg"]
+    def Play(self):
+        self.musicpause = False
+        self.musicplayer.play()
+    def Pause(self):
+        self.musicpause = True
+        self.musicplayer.pause()
+    def Switch(self):
+        if self.musicpause:
+            self.Play()
+        else:
+            self.Pause()
+    def Stop(self):
+        global musicrun
+        musicrun = False
+        self.musicplaying = False
+        self.musicpause = False
+    def Next(self):
+        self.musicplaying = False
+        if self.musicpause:
+            self.musicpause = False
+            self.musicplayer.play()
+    def Last(self):
+        pass
+    def Del(self, mId):
+        del self.musiclist[mId]
+        del self.musiclistname[mId]
+    def vol(self, vol):
+        self.musicvolume = vol
+        nircmd("volume", self.musicvolume)
+    def volp(self, vol):
+        self.musicvolumep = vol
+        self.musicplayer.volume = self.musicvolumep
+    def seek(self, ti):
 
+        if ti < self.musiclist[self.thismusicnumber].duration:
+            self.musicplayer.seek(ti)
+            self.music_time = time.time() - ti
+    def reroll(self):
+        self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
+    def input(self, inpt):
+        inpt = inpt.lower()
+        if inpt == "":
+            if not self.spl:
+                self.musicplaying = False
+                if self.musicpause:
+                    self.musicpause = False
+                    self.musicplayer.play()
+            else:
+                if self.spl:
+                    if self.splmp.RoundOver:
+                        self.splmp.RoundOverF()
+                    else:
+                        self.musicplaying = False
+                        if self.musicpause:
+                            self.musicpause = False
+                            self.musicplayer.play()
+        elif inpt == "play" or inpt == "pau" or inpt == "pause" or inpt == "p":
+            self.Switch()
+        elif inpt == "next" or inpt == "n":
+            self.Next()
+        elif inpt == "stop" or inpt == "exit":
+            self.Stop()
+        elif inpt == "del":
+            self.Del(self.thismusicnumber)
+            self.musicplaying = False
+            if self.musicpause:
+                self.musicpause = False
+                self.musicplayer.play()
+        elif inpt == "deln" or inpt == "delnext":
+            nmnold = self.nextmusicnumber
+            self.Del(self.nextmusicnumber)
+            if nmnold < self.thismusicnumber:
+                self.thismusicnumber -= 1
+        elif inpt == "vol":
+            self.musicwait = True
+            self.musicwaitvol = True
+            self.vol(float(input("Volume (Now: %s)\n" % self.musicvolume)))
+            self.musicwait = False
+            self.musicwaitvol = False
+        elif inpt == "volp":
+            self.musicwait = True
+            self.musicwaitvolp = True
+            self.volp(float(input("Volume Player")))
+            self.musicwait = False
+            self.musicwaitvolp = False
+        elif inpt == "jump" or inpt == "j" or inpt == "seek" or inpt == "s":
+            self.musicwait = True
+            self.musicwaitseek = True
+            self.seek(float(input().lower()))
+            self.musicwait = False
+            self.musicwaitseek = False
+        elif inpt == "rm" or inpt == "rem" or inpt == "rerollm":
+            self.reroll()
+        elif inpt == "spl":
+            if not self.spl:
+                self.spl = True
+            else:
+                self.spl = False
+        else:
+            if self.spl:
+                self.splmp.input(inpt=inpt)
+
+         # play, next, stop, pause, last, del, deln, vol, volp, mute, mutep, jump (to 0), reroll
+         # SPL: spl (On/Off), wr, reroll, start (""), effect (E--)
+    def run(self):
+
+        self.thismusicnumber = random.randint(0, len(self.musiclist) - 1)
+        self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
+
+        global musicrun
+        while musicrun:
+
+
+            if self.musiclist[self.thismusicnumber].is_queued:
+                self.reloadMusic(self.thismusicnumber)
+
+            self.musicplayer = pyglet.media.Player()
+            self.musicplayer.queue(self.musiclist[self.thismusicnumber])
+            self.musicplayer.play()
+            self.musicplayer.volume = self.musicvolumep
+            self.music_time = time.time()
+
+            title("OLD", self.musiclistname[self.thismusicnumber], "Now Playing")
+
+            self.musicplaying = True
+
+            while self.musicplaying:
+
+                time.sleep(0.25)
+                for x in range(5):
+                    if self.musicplayer.time == 0:
+                        self.musicplaying = False
+                    elif round(self.musiclist[self.thismusicnumber].duration) == round(time.time() - self.music_time):
+                        self.musicplaying = False
+                    time.sleep(0.05)
+                while self.musicpause:
+                    music_time_wait = time.time()
+
+                    while self.musicpause:
+                        time.sleep(0.25)
+                    title("OLD", "OLD", "Now Playing:")
+                    self.music_time += time.time() - music_time_wait
+
+                    if self.spl:
+                        self.splmp.PlaytimeStart += time.time() - music_time_wait
+                        self.splmp.TimeLeftStart += time.time() - music_time_wait
+
+            self.musicplayer.next()
+            self.lastmusicnumber = self.thismusicnumber
+            self.thismusicnumber = self.nextmusicnumber
+            self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
+
+
+    def printIt(self):
+        cls()
+        print("Musicplayer\n\nNow Playing:")
+        if self.istype(self.musiclistname[self.thismusicnumber], True) == "mp3":
+            print(self.musiclistname[self.thismusicnumber].rstrip(".mp3"))
+        elif self.istype(self.musiclistname[self.thismusicnumber], True) == "mp4":
+            print(self.musiclistname[self.thismusicnumber].rstrip(".mp4"))
+
+        if (round(time.time() - self.music_time) % 60) < 10 and (
+                round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
+            print(r"%s:%s%s\%s:%s%s" % (
+                round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
+                round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
+                round(self.musiclist[self.thismusicnumber].duration) % 60))
+        elif (round(time.time() - self.music_time) % 60) < 10:
+            print(r"%s:%s%s\%s:%s" % (
+                round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
+                round(self.musiclist[self.thismusicnumber].duration) // 60,
+                round(self.musiclist[self.thismusicnumber].duration) % 60))
+        elif (round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
+            print(r"%s:%s\%s:%s%s" % (
+                round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
+                round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
+                round(self.musiclist[self.thismusicnumber].duration) % 60))
+        else:
+            print(r"%s:%s\%s:%s" % (
+                round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
+                round(self.musiclist[self.thismusicnumber].duration) // 60,
+                round(self.musiclist[self.thismusicnumber].duration) % 60))
+
+        print("\nNext Track:")
+        if self.istype(self.musiclistname[self.nextmusicnumber], True) == "mp3":
+            print(self.musiclistname[self.nextmusicnumber].rstrip(".mp3"))
+        elif self.istype(self.musiclistname[self.nextmusicnumber], True) == "mp4":
+            print(self.musiclistname[self.nextmusicnumber].rstrip(".mp4"))
+
+        print("\n")
+        if not self.musicwait:
+            print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL)")
+        elif self.musicwaitvol:
+            print("Volume (Now: %s)\n" % self.musicvolume)
+        elif self.musicwaitvolp:
+            print("Volume Player:")
+        elif self.musicwaitseek:
+            print("Jump to (in sec) (DO NOT WORK!):")
+        else:
+            print("BUGGI")
+
+        if self.spl:
+            print("\n\n")
+            self.splmp.printIt()
+
+        if self.musicpause:
+            cls()
+            print("Musicplayer\n\nPaused:")
+            print(self.musiclistname[self.thismusicnumber])
+            if (round(time.time() - self.music_time) % 60) < 10:
+                print(r"%s:%s%s\%s:%s" % (
+                    round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
+                    round(self.musiclist[self.thismusicnumber].duration) // 60,
+                    round(self.musiclist[self.thismusicnumber].duration) % 60))
+            elif (round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
+                print(r"%s:%s\%s:%s%s" % (
+                    round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
+                    round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
+                    round(self.musiclist[self.thismusicnumber].duration) % 60))
+            elif (round(time.time() - self.music_time) % 60) < 10 and (
+                    round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
+                print(r"%s:%s%s\%s:%s%s" % (
+                    round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
+                    round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
+                    round(self.musiclist[self.thismusicnumber].duration) % 60))
+            else:
+                print(r"%s:%s\%s:%s" % (
+                    round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
+                    round(self.musiclist[self.thismusicnumber].duration) // 60,
+                    round(self.musiclist[self.thismusicnumber].duration) % 60))
+
+            print("\n\nPlay (PLAY), Stop (STOP)")
+
+            if self.spl:
+                print("\n\n")
+                self.splmp.printIt()
+
+
+
+def Music():
+
+    def Play():
+        class Printerr(threading.Thread):
+            def run(self):
+                global musicrun
+                while musicrun:
+                    cls()
+                    muPlayer.printIt()
+                    time.sleep(0.75)
+                    if muPlayer.musicpause:
+                        cls()
+                        muPlayer.printIt()
+                    while muPlayer.musicpause:
+                        time.sleep(0.5)
+
+        Printer = Printerr()
+        Printer.start()
+
+        global musicrun
+        while musicrun:
+            user_input = input()
+            muPlayer.input(user_input)
+
+
+    muPlayer = MusicPlayerC()
 
     music_playlists_print = ""
-    for x, y in zip(music_playlists, music_playlists_key):
+    for x, y in zip(muPlayer.music_playlists, muPlayer.music_playlists_key):
         music_playlists_print += x + " (" + y.upper() + "), "
     music_playlists_print = music_playlists_print.rstrip(", ")
 
@@ -2619,180 +2602,40 @@ def Music(preset="Man"):
     print("User's Playlist (US), User defined (UD), Mix (MIX), Multiple PL (MPL), All (ALL)\n")
     music_user_input = input()
 
-
-    def loadm(ms, loadMu=True):
-
-        if not Computerfind_MiniPC:
-            cls()
-            print("Loading...")
-
-            if ms == "us":
-                os.chdir("Music\\User")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return True
-
-            elif ms == "lis":
-                os.chdir("Music\\Presets\\Life is Strange")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return True
-
-            elif ms == "an":
-                os.chdir("Music\\Presets\\Anime")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return True
-
-            elif ms == "phu":
-                os.chdir("Music\\Presets\\Phunk")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return True
-
-            elif ms == "cp":
-                os.chdir("Music\\Presets\\Caravan Palace")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return True
-
-            elif ms == "es":
-                os.chdir("Music\\Presets\\Electro Swing")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return True
-
-            elif ms == "ud":
-                cls()
-                os.chdir(input("Your path:\n"))
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return "ul"
-
-            elif ms == "ps":
-                os.chdir("Music\\Presets\\Parov Stelar")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return "ps"
-
-            elif ms == "jpop":
-                os.chdir("Music\\Presets\\jPOP-etc")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return "jpop"
-
-            elif ms == "omfg":
-                os.chdir("Music\\Presets\\OMFG")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return "omfg"
-
-            else:
-                return False
-
-        else:
-            cls()
-            print("Loading...")
-
-            if ms == "us":
-                os.chdir("Music\\User")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return True
-
-            elif ms == "lis":
-                os.chdir(MusicDir + "\\Games\\Life is Strange")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return True
-
-            elif ms == "an":
-                os.chdir(MusicDir + "\\Anime")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return True
-
-            elif ms == "phu":
-                os.chdir(MusicDir + "\\Phunk")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return True
-
-            elif ms == "cp":
-                os.chdir(MusicDir + "\\Caravan Palace")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return True
-
-            elif ms == "es":
-                os.chdir(MusicDir + "\\Electro Swing")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return True
-
-            elif ms == "ud":
-                cls()
-                os.chdir(input("Your path:\n"))
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return "ul"
-
-            elif ms == "ps":
-                os.chdir(MusicDir + "\\Parov Stelar")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return "ps"
-
-            elif ms == "jpop":
-                os.chdir(MusicDir + "\\jPOP-etc")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return "jpop"
-
-            elif ms == "omfg":
-                os.chdir(MusicDir + "\\OMFG")
-                loadmusic(loadMu)
-                os.chdir(mu_dir)
-                return "omfg"
-
-            else:
-                return False
-
-
     if music_user_input.lower() == "mix":
-        loadm("an")
-        loadm("phu")
-        loadm("cp")
-        loadm("es")
-        loadm("jpop")
+        muPlayer.addMusic("an")
+        muPlayer.addMusic("phu")
+        muPlayer.addMusic("cp")
+        muPlayer.addMusic("es")
+        muPlayer.addMusic("jpop")
     elif music_user_input.lower() == "j":
-        loadm("an")
-        loadm("jpop")
+        muPlayer.addMusic("an")
+        muPlayer.addMusic("jpop")
     elif music_user_input.lower() == "all":
-        for x in music_playlists_key:
-            loadm(x)
+        for x in muPlayer.music_playlists_key:
+            muPlayer.addMusic(x)
 
     elif music_user_input.lower() == "mpl":
         musicman_search = True
 
-        music_playlists.append("User's List")
+        muPlayer.music_playlists.append("User's List")
 
         musicman_list = []
         music_playlists_used = {}
 
-        for x in music_playlists_key:
+        for x in muPlayer.music_playlists_key:
             music_playlists_used[x] = " "
 
         while musicman_search:
             music_playlists_used_List = []
-            for x in music_playlists_key:
+            for x in muPlayer.music_playlists_key:
                 music_playlists_used_List.append(music_playlists_used[x])
             cls()
             print("Playlists:\n")
             #print(music_playlists_print)
             #print("User's list (US), User defined (UD)")
             #print("\nLoaded:")
-            for xl, x2, x3 in zip(music_playlists_used_List, music_playlists, music_playlists_key):
+            for xl, x2, x3 in zip(music_playlists_used_List, muPlayer.music_playlists, muPlayer.music_playlists_key):
                 print(" " + xl + " " + x2 + " (" + x3.upper() + ")")
             for x in musicman_list:
                 print(" X " + x)
@@ -2805,7 +2648,7 @@ def Music(preset="Man"):
                 musicman_search = False
 
             else:
-                x = loadm(musicman_user_input.lower())
+                x = muPlayer.addMusic(musicman_user_input.lower())
 
                 if x:
                     music_playlists_used[musicman_user_input.lower()] = "X"
@@ -2813,43 +2656,43 @@ def Music(preset="Man"):
                     musicman_list.append("unkown list")
 
     elif music_user_input.lower() == "search":
-        for x in music_playlists_key:
-            loadm(x, False)
+        for x in muPlayer.music_playlists_key:
+            muPlayer.addMusic(x, False)
 
         cls()
         print("What do you want to hear?")
 
         user_input_search = input()
 
-        searchdir = Search(user_input_search, musiclistdirname)
-        searchtrack = Search(user_input_search, musiclistname)
+        searchdir = Search(user_input_search, muPlayer.musiclistdirname)
+        searchtrack = Search(user_input_search, muPlayer.musiclistname)
 
-        musiclistpathold = musiclistpath
-        musiclistpath = []
-        musiclistnameold = musiclistname
-        musiclistname = []
+        musiclistpathold = muPlayer.musiclistpath
+        muPlayer.musiclistpath = []
+        musiclistnameold = muPlayer.musiclistname
+        muPlayer.musiclistname = []
 
         for x in searchdir:
-            os.chdir(musiclistdirnamefull[x])
-            loadmusic(True)
-            os.chdir(mu_dir)
+            muPlayer.searchMusic(muPlayer.musiclistdirnamefull[x])
 
         for x in searchtrack:
-            musiclist.append(pyglet.media.load(musiclistpathold[x]))
-            musiclistpath.append(musiclistpathold[x])
-            musiclistname.append(musiclistnameold[x])
+            muPlayer.musiclist.append(pyglet.media.load(musiclistpathold[x]))
+            muPlayer.musiclistpath.append(musiclistpathold[x])
+            muPlayer.musiclistname.append(musiclistnameold[x])
 
     else:
-        loadm(music_user_input.lower())
+        muPlayer.addMusic(music_user_input.lower())
 
-    if musiclist:
-
+    if muPlayer.musiclist:
+        muPlayer.start()
         Play()
     else:
         print("No track found")
 
-    normaltitle()
 
+
+
+    normaltitle()
 
 
 def screensaver(preset = None):
@@ -5134,173 +4977,198 @@ def passwordmanager():
         start()
 
 
-def Splatoonweapon(printweapon=False):
-    weapons = ["Disperser", "Disperser Neo", "Junior-Klechser", "Junior-Klechser Plus", "Fein-Disperser",
-               "Fein-Disperser Neo", "Airbrush MG", "Airbrush RG", "Klechser", "Tentatek-Klechser",
-               "Heldenwaffe Replik (Klechser)", "Okto-Klechser Replik", ".52 Gallon", ".52 Gallon Deko", "N-ZAP85",
-               "N-ZAP89", "Profi-Klechser", "Focus-Profi-Kleckser", ".96 Gallon", ".96 Gallon Deko", "Platscher",
-               "Platscher SE",
 
-               "Luna-Blaster", "Luna-Blaster Neo", "Blaster", "Blaster SE", "Helden-Blaster Replik",
-               "Fern-Blaster", "Fern-Blaster SE", "Kontra-Blaster", "Kontra-Blaster Neo", "Turbo-Blaster",
-               "Turbo-Blaster Deko", "Turbo-Blaster Plus", "Turbo-Blaster Plus Deko",
 
-               "L3 Tintenwerfer", "L3 Tintenwerfer D", "S3 Tintenwerfer", "S3 Tintenwerfer D", "L3 Tintenwerfer",
-               "Quetscher", "Quetscher Fol",
+class SplatoonC:
+    def __init__(self):
+        self.weapons = ["Disperser", "Disperser Neo", "Junior-Klechser", "Junior-Klechser Plus", "Fein-Disperser",
+                   "Fein-Disperser Neo", "Airbrush MG", "Airbrush RG", "Klechser", "Tentatek-Klechser",
+                   "Heldenwaffe Replik (Klechser)", "Okto-Klechser Replik", ".52 Gallon", ".52 Gallon Deko", "N-ZAP85",
+                   "N-ZAP89", "Profi-Klechser", "Focus-Profi-Kleckser", ".96 Gallon", ".96 Gallon Deko", "Platscher",
+                   "Platscher SE",
 
-               "Karbonroller", "Karbonroller Deko", "Klecksroller", "Medusa-Klecksroller", "Helden-Roller Replik",
-               "Dynaroller", "Dynaroller Tesla", "Flex-Roller", "Flex-Roller Fol",
-               "Quasto", "Quasto Fresco", "Kalligraf", "Kalligraf Fresco", "Helden-Pinsel Replik",
+                   "Luna-Blaster", "Luna-Blaster Neo", "Blaster", "Blaster SE", "Helden-Blaster Replik",
+                   "Fern-Blaster", "Fern-Blaster SE", "Kontra-Blaster", "Kontra-Blaster Neo", "Turbo-Blaster",
+                   "Turbo-Blaster Deko", "Turbo-Blaster Plus", "Turbo-Blaster Plus Deko",
 
-               "Sepiator Alpha", "Sepiator Beta", "Klecks-Konzentrator", "Rilax-Klecks-Konzentrator",
-               "Helden-Konzentrator Replik", "Ziel-Konzentrator", "Rilax-Ziel-Konzentrator", "E-liter 4K",
-               "E-liter 4K SE", "Ziel-E-liter 4K", "Ziel-E-liter 4K SE", "Klotzer 14-A", "Klotzer 14-B", "T-Tuber",
-               "T-Tuber SE",
+                   "L3 Tintenwerfer", "L3 Tintenwerfer D", "S3 Tintenwerfer", "S3 Tintenwerfer D", "L3 Tintenwerfer",
+                   "Quetscher", "Quetscher Fol",
 
-               "Schwapper", "Schwapper Deko", "Helden-Schwapper Replik", "3R-Schwapper", "3R-Schwapper Fresco",
-               "Knall-Schwapper", "Trommel-Schwapper", "Trommel-Schwapper Neo", "Wannen-Schwapper",
+                   "Karbonroller", "Karbonroller Deko", "Klecksroller", "Medusa-Klecksroller", "Helden-Roller Replik",
+                   "Dynaroller", "Dynaroller Tesla", "Flex-Roller", "Flex-Roller Fol",
+                   "Quasto", "Quasto Fresco", "Kalligraf", "Kalligraf Fresco", "Helden-Pinsel Replik",
 
-               "Klecks-Splatling", "Sagitron-Klecks-Splatling", "Splatling", "Splatling Deko",
-               "Helden-Splatling Replik", "Hydrant", "Hydrant SE", "Kuli-Splatling", "Nautilus 47",
+                   "Sepiator Alpha", "Sepiator Beta", "Klecks-Konzentrator", "Rilax-Klecks-Konzentrator",
+                   "Helden-Konzentrator Replik", "Ziel-Konzentrator", "Rilax-Ziel-Konzentrator", "E-liter 4K",
+                   "E-liter 4K SE", "Ziel-E-liter 4K", "Ziel-E-liter 4K SE", "Klotzer 14-A", "Klotzer 14-B", "T-Tuber",
+                   "T-Tuber SE",
 
-               "Sprenkler", "Sprenkler Fresco", "Klecks-Doppler", "Enperry-Klecks-Doppler", "Helden-Doppler Replik",
-               "Kelvin 525", "Kelvin 525 Deko", "Dual-Platscher", "Dual-Platscher SE", "Quadhopper Noir",
-               "Quadhopper Blanc",
+                   "Schwapper", "Schwapper Deko", "Helden-Schwapper Replik", "3R-Schwapper", "3R-Schwapper Fresco",
+                   "Knall-Schwapper", "Trommel-Schwapper", "Trommel-Schwapper Neo", "Wannen-Schwapper",
 
-               "Parapulviator", "Sorella-Parapulviator", "Helden-Pulviator Replik", "Camp-Pulviator", "Sorella-Camp-Pulviator",
-               "UnderCover", "Sorella-UnderCover"]
+                   "Klecks-Splatling", "Sagitron-Klecks-Splatling", "Splatling", "Splatling Deko",
+                   "Helden-Splatling Replik", "Hydrant", "Hydrant SE", "Kuli-Splatling", "Nautilus 47",
 
-    number = random.randint(0, len(weapons)-1)
-    if printweapon:
-        print("Your Weapon:\n%s" % weapons[number])
+                   "Sprenkler", "Sprenkler Fresco", "Klecks-Doppler", "Enperry-Klecks-Doppler", "Helden-Doppler Replik",
+                   "Kelvin 525", "Kelvin 525 Deko", "Dual-Platscher", "Dual-Platscher SE", "Quadhopper Noir",
+                   "Quadhopper Blanc",
 
-    return weapons[number]
+                   "Parapulviator", "Sorella-Parapulviator", "Helden-Pulviator Replik", "Camp-Pulviator",
+                   "Sorella-Camp-Pulviator",
+                   "UnderCover", "Sorella-UnderCover"]
+
+
+        self.RUN = True
+        self.Start = False
+        self.TimeLeft = 0
+        self.TimeLeftStart = 0
+        self.TimeLeftC = TimerC()
+        self.Rounds = 0
+        self.Playtime = 0
+        self.PlaytimeStart = 0
+        self.PlaytimeC = TimerC()
+        self.RoundOver = True
+        self.Effect = None
+
+        self.WR = False
+        self.WRthis = self.randomWP()
+        self.WRnext = self.randomWP()
+
+    def input(self, inpt):
+        inpt = inpt.lower()
+        if inpt == "wr":
+            self.WRswitch()
+        elif inpt == "exit" or inpt == "stop":
+            self.stop()
+        elif inpt == "reroll" or inpt == "rerol" or inpt == "rero" or inpt == "re" or inpt == "r":
+            self.WRreroll()
+        elif len(inpt) > 1:
+            if inpt[0] == "e":
+                try:
+                    self.ChEffect(int(inpt.lstrip("e")))
+                except ValueError:
+                    self.RoundOverF()
+            else:
+                self.RoundOverF()
+        else:
+            self.RoundOverF()
+
+    def randomWP(self, printweapon=False):
+        number = random.randint(0, len(self.weapons) - 1)
+        if printweapon:
+            print("Your Weapon:\n%s" % self.weapons[number])
+        return self.weapons[number]
+
+    def WRswitch(self):
+        if self.WR:
+            self.WR = False
+        else:
+            self.WR = True
+
+    def stop(self):
+        self.RUN = False
+
+    def WRreroll(self):
+        WRnextTMP = self.WRnext
+        self.WRnext = self.randomWP()
+
+        while self.WRthis == self.WRnext or WRnextTMP == self.WRnext:
+            self.WRnext = self.randomWP()
+
+    def ChEffect(self, eff):
+        self.Effect = eff
+
+    def RoundOverF(self):
+        if self.RoundOver:
+            if not self.Start:
+                self.PlaytimeC.start()
+                self.PlaytimeStart = time.time()
+            self.TimeLeftC.start()
+            self.TimeLeftStart = time.time()
+            self.Rounds += 1
+
+            if self.Effect is not None and self.Effect != 0:
+                self.Effect -= 1
+
+            if self.Start:
+                WRthisTMP = self.WRthis
+                self.WRthis = self.WRnext
+                self.WRnext = self.randomWP()
+
+                while WRthisTMP == self.WRnext or self.WRthis == self.WRnext:
+                    self.WRnext = self.randomWP()
+
+            self.RoundOver = False
+            self.Start = True
+
+    def printIt(self):
+        self.TimeLeft = 180 - self.TimeLeftC.getTime()
+        self.TimeLeft = 180 - round(time.time() - self.TimeLeftStart)
+
+        if self.Start:
+            self.Playtime = self.PlaytimeC.getTime()
+            self.Playtime = round(time.time() - self.PlaytimeStart)
+        else:
+            self.Playtime = 0
+
+        if self.RoundOver:
+            TimeLeftFor = "No Round Started"
+        else:
+            if (self.TimeLeft % 60) < 10:
+                TimeLeftFor = "%s:%s%s" % (self.TimeLeft // 60, 0, self.TimeLeft % 60)
+            else:
+                TimeLeftFor = "%s:%s" % (self.TimeLeft // 60, self.TimeLeft % 60)
+
+        if (self.Playtime % 60) < 10:
+            PlaytimeFor = "%s:%s%s" % (self.Playtime // 60, 0, self.Playtime % 60)
+        else:
+            PlaytimeFor = "%s:%s" % (self.Playtime // 60, self.Playtime % 60)
+
+        if self.TimeLeft == 0:
+            self.RoundOver = True
+
+
+        print("Splatoon 2\n")
+        print("Time:\t\t %s" % TimeLeftFor)
+        print("Round:\t\t %s" % self.Rounds)
+
+        if self.Effect is not None and self.Effect != 0:
+            print("Effect:\t\t %s" % self.Effect)
+        elif self.Effect == 0:
+            print("Effect:\t\t No Effect Active")
+
+        print("Playtime:\t %s" % PlaytimeFor)
+        if self.WR:
+            print("\nWeapon Randomizer:")
+            print("This Round:\t %s" % self.WRthis)
+            print("Next Round:\t %s" % self.WRnext)
+
+        if self.WR:
+            print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon(REROLL)")
+        else:
+            print("\nWeapon Randomizer (WR), Effect ('E'+number)")
+
+        if self.RoundOver:
+            print("\nStart Next Round?")
+
+
 
 def Splatoon():
-    # Kill counter?
-    splRUN = True
-    splStart = False
-    splTimeLeft = 0
-    splTimeLeftStart = 0
-    splRounds = 0
-    splPlaytime = 0
-    splPlaytimeStart = 0
-    splRoundOver = True
-    splEffect = None
+    spl = SplatoonC()
 
-    splWR = False
-    splWRthis = Splatoonweapon(False)
-    splWRnext = Splatoonweapon(False)
-
-    while splWRthis == splWRnext:
-        splWRnext = Splatoonweapon(False)
-
-
-    def splRoundOverfun():
-        nonlocal splRoundOver, splStart, splRounds, splEffect, splWRthis, splWRnext, splPlaytimeStart, splTimeLeftStart
-        if splRoundOver:
-            if not splStart:
-                splPlaytimeStart = time.time()
-            splTimeLeftStart = time.time()
-            splRounds += 1
-
-            if splEffect is not None and splEffect != 0:
-                splEffect -= 1
-
-            if splStart:
-                splWRthisTMP = splWRthis
-                splWRthis = splWRnext
-                splWRnext = Splatoonweapon(False)
-
-                while splWRthisTMP == splWRnext or splWRthis == splWRnext:
-                    splWRnext = Splatoonweapon(False)
-
-            splRoundOver = False
-            splStart = True
-
-
-    class Printer(threading.Thread):
+    class Printerr(threading.Thread):
         def run(self):
-            nonlocal splRUN, splTimeLeft, splTimeLeftStart, splRounds, splPlaytime, splPlaytimeStart, splWR, splWRthis, splWRnext, splRoundOver, splEffect
-            while splRUN:
-                splTimeLeft = 180 - round(time.time() - splTimeLeftStart)
-
-                if splStart:
-                    splPlaytime = round(time.time() - splPlaytimeStart)
-                else:
-                    splPlaytime = 0
-
-                if splRoundOver:
-                    splTimeLeftFor = "No Round Started"
-                else:
-                    if (splTimeLeft % 60) < 10:
-                        splTimeLeftFor = "%s:%s%s" % (splTimeLeft // 60, 0, splTimeLeft % 60)
-                    else:
-                        splTimeLeftFor = "%s:%s" % (splTimeLeft // 60, splTimeLeft % 60)
-
-                if (splPlaytime % 60) < 10:
-                    splPlaytimeFor = "%s:%s%s" % (splPlaytime // 60, 0, splPlaytime % 60)
-                else:
-                    splPlaytimeFor = "%s:%s" % (splPlaytime // 60, splPlaytime % 60)
-
-                if splTimeLeft == 0:
-                    splRoundOver = True
-
+            while spl.RUN:
                 cls()
-                print("Splatoon 2\n")
-                print("Time:\t\t %s" % splTimeLeftFor)
-                print("Round:\t\t %s" % splRounds)
-
-                if splEffect is not None and splEffect != 0:
-                    print("Effect:\t\t %s" % splEffect)
-                elif splEffect == 0:
-                    print("Effect:\t\t No Effect Active")
-
-                print("Playtime:\t %s" % splPlaytimeFor)
-                if splWR:
-                    print("\nWeapon Randomizer:")
-                    print("This Round:\t %s" % splWRthis)
-                    print("Next Round:\t %s" % splWRnext)
-
-                if splWR:
-                    print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon(REROLL)")
-                else:
-                    print("\nWeapon Randomizer (WR), Effect ('E'+number)")
-
-                if splRoundOver:
-                    print("\nStart Next Round?")
-
+                spl.printIt()
                 time.sleep(1)
 
-    SplPrinter = Printer()
-    SplPrinter.start()
+    Printer = Printerr()
+    Printer.start()
 
-    while splRUN:
-        spl_user_input = None
-        spl_user_input = input()
-
-        if spl_user_input.lower() == "wr":
-            if splWR:
-                splWR = False
-            else:
-                splWR = True
-        elif spl_user_input.lower() == "exit" or spl_user_input.lower() == "stop":
-            splRUN = False
-        elif spl_user_input.lower() == "reroll" or spl_user_input.lower() == "rero" or spl_user_input.lower() == "rerol" or spl_user_input.lower() == "re":
-            splWRnextTMP = splWRnext
-            splWRnext = Splatoonweapon(False)
-
-            while splWRthis == splWRnext or splWRnextTMP == splWRnext:
-                splWRnext = Splatoonweapon(False)
-        elif spl_user_input.lower() != "": # die LETZTE ELIF SONST DRÜBER!
-            if spl_user_input.lower()[0] == "e":
-                splEffect = int(spl_user_input.lower().lstrip("e"))
-            else:
-                splRoundOverfun()
-        else:
-            splRoundOverfun()
-
-
+    while spl.RUN:
+        user_input = input()
+        spl.input(user_input)
 
 def main():
     version()
@@ -5423,14 +5291,21 @@ def Arg():
             ttime_stop = False
             Tools.Shutdown()
             exit_now()
+        if sys.argv[x] == "-reboot":
+            title("Load Argument", "Shutdown")
+            ttime_stop = False
+            Tools.Reboot()
+            exit_now()
         if sys.argv[x] == "-start_server":
             title("Server", " ", " ")
             ttime_stop = False
             serverport = int(sys.argv[x + 1])
-            killConsole()
-            StartupServer = ServerC(thisIP, serverport, reac=StartupServerTasks, reacSendData=True)
+            if not sys.argv[x + 2] == "-app":
+                alarm = True
+                killConsole()
+            StartupServer = ServerC(thisIP, serverport, reac=StartupServerTasks, reacSendData=True, mess=True)
             StartupServer.start()
-            # TODO: add here function to start server
+
 
 if sys.argv:
     Arg()

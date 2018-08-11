@@ -1141,6 +1141,7 @@ def upload():
 
 
 def upgrade():
+    subprocess.call(["taskkill", "/IM", "!Console.exe", "/f"])
     cls()
     if version_PC == 1:
         title("Upgrade", "Changelog")
