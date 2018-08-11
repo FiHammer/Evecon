@@ -52,6 +52,7 @@ def killme():
 musicrun = False
 ss_active = False
 thisIP = None
+StartupServer = None
 
 cdir = os.getcwd()
 os.chdir("..")
@@ -746,33 +747,28 @@ import win32con
 class WindowsBalloonTip:
     def __init__(self, title, msg):
         message_map = {
-                win32con.WM_DESTROY: self.OnDestroy,
+            win32con.WM_DESTROY: self.OnDestroy,
         }
         # Register the Window class.
         wc = WNDCLASS()
         hinst = wc.hInstance = GetModuleHandle(None)
         wc.lpszClassName = "PythonTaskbar"
-        wc.lpfnWndProc = message_map # could also specify a wndproc.
+        wc.lpfnWndProc = message_map  # could also specify a wndproc.
         classAtom = RegisterClass(wc)
         # Create the Window.
         style = win32con.WS_OVERLAPPED | win32con.WS_SYSMENU
-        self.hwnd = CreateWindow( classAtom, "Taskbar", style, \
-                0, 0, win32con.CW_USEDEFAULT, win32con.CW_USEDEFAULT, \
-                0, 0, hinst, None)
+        self.hwnd = CreateWindow(classAtom, "Taskbar", style, 0, 0, win32con.CW_USEDEFAULT, win32con.CW_USEDEFAULT, 0, 0, hinst, None)
         UpdateWindow(self.hwnd)
-        iconPathName = os.path.abspath(os.path.join( sys.path[0], "balloontip.ico" ))
+        iconPathName = os.path.abspath(os.path.join(sys.path[0], "balloontip.ico"))
         icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
         try:
-           hicon = LoadImage(hinst, iconPathName, \
-                    win32con.IMAGE_ICON, 0, 0, icon_flags)
+            hicon = LoadImage(hinst, iconPathName, win32con.IMAGE_ICON, 0, 0, icon_flags)
         except:
-          hicon = LoadIcon(0, win32con.IDI_APPLICATION)
+            hicon = LoadIcon(0, win32con.IDI_APPLICATION)
         flags = NIF_ICON | NIF_MESSAGE | NIF_TIP
-        nid = (self.hwnd, 0, flags, win32con.WM_USER+20, hicon, "tooltip")
+        nid = (self.hwnd, 0, flags, win32con.WM_USER + 20, hicon, "tooltip")
         Shell_NotifyIcon(NIM_ADD, nid)
-        Shell_NotifyIcon(NIM_MODIFY, \
-                         (self.hwnd, 0, NIF_INFO, win32con.WM_USER+20,\
-                          hicon, "Balloon  tooltip",msg,200,title))
+        Shell_NotifyIcon(NIM_MODIFY, (self.hwnd, 0, NIF_INFO, win32con.WM_USER + 20, hicon, "Balloon  tooltip", msg, 200, title))
         # self.show_balloon(title, msg)
         time.sleep(10)
         DestroyWindow(self.hwnd)
@@ -784,7 +780,8 @@ class WindowsBalloonTip:
 def balloon_tip(title, msg):
     class tip(threading.Thread):
         def run(self):
-            w=WindowsBalloonTip(title, msg)
+            w = WindowsBalloonTip(title, msg)
+    tipp = None
     tipp = tip()
     tipp.start()
 
@@ -1065,6 +1062,19 @@ class ClientC(threading.Thread):
         self.Connected = True
         return True
 
+def InteractiveClient(host, port):
+    def x(data):
+        print("[Server] " + data.decode())
+
+    cl = ClientC(host, port, x, True)
+    cl.start()
+
+    x = input("-> ")
+    while x != "q":
+        cl.send(x)
+        x = input("-> ")
+
+    cl.stop()
 
 def Search(searchkeyU, searchlistU, exact=False):
 
@@ -1115,16 +1125,47 @@ def Search(searchkeyU, searchlistU, exact=False):
 
 def StartupServerTasks(data_un):
     data = data_un.decode("utf-8")
+    global SST_mp, SST_mp_Ac, StartupServer
 
     if data == "shutdown":
+        print("Evecon Server", "Shutdown")
+        #balloon_tip("Evecon Server", "Shutdown")
         Tools.Shutdown()
     elif data == "sleep":
+        print("Evecon Server", "sleep")
+        #balloon_tip("Evecon Server", "sleep")
         Tools.Sleep()
     elif data == "ep_energysave":
+        print("Evecon Server", "ep_energysave")
+        #balloon_tip("Evecon Server", "ep_energysave")
         Tools.EnergyPlan.Change(1)
     elif data == "reboot":
+        print("Evecon Server", "reboot")
+        #balloon_tip("Evecon Server", "reboot")
         Tools.Reboot()
-
+    elif data == "mp_setup":
+        print("Evecon Server", "mp_setup")
+        #balloon_tip("Evecon Server", "mp_setup")
+        SST_mp = MusicPlayerC()
+        SST_mp_Ac = True
+    elif data[0] == "m" and data[1] == "p" and data[2] == "_" and data[3] == "a" and data[4] == "d" and data[5] == "d" and SST_mp_Ac:
+        print("Evecon Server", "mp_add " + data.lstrip("mp_").lstrip("add").lstrip("_"))
+        #balloon_tip("Evecon Server", "mp_add " + data.lstrip("mp_add_"))
+        x = SST_mp.addMusic(data.lstrip("mp_").lstrip("add").lstrip("_"))
+        if x:
+            StartupServer.send("Done Loading")
+        else:
+            StartupServer.send("Error")
+    elif data == "mp_start" and SST_mp_Ac:
+        print("Evecon Server", "mp_start")
+        #balloon_tip("Evecon Server", "mp_start")
+        SST_mp.start()
+    elif data == "mp_stop" and SST_mp_Ac:
+        print("Evecon Server", "mp_stop")
+        #balloon_tip("Evecon Server", "mp_stop")
+        SST_mp.Stop()
+    elif data == "mp_getsong" and SST_mp_Ac:
+        StartupServer.send(SST_mp.musiclistname[SST_mp.thismusicnumber])
 
 def np(preset="Man"):
     title("Loading Notepad")
@@ -2159,34 +2200,44 @@ class MusicPlayerC(threading.Thread):
 
             if key == "us":
                 self.searchMusic("Music\\User", loadMu)
+                print("Finished")
                 return True
             elif key == "lis":
                 self.searchMusic("Music\\Presets\\Life is Strange", loadMu)
+                print("Finished")
                 return True
             elif key == "an":
                 self.searchMusic("Music\\Presets\\Anime", loadMu)
+                print("Finished")
                 return True
             elif key == "phu":
                 self.searchMusic("Music\\Presets\\Phunk", loadMu)
+                print("Finished")
                 return True
             elif key == "cp":
                 self.searchMusic("Music\\Presets\\Caravan Palace", loadMu)
+                print("Finished")
                 return True
             elif key == "es":
                 self.searchMusic("Music\\Presets\\Electro Swing", loadMu)
+                print("Finished")
                 return True
             elif key == "ud":
                 cls()
                 self.searchMusic(input("Your path:\n"), loadMu)
+                print("Finished")
                 return True
             elif key == "ps":
                 self.searchMusic("Music\\Presets\\Parov Stelar", loadMu)
+                print("Finished")
                 return True
             elif key == "jpop":
                 self.searchMusic("Music\\Presets\\jPOP-etc", loadMu)
+                print("Finished")
                 return True
             elif key == "omfg":
                 self.searchMusic("Music\\Presets\\OMFG", loadMu)
+                print("Finished")
                 return True
 
             else:
@@ -2194,38 +2245,48 @@ class MusicPlayerC(threading.Thread):
 
         else:
             cls()
-            print("Loading...")
+            print("Loading... (On Mini-PC)")
 
             if key == "us":
                 self.searchMusic("Music\\User", loadMu)
+                print("Finished")
                 return True
             elif key == "lis":
                 self.searchMusic(MusicDir + "\\Games\\Life is Strange", loadMu)
+                print("Finished")
                 return True
             elif key == "an":
                 self.searchMusic(MusicDir + "\\Anime", loadMu)
+                print("Finished")
                 return True
             elif key == "phu":
                 self.searchMusic(MusicDir + "\\Phunk", loadMu)
+                print("Finished")
                 return True
             elif key == "cp":
                 self.searchMusic(MusicDir + "\\Caravan Palace", loadMu)
+                print("Finished")
                 return True
             elif key == "es":
                 self.searchMusic(MusicDir + "\\Electro Swing", loadMu)
+                print("Finished")
                 return True
             elif key == "ud":
                 cls()
                 self.searchMusic(input("Your path:\n"), loadMu)
+                print("Finished")
                 return "ul"
             elif key == "ps":
                 self.searchMusic(MusicDir + "\\Parov Stelar", loadMu)
+                print("Finished")
                 return True
             elif key == "jpop":
                 self.searchMusic(MusicDir + "\\jPOP-etc", loadMu)
+                print("Finished")
                 return True
             elif key == "omfg":
                 self.searchMusic(MusicDir + "\\OMFG" ,loadMu)
+                print("Finished")
                 return True
             else:
                 return False
@@ -5297,11 +5358,11 @@ def Arg():
             Tools.Reboot()
             exit_now()
         if sys.argv[x] == "-start_server":
+            global StartupServer
             title("Server", " ", " ")
             ttime_stop = False
             serverport = int(sys.argv[x + 1])
             if not sys.argv[x + 2] == "-app":
-                alarm = True
                 killConsole()
             StartupServer = ServerC(thisIP, serverport, reac=StartupServerTasks, reacSendData=True, mess=True)
             StartupServer.start()
