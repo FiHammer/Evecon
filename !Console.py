@@ -14,6 +14,7 @@ import shutil
 import EveconExceptions
 import psutil
 import random
+import win32process
 
 #import win32api
 #import win32gui
@@ -46,8 +47,10 @@ def killme():
     subprocess.call(["taskkill", "/PID", str(os.getpid())])
 
 
+
 musicrun = False
 ss_active = False
+thisIP = None
 
 cdir = os.getcwd()
 os.chdir("..")
@@ -79,9 +82,12 @@ def Log(functioni, info, typei = "Normal"):
 title_oldstatus = "Loading"
 title_oldstart = "Error"
 title_oldpc = "Error"
+title_dead = False
 
-def title(status="OLD", something="OLD", pc="OLD"):
-
+def title(status="OLD", something="OLD", pc="OLD", deac=False):
+    global title_dead
+    if deac:
+        title_dead = True
     global title_oldstatus, title_oldstart, title_oldpc
     if status == "OLD":
         status = title_oldstatus
@@ -113,9 +119,9 @@ def title(status="OLD", something="OLD", pc="OLD"):
             space_something = (160 - (len(status + pc + space_status + space_pc) + round(len(something) * 1.5) + 1)) * " "
         space_time = 1 * " "
 
-
-    ctypes.windll.kernel32.SetConsoleTitleW("EVECON: %s%s%s%s%s%s%sTime: %s" %
-    (status, space_status, pc, space_pc, something, space_something, space_time, nowtime))
+    if not title_dead:
+        ctypes.windll.kernel32.SetConsoleTitleW("EVECON: %s%s%s%s%s%s%sTime: %s" %
+        (status, space_status, pc, space_pc, something, space_something, space_time, nowtime))
 
 class TimerC:
     def __init__(self):
@@ -557,6 +563,22 @@ class title_time(threading.Thread):
 ttime = title_time(2.5)
 ttime.start()
 
+def killConsole():
+    ttime.deac()
+    title(deac=True)
+    hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+    ctypes.windll.user32.ShowWindow(hwnd, 0)
+
+    # Why?
+    ctypes.windll.kernel32.CloseHandle(hwnd)
+    _, pid = win32process.GetWindowThreadProcessId(hwnd)
+    #print(pid)
+    #os.system('taskkill /PID ' + str(pid) + ' /f')
+    #input()
+
+    # tmp:
+    #subprocess.call(["taskkill", "/IM", "conhost.exe", "/f"])
+
 title("Loading: Finding Computers")
 
 
@@ -564,12 +586,15 @@ def computerconfig_schoolpc():
     color.change("F0")
 
 def computerconfig_minipc():
-    global MusicDir
+    global MusicDir, thisIP
     MusicDir = "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Musik\\Musik\\!Fertige Musik"
+    thisIP = "192.168.2.102"
+
 
 
 def computerconfig_bigpc():
-    pass
+    global thisIP
+    thisIP = "192.168.2.101"
 
 
 def computerconfig_aldi():
@@ -577,7 +602,8 @@ def computerconfig_aldi():
 
 
 def computerconfig_laptop():
-    pass
+    global thisIP
+    thisIP = "192.168.2.106" # Lan .104 = WLAN
 
 
 Computername = socket.gethostname()
@@ -610,7 +636,7 @@ if Computername == "Computer-Testet":
 
     HomePC = True
 
-elif Computername == "XX":  #  BIG PC EINFÜGEN
+elif Computername == "XX":  # Todo BIG PC EINFÜGEN
     title("OLD", "OLD", "somebody@BigPC")
     Computerfind_MiniPC = 0
     Computerfind_BigPC = 1
@@ -779,6 +805,196 @@ class ToolsC:
 
 Tools = ToolsC()
 
+class ServerC:
+    def __init__(self, host, port, reac = None, reacSendData = False):
+        super().__init__()
+        self.host = host
+        self.port = port
+        self.Running = False
+        self.Connected = False
+        self.End = False
+        self.allDataSend = []
+        self.allDataRec = []
+        self.s = socket.socket()
+        self.conAddress = None
+        self.con = None
+
+        self.reac = reac
+        self.reacSData = reacSendData
+
+    def start(self):
+        self.run()
+    def stop(self):
+        self.Running = False
+        self.End = True
+        self.Connected = False
+        self.con.close()
+    def send(self, data):
+        if self.Running and self.Connected and not self.End:
+            if type(data) == str:
+                data = data.encode()
+            elif type(data) == int:
+                data = str(data).encode()
+            self.con.send(data)
+            self.allDataSend.append(data)
+    def react(self, curData):
+        if self.reac is not None:
+            if self.reacSData:
+                self.reac(curData)
+            else:
+                self.reac()
+    def run(self):
+        self.Running = True
+        self.bind()
+        data = None
+        if self.Running:
+            self.s.listen(1)
+            self.con, self.conAddress = self.s.accept()
+            self.Connected = True
+            print("Connected with ", self.conAddress)
+            while self.Connected:
+                try:
+                    data = self.con.recv(1024)
+                except ConnectionResetError:
+                    self.Connected = False
+                if not data:
+                    break
+                self.allDataRec.append(data)
+                self.react(data)
+
+        self.stop()
+
+    def bind(self):
+        self.s.bind((self.host, self.port))
+
+class ServerThC(threading.Thread):
+    def __init__(self, host, port, reac = None, reacSendData = False):
+        super().__init__()
+        self.host = host
+        self.port = port
+        self.Running = False
+        self.Connected = False
+        self.End = False
+        self.allDataSend = []
+        self.allDataRec = []
+        self.s = socket.socket()
+        self.conAddress = None
+        self.con = None
+
+        self.reac = reac
+        self.reacSData = reacSendData
+
+    def stop(self):
+        self.Running = False
+        self.End = True
+        self.Connected = False
+        self.con.close()
+    def send(self, data):
+        if self.Running and self.Connected and not self.End:
+            if type(data) == str:
+                data = data.encode()
+            elif type(data) == int:
+                data = str(data).encode()
+            self.con.send(data)
+            self.allDataSend.append(data)
+    def react(self, curData):
+        if self.reac is not None:
+            if self.reacSData:
+                self.reac(curData)
+            else:
+                self.reac()
+    def run(self):
+        self.Running = True
+        self.bind()
+        data = None
+        if self.Running:
+            self.s.listen(1)
+            self.con, self.conAddress = self.s.accept()
+            self.Connected = True
+            print("Connected with ", self.conAddress)
+
+            while self.Connected:
+                try:
+                    data = self.con.recv(1024)
+                except ConnectionResetError:
+                    self.Connected = False
+                if not data:
+                    break
+                self.allDataRec.append(data)
+                self.react(data)
+
+        self.stop()
+
+    def bind(self):
+        self.s.bind((self.host, self.port))
+
+
+class ClientC(threading.Thread):
+    def __init__(self, host, port, reac=None, reacSendData=False):
+        super().__init__()
+        self.host = host
+        self.port = port
+        self.Running = False
+        self.Connected = False
+        self.End = False
+        self.allDataSend = []
+        self.allDataRec = []
+        self.s = socket.socket()
+
+        self.reac = reac
+        self.reacSData = reacSendData
+
+    def stop(self):
+        self.Running = False
+        self.End = True
+        self.Connected = False
+        self.s.close()
+
+    def send(self, data):
+        if self.Running and self.Connected and not self.End:
+            if type(data) == str:
+                data = data.encode()
+            elif type(data) == int:
+                data = str(data).encode()
+            self.s.send(data)
+            self.allDataSend.append(data)
+
+    def react(self, curData):
+        if self.reac is not None:
+            if self.reacSData:
+                self.reac(curData)
+            else:
+                self.reac()
+
+    def run(self):
+        self.Running = True
+        self.connect()
+        data = None
+        if self.Connected:
+            while self.Running:
+                try:
+                    data = self.s.recv(1024)
+                except ConnectionResetError:
+                    self.Running = False
+
+                self.allDataRec.append(data)
+                self.react(data)
+
+        self.stop()
+
+    def connect(self):
+        try:
+            self.s.connect((self.host, self.port))
+            print("Connected")
+        except TimeoutError:
+            # wrong ip
+            return False
+        except ConnectionRefusedError:
+            # wrong port
+            return False
+
+        self.Connected = True
+        return True
 
 
 def Search(searchkeyU, searchlistU, exact=False):
@@ -828,7 +1044,15 @@ def Search(searchkeyU, searchlistU, exact=False):
 
     return OutputNum
 
+def StartupServerTasks(data_un):
+    data = data_un.decode("utf-8")
 
+    if data == "shutdown":
+        Tools.Shutdown()
+    elif data == "sleep":
+        Tools.Sleep()
+    elif data == "ep_energysave":
+        Tools.EnergyPlan.Change(1)
 
 def np(preset="Man"):
     title("Loading Notepad")
@@ -2249,6 +2473,11 @@ def Music(preset="Man"):
                 if splRUN:
                     musicwait = True
 
+            elif music_user_input.lower() == "r" or music_user_input.lower() == "re" or music_user_input.lower() == "reroll":
+                nextmusicnumber = random.randint(0, len(musiclist) - 1)
+
+
+
             elif musiccon_user_input.lower() == "debugme":
                 print(musicrun, musicwait, musicpause, musicplaying, playerthread.is_alive())
 
@@ -2614,6 +2843,7 @@ def Music(preset="Man"):
         loadm(music_user_input.lower())
 
     if musiclist:
+
         Play()
     else:
         print("No track found")
@@ -5193,6 +5423,14 @@ def Arg():
             ttime_stop = False
             Tools.Shutdown()
             exit_now()
+        if sys.argv[x] == "-start_server":
+            title("Server", " ", " ")
+            ttime_stop = False
+            serverport = int(sys.argv[x + 1])
+            killConsole()
+            StartupServer = ServerC(thisIP, serverport, reac=StartupServerTasks, reacSendData=True)
+            StartupServer.start()
+            # TODO: add here function to start server
 
 if sys.argv:
     Arg()
