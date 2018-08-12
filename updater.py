@@ -1098,7 +1098,8 @@ def zipme():
     version()
     global this_version
     newarchive = "data\\Update\\Evecon-" + this_version[1] + ".zip"
-    allfiles = ["!Evecon\\dev\\!Console.py", "!Evecon\\dev\\updater.py",
+    allfiles = ["!Evecon\\dev\\!Console.py", "!Evecon\\dev\\updater.py", "!Evecon\\dev\\ss_time.py",
+                "!Evecon\\dev\\EveconExceptions.py",
                 "data\\Info\\Changelog.txt", "data\\Info\\version"]
     alldic = ["!Evecon\\!Console"]
 

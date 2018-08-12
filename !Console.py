@@ -17,6 +17,8 @@ import random
 import win32process
 import pyglet
 
+import win32con, win32gui, win32api
+
 #import win32api
 #import win32gui
 #import win32con
@@ -124,6 +126,43 @@ def title(status="OLD", something="OLD", pc="OLD", deac=False):
     if not title_dead:
         ctypes.windll.kernel32.SetConsoleTitleW("EVECON: %s%s%s%s%s%s%sTime: %s" %
         (status, space_status, pc, space_pc, something, space_something, space_time, nowtime))
+
+
+def turnStr(word: str):
+    wordfin = ""
+    for x in range(len(word)):
+        wordfin += word[len(word) - 1 - x]
+    return wordfin
+
+def lsame(fullword: str, partword: str, exact=True):
+    matches = 0
+    if not exact:
+        fullword = fullword.lower()
+        partword = partword.lower()
+    for x, y in zip(fullword, partword):
+        if x == y:
+            matches += 1
+    if matches == len(partword):
+        return True
+    else:
+        return False
+
+
+def rsame(fullword: str, partword: str, exact=True):
+    matches = 0
+    if not exact:
+        fullword = fullword.lower()
+        partword = partword.lower()
+    fullwordX = turnStr(fullword)
+    partwordX = turnStr(partword)
+    for x, y in zip(fullwordX, partwordX):
+        if x == y:
+            matches += 1
+    if matches == len(partword):
+        return True
+    else:
+        return False
+
 
 class TimerC:
     def __init__(self):
@@ -739,49 +778,47 @@ else:
     version_MiniStick = 0
 
 
-from win32api import *
-from win32gui import *
-import win32con
-
-
-class WindowsBalloonTip:
-    def __init__(self, title, msg):
+class WindowsBalloonTipC:
+    def __init__(self):
         message_map = {
-            win32con.WM_DESTROY: self.OnDestroy,
+                win32con.WM_DESTROY: self.OnDestroy,
         }
         # Register the Window class.
-        wc = WNDCLASS()
-        hinst = wc.hInstance = GetModuleHandle(None)
+        wc = win32gui.WNDCLASS()
+        self.hinst = wc.hInstance = win32api.GetModuleHandle(None)
         wc.lpszClassName = "PythonTaskbar"
-        wc.lpfnWndProc = message_map  # could also specify a wndproc.
-        classAtom = RegisterClass(wc)
+        wc.lpfnWndProc = message_map # could also specify a wndproc.
+        self.classAtom = win32gui.RegisterClass(wc)
+
+    def ShowWindow(self, title, msg):
         # Create the Window.
         style = win32con.WS_OVERLAPPED | win32con.WS_SYSMENU
-        self.hwnd = CreateWindow(classAtom, "Taskbar", style, 0, 0, win32con.CW_USEDEFAULT, win32con.CW_USEDEFAULT, 0, 0, hinst, None)
-        UpdateWindow(self.hwnd)
-        iconPathName = os.path.abspath(os.path.join(sys.path[0], "balloontip.ico"))
+        self.hwnd = win32gui.CreateWindow( self.classAtom, "Taskbar", style, 0, 0, win32con.CW_USEDEFAULT, win32con.CW_USEDEFAULT, 0, 0, self.hinst, None)
+        win32gui.UpdateWindow(self.hwnd)
+        iconPathName = os.path.abspath(os.path.join( sys.path[0], "balloontip.ico" ))
         icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
         try:
-            hicon = LoadImage(hinst, iconPathName, win32con.IMAGE_ICON, 0, 0, icon_flags)
+           hicon = win32gui.LoadImage(self.hinst, iconPathName, win32con.IMAGE_ICON, 0, 0, icon_flags)
         except:
-            hicon = LoadIcon(0, win32con.IDI_APPLICATION)
-        flags = NIF_ICON | NIF_MESSAGE | NIF_TIP
-        nid = (self.hwnd, 0, flags, win32con.WM_USER + 20, hicon, "tooltip")
-        Shell_NotifyIcon(NIM_ADD, nid)
-        Shell_NotifyIcon(NIM_MODIFY, (self.hwnd, 0, NIF_INFO, win32con.WM_USER + 20, hicon, "Balloon  tooltip", msg, 200, title))
+          hicon = win32gui.LoadIcon(0, win32con.IDI_APPLICATION)
+        flags = win32gui.NIF_ICON | win32gui.NIF_MESSAGE | win32gui.NIF_TIP
+        nid = (self.hwnd, 0, flags, win32con.WM_USER+20, hicon, "tooltip")
+        win32gui.Shell_NotifyIcon(win32gui.NIM_ADD, nid)
+        win32gui.Shell_NotifyIcon(win32gui.NIM_MODIFY, (self.hwnd, 0, win32gui.NIF_INFO, win32con.WM_USER+20, hicon, "Balloon  tooltip", msg, 200, title))
         # self.show_balloon(title, msg)
-        time.sleep(10)
-        DestroyWindow(self.hwnd)
+        win32gui.DestroyWindow(self.hwnd)
+
     def OnDestroy(self, hwnd, msg, wparam, lparam):
         nid = (self.hwnd, 0)
-        Shell_NotifyIcon(NIM_DELETE, nid)
-        PostQuitMessage(0) # Terminate the app.
+        win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
+        win32api.PostQuitMessage(0) # Terminate the app.
+
+WindowsBalloonTip = WindowsBalloonTipC()
 
 def balloon_tip(title, msg):
     class tip(threading.Thread):
         def run(self):
-            w = WindowsBalloonTip(title, msg)
-    tipp = None
+            WindowsBalloonTip.ShowWindow(title, msg)
     tipp = tip()
     tipp.start()
 
@@ -908,7 +945,9 @@ class ServerC:
             self.con, self.conAddress = self.s.accept()
             self.Connected = True
             print("Connected with", self.conAddress)
-            balloon_tip("Coonected", "Connected with " + str(self.conAddress[0]))
+            self.send("Connected with " + str(self.conAddress[0]))
+            if self.mess:
+                balloon_tip("Coonected", "Connected with " + str(self.conAddress[0]))
             while self.Connected:
                 try:
                     data = self.con.recv(1024)
@@ -919,13 +958,20 @@ class ServerC:
                     break
                 self.allDataRec.append(data)
                 self.react(data)
-                if data == b"stop_server" or data == b"stopserver":
-                    self.Connected = False
-                    self.Running = False
+                self.commands(data)
             print("Disconneted")
-            balloon_tip("Disconneted", "Connected fron " + str(self.conAddress[0]))
+            if self.mess:
+                balloon_tip("Disconneted", "Disconneted from " + str(self.conAddress[0]))
 
         self.stop()
+
+    def commands(self, data): # direct commdands from client
+        if data == b"COM_close_server" or data == b"stop_server":
+            if self.mess:
+                balloon_tip("Stopping", "Stopping the server")
+            self.send(b"COM_close_client")
+            self.Connected = False
+            self.Running = False
 
     def bind(self):
         self.s.bind((self.host, self.port))
@@ -953,6 +999,7 @@ class ServerThC(threading.Thread):
         self.End = True
         self.Connected = False
         self.con.close()
+
     def send(self, data):
         if self.Running and self.Connected and not self.End:
             if type(data) == str:
@@ -975,7 +1022,8 @@ class ServerThC(threading.Thread):
             self.con, self.conAddress = self.s.accept()
             self.Connected = True
             print("Connected with", self.conAddress)
-            balloon_tip("Coonected", "Connected with " + str(self.conAddress[0]))
+            if self.mess:
+                balloon_tip("Coonected", "Connected with " + str(self.conAddress[0]))
             while self.Connected:
                 try:
                     data = self.con.recv(1024)
@@ -986,10 +1034,20 @@ class ServerThC(threading.Thread):
                     break
                 self.allDataRec.append(data)
                 self.react(data)
+                self.commands(data)
             print("Disconneted")
-            balloon_tip("Disconneted", "Connected fron " + str(self.conAddress[0]))
+            if self.mess:
+                balloon_tip("Disconneted", "Disconneted from " + str(self.conAddress[0]))
 
         self.stop()
+
+    def commands(self, data): # direct commdands from client
+        if data == b"COM_close_server" or data == b"stop_server":
+            if self.mess:
+                balloon_tip("Stopping", "Stopping the server")
+            self.send(b"COM_close_client")
+            self.Connected = False
+            self.Running = False
 
     def bind(self):
         self.s.bind((self.host, self.port))
@@ -1024,6 +1082,9 @@ class ClientC(threading.Thread):
                 data = str(data).encode()
             self.s.send(data)
             self.allDataSend.append(data)
+            return True
+        else:
+            return False
 
     def react(self, curData):
         if self.reac is not None:
@@ -1045,8 +1106,14 @@ class ClientC(threading.Thread):
 
                 self.allDataRec.append(data)
                 self.react(data)
+                self.commands(data)
 
         self.stop()
+
+    def commands(self, data): # direct commdands from server
+        if data == b"COM_close_client":
+            self.Running = False
+            self.Connected = False
 
     def connect(self):
         try:
@@ -1064,17 +1131,24 @@ class ClientC(threading.Thread):
 
 def InteractiveClient(host, port):
     def x(data):
-        print("[Server] " + data.decode())
+        if not lsame(data.decode(), "COM"):
+            print("[Server] " + data.decode())
 
     cl = ClientC(host, port, x, True)
     cl.start()
 
-    x = input("-> ")
-    while x != "q":
+    time.sleep(1)
+    x = input()
+
+    while x != "q" and not cl.End:
         cl.send(x)
-        x = input("-> ")
+        #sys.stdout.write("-> ")
+        time.sleep(0.2)
+        if not cl.End:
+            x = input()
 
     cl.stop()
+
 
 def Search(searchkeyU, searchlistU, exact=False):
 
@@ -1129,28 +1203,30 @@ def StartupServerTasks(data_un):
 
     if data == "shutdown":
         print("Evecon Server", "Shutdown")
-        #balloon_tip("Evecon Server", "Shutdown")
+        balloon_tip("Evecon Server", "Shutdown")
         Tools.Shutdown()
     elif data == "sleep":
         print("Evecon Server", "sleep")
-        #balloon_tip("Evecon Server", "sleep")
+        balloon_tip("Evecon Server", "sleep")
         Tools.Sleep()
     elif data == "ep_energysave":
         print("Evecon Server", "ep_energysave")
-        #balloon_tip("Evecon Server", "ep_energysave")
+        balloon_tip("Evecon Server", "ep_energysave")
+        StartupServer.send("Changed Energyplan to Energysaveplan")
         Tools.EnergyPlan.Change(1)
     elif data == "reboot":
         print("Evecon Server", "reboot")
-        #balloon_tip("Evecon Server", "reboot")
+        balloon_tip("Evecon Server", "reboot")
         Tools.Reboot()
     elif data == "mp_setup":
         print("Evecon Server", "mp_setup")
-        #balloon_tip("Evecon Server", "mp_setup")
+        balloon_tip("Evecon Server", "mp_setup")
+        StartupServer.send("MusicPlayer is ready")
         SST_mp = MusicPlayerC()
         SST_mp_Ac = True
     elif data[0] == "m" and data[1] == "p" and data[2] == "_" and data[3] == "a" and data[4] == "d" and data[5] == "d" and SST_mp_Ac:
         print("Evecon Server", "mp_add " + data.lstrip("mp_").lstrip("add").lstrip("_"))
-        #balloon_tip("Evecon Server", "mp_add " + data.lstrip("mp_add_"))
+        balloon_tip("Evecon Server", "mp_add " + data.lstrip("mp_").lstrip("add").lstrip("_"))
         x = SST_mp.addMusic(data.lstrip("mp_").lstrip("add").lstrip("_"))
         if x:
             StartupServer.send("Done Loading")
@@ -1158,14 +1234,34 @@ def StartupServerTasks(data_un):
             StartupServer.send("Error")
     elif data == "mp_start" and SST_mp_Ac:
         print("Evecon Server", "mp_start")
-        #balloon_tip("Evecon Server", "mp_start")
+        balloon_tip("Evecon Server", "mp_start")
+        StartupServer.send("Started Musicplayer")
         SST_mp.start()
+    elif data == "mp_pause" and SST_mp_Ac:
+        print("Evecon Server", "mp_pause")
+        balloon_tip("Evecon Server", "mp_start")
+        StartupServer.send("Paused/Unpaused Musicplayer")
+        SST_mp.Switch()
     elif data == "mp_stop" and SST_mp_Ac:
         print("Evecon Server", "mp_stop")
-        #balloon_tip("Evecon Server", "mp_stop")
+        balloon_tip("Evecon Server", "mp_stop")
+        StartupServer.send("Stoped Musicplayer")
         SST_mp.Stop()
     elif data == "mp_getsong" and SST_mp_Ac:
         StartupServer.send(SST_mp.musiclistname[SST_mp.thismusicnumber])
+    elif data == "mp_status" and SST_mp_Ac:
+        StartupServer.send("Status Musicplayer:")
+        time.sleep(0.3)
+        StartupServer.send("Playing: " + str(SST_mp.musicplaying))
+        time.sleep(0.3)
+        if SST_mp.musicplaying:
+            StartupServer.send("Track: " + str(SST_mp.musiclistname[SST_mp.thismusicnumber]))
+        time.sleep(0.3)
+        if SST_mp.musicrun:
+            StartupServer.send("End: False")
+        else:
+            StartupServer.send("End: True")
+
 
 def np(preset="Man"):
     title("Loading Notepad")
@@ -2169,6 +2265,7 @@ class MusicPlayerC(threading.Thread):
 
         global musicrun
         musicrun = True
+        self.musicrun = True
 
         self.musicpause = False
         self.musicwait = False
@@ -2398,6 +2495,7 @@ class MusicPlayerC(threading.Thread):
     def Stop(self):
         global musicrun
         musicrun = False
+        self.musicrun = False
         self.musicplaying = False
         self.musicpause = False
     def Next(self):
@@ -2493,8 +2591,7 @@ class MusicPlayerC(threading.Thread):
         self.thismusicnumber = random.randint(0, len(self.musiclist) - 1)
         self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
 
-        global musicrun
-        while musicrun:
+        while self.musicrun:
 
 
             if self.musiclist[self.thismusicnumber].is_queued:
@@ -2628,8 +2725,7 @@ def Music():
     def Play():
         class Printerr(threading.Thread):
             def run(self):
-                global musicrun
-                while musicrun:
+                while muPlayer.musicrun:
                     cls()
                     muPlayer.printIt()
                     time.sleep(0.75)
@@ -2642,8 +2738,7 @@ def Music():
         Printer = Printerr()
         Printer.start()
 
-        global musicrun
-        while musicrun:
+        while muPlayer.musicrun:
             user_input = input()
             muPlayer.input(user_input)
 
@@ -5362,10 +5457,19 @@ def Arg():
             title("Server", " ", " ")
             ttime_stop = False
             serverport = int(sys.argv[x + 1])
-            if not sys.argv[x + 2] == "-app":
+            if not sys.argv[x + 2] == "app":
                 killConsole()
             StartupServer = ServerC(thisIP, serverport, reac=StartupServerTasks, reacSendData=True, mess=True)
             StartupServer.start()
+            exit_now()
+        if sys.argv[x] == "-inter_client":
+            title("Interactive Client", " ", " ")
+            ttime_stop = False
+            host = sys.argv[x + 1]
+            port = int(sys.argv[x + 2])
+            InteractiveClient(host, port)
+            exit_now()
+
 
 
 if sys.argv:
