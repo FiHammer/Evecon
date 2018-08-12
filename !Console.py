@@ -723,6 +723,7 @@ ProVersion = file_proversion_raw.readline()
 file_proversion_raw.close()
 
 
+
 def normaltitle():
     global ss_active
     if ss_active:
@@ -5469,7 +5470,6 @@ def Arg():
             port = int(sys.argv[x + 2])
             InteractiveClient(host, port)
             exit_now()
-
 
 
 if sys.argv:
