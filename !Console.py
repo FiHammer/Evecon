@@ -684,7 +684,7 @@ if Computername == "Computer-Testet":
 
     HomePC = True
 
-elif Computername == "XX":  # Todo BIG PC EINFÜGEN
+elif Computername == "Bigger-PC":
     title("OLD", "OLD", "somebody@BigPC")
     Computerfind_MiniPC = 0
     Computerfind_BigPC = 1
@@ -1553,7 +1553,7 @@ def Evecons(findversions=0):
 
     if os.path.isfile("C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\data\\Info\\exist"):
         Evecons_PC_path = "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon"
-    elif  os.path.isfile(""):   # BigPC noch einfügen
+    elif os.path.isfile("C:\\Users\\lualb\\Desktop\\Evecon\\data\\Info\\exist"):
         Evecons_PC_path = ""
     Evecons_ministick = 0
     Evecons_ministick_path = 0
@@ -1615,13 +1615,13 @@ def Evecons(findversions=0):
             if findversions == 1:
                 pc_version()
 
-        elif os.path.isfile(""):  # BigPC einfügen
+        elif os.path.isfile("C:\\Users\\lualb\\Desktop\\Evecon\\data\\Info\\exist"):
 
             Eveconss.append("PC")
             Evecons_PC = 1
 
             def pc_version():
-                file_pc_version_raw = open("", "r") # BigPC einfügen
+                file_pc_version_raw = open("C:\\Users\\lualb\\Desktop\\Evecon\\data\\Info\\version", "r")
                 for x in file_pc_version_raw:
                     PCversion.append(x.strip())
                 file_pc_version_raw.close()
@@ -1644,7 +1644,7 @@ def Evecons(findversions=0):
             if findversions == 1:
                 pc_version()
 
-        elif os.path.isfile(""): # BigPC einfügen
+        elif os.path.isfile("C:\\Users\\lualb\\Desktop\\Evecon\\data\\Info\\exist"):
 
             Eveconss.append("PC")
             Evecons_PC = 1
