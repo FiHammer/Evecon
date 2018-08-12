@@ -16,12 +16,9 @@ import psutil
 import random
 import win32process
 import pyglet
-
-import win32con, win32gui, win32api
-
-#import win32api
-#import win32gui
-#import win32con
+import win32api
+import win32gui
+import win32con
 
 def cls():
     os.system("cls")
