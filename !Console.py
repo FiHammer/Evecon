@@ -1183,7 +1183,7 @@ def Search(searchkeyU, searchlistU, exact=False):
                         continue
                     if len(searchlist[sListNum]) - 1 < keyNum + letterNum:
                         break
-                    pass
+
                     if searchlist[sListNum][keyNum + letterNum] == searchkey[keyNum]:
                         if keyNum == len(searchkey) - 1:
                             OutputNum.append(sListNum)
@@ -1194,6 +1194,170 @@ def Search(searchkeyU, searchlistU, exact=False):
                 break
 
     return OutputNum
+
+def SearchStr(searchkeyU: str, searchStrU: str, exact=False):
+
+    if len(searchkeyU) == 0:
+        return None
+
+    if not exact:
+        searchkey = searchkeyU.lower()
+        searchlist = searchStrU.lower()
+    else:
+        searchkey = searchkeyU
+        searchlist = searchStrU
+
+    OutputNum = []
+
+
+    for letterNum in range(len(searchlist)):
+        if searchlist[letterNum] == searchkey[0]:
+            test = False
+
+            for keyNum in range(len(searchkey)):
+                if test:
+                    test = False
+                    if keyNum == len(searchkey) - 1:
+                        OutputNum.append(keyNum)
+                        break
+                    continue
+                if len(searchlist) - 1 < keyNum + letterNum:
+                    break
+
+                if searchlist[keyNum + letterNum] == searchkey[keyNum]:
+                    if keyNum == len(searchkey) - 1:
+                        OutputNum.append(letterNum)
+                        break
+                else:
+                    break
+
+    return OutputNum
+
+
+def gerPartStr(word: str, begin: int, end: int):
+    part = ""
+    if len(word) <= end or len(word) <= begin or begin >= end:
+        return False
+    end -= 1
+    for x in range(end):
+        if x < begin:
+            continue
+        part += word[x]
+    return part
+
+def gerPartStrToStr(word: str, endkey: str, beginkey="", exact=False):
+    if exact:
+        word = word.lower()
+        endkey = endkey.lower()
+    part = ""
+    x = 0
+    end = False
+    beginskip = False
+    beginover = False
+    while True:
+        if beginkey != "" and not beginover:
+            z = 0
+            for y in range(len(beginkey)):
+                if word[x + y] == beginkey[y]:
+                    z += 1
+                else:
+                    beginskip = True
+                if z == len(beginkey):
+                    beginover = True
+                    x += z
+            if beginskip:
+                beginskip = False
+                x += 1
+                continue
+        z = 0
+        for y in range(len(endkey)):
+            if word[x + y] == endkey[y]:
+                z += 1
+            else:
+                break
+            if z == len(endkey):
+                end = True
+                break
+        if end:
+            break
+        part += word[x]
+        x += 1
+
+    return part
+
+
+
+
+def MusicEncode(musicname):
+
+    if MusicPlayerTest.istype(musicname):
+        name = musicname.rstrip("." + MusicPlayerTest.istype(musicname, True))
+    else:
+        name = musicname
+
+    title = gerPartStrToStr(name, " by ")
+    interpreter = gerPartStrToStr(name, beginkey=title + " by ", endkey= " (")
+    musictype = turnStr(gerPartStrToStr(turnStr(name), endkey= turnStr(") - ")))
+
+    part = gerPartStrToStr(name, beginkey=title + " by " + interpreter + " (From ", endkey=") - " + musictype)
+
+    x = SearchStr(" S", part, exact = True)
+    animeSeason = True
+    if len(x) > 1:
+        x = x[len(x) - 1] + 1
+    elif len(x) == 0:
+        animeSeason = None
+    else:
+        x = x[0]  + 1
+
+    if animeSeason:
+        try:
+            animeSeason = int(part[x + 1] + part[x + 2])
+        except ValueError:
+            animeSeason = int(part[x + 1])
+        except IndexError:
+            animeSeason = int(part[x + 1])
+
+    y = SearchStr(" OP", part, exact = True)
+    animeTypeNum = True
+    if len(y) > 1:
+        y = y[len(y) - 1] + 2
+        animeType = "OP"
+    elif len(y) == 0:
+        y = SearchStr(" EN", part, exact=True)
+        if len(y) > 1:
+            y = y[len(y) - 1] + 2
+            animeType = "EN"
+        elif len(y) == 0:
+            animeType = None
+            animeTypeNum = None
+        else:
+            y = y[0] + 2
+            animeType = "EN"
+    else:
+        y = y[0] + 2
+        animeType = "OP"
+
+    if animeTypeNum:
+        try:
+            animeTypeNum = int(part[y + 1] + part[y + 2])
+        except ValueError:
+            animeTypeNum = int(part[y + 1])
+        except IndexError:
+            animeTypeNum = int(part[y + 1])
+
+    if animeSeason is not None:
+        #animeName = gerPartStrToStr(part, endkey=" " + part[x] + part[x + 1])
+        animeName = gerPartStr(part, 0, x - 1)
+    elif animeTypeNum is not None:
+        #animeName = gerPartStrToStr(part, endkey=" " + part[y] + part[y + 1])
+        animeName = gerPartStr(part, 0, y - 1)
+    else:
+        animeName = part
+
+    return [title, interpreter, musictype, animeName, animeSeason, animeType, animeTypeNum]
+
+
 
 def StartupServerTasks(data_un):
     data = data_un.decode("utf-8")
@@ -2717,6 +2881,7 @@ class MusicPlayerC(threading.Thread):
                 self.splmp.printIt()
 
 
+MusicPlayerTest = MusicPlayerC()
 
 def Music():
 
@@ -5134,7 +5299,7 @@ def passwordmanager():
 
 
 class SplatoonC:
-    def __init__(self):
+    def __init__(self, roundtime = 180):
         self.weapons = ["Disperser", "Disperser Neo", "Junior-Klechser", "Junior-Klechser Plus", "Fein-Disperser",
                    "Fein-Disperser Neo", "Airbrush MG", "Airbrush RG", "Klechser", "Tentatek-Klechser",
                    "Heldenwaffe Replik (Klechser)", "Okto-Klechser Replik", ".52 Gallon", ".52 Gallon Deko", "N-ZAP85",
@@ -5183,6 +5348,8 @@ class SplatoonC:
         self.PlaytimeC = TimerC()
         self.RoundOver = True
         self.Effect = None
+
+        self.RoundTime = roundtime # Debug! std: 180
 
         self.WR = False
         self.WRthis = self.randomWP()
@@ -5256,8 +5423,8 @@ class SplatoonC:
             self.Start = True
 
     def printIt(self):
-        self.TimeLeft = 180 - self.TimeLeftC.getTime()
-        self.TimeLeft = 180 - round(time.time() - self.TimeLeftStart)
+        self.TimeLeft = self.RoundTime - self.TimeLeftC.getTime()
+        self.TimeLeft = self.RoundTime - round(time.time() - self.TimeLeftStart)
 
         if self.Start:
             self.Playtime = self.PlaytimeC.getTime()
@@ -5278,7 +5445,7 @@ class SplatoonC:
         else:
             PlaytimeFor = "%s:%s" % (self.Playtime // 60, self.Playtime % 60)
 
-        if self.TimeLeft == 0:
+        if self.TimeLeft <= 0:
             self.RoundOver = True
 
 
@@ -5466,6 +5633,10 @@ def Arg():
             host = sys.argv[x + 1]
             port = int(sys.argv[x + 2])
             InteractiveClient(host, port)
+            exit_now()
+        if sys.argv[x] == "-music":
+            title("Load Argument", "Musicplayer")
+            Music()
             exit_now()
 
 
