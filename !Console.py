@@ -2881,8 +2881,6 @@ class MusicPlayerC(threading.Thread):
                 self.splmp.printIt()
 
 
-MusicPlayerTest = MusicPlayerC()
-
 def Music():
 
     def Play():
@@ -5473,6 +5471,8 @@ class SplatoonC:
             print("\nStart Next Round?")
 
 
+
+MusicPlayerTest = MusicPlayerC()
 
 def Splatoon():
     spl = SplatoonC()
