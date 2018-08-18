@@ -2441,6 +2441,11 @@ class MusicPlayerC(threading.Thread):
         self.musicvolumep = 1
         self.musicplayer = None
         self.musicplaying = True
+        self.musicexitn = False
+        self.musicaddpl = False
+
+        self.musicman_list = []
+        self.music_playlists_used = {}
 
         self.lastmusicnumber = 0
         self.thismusicnumber = 0
@@ -2448,6 +2453,7 @@ class MusicPlayerC(threading.Thread):
 
         self.music_playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing", "Parov Stelar", "jPOP & etc", "OMFG"]
         self.music_playlists_key = ["lis", "an", "phu", "cp", "es", "ps", "jpop", "omfg"]
+        self.music_playlists_active = []
 
         self.spl = False
         self.splmp = SplatoonC()
@@ -2459,43 +2465,53 @@ class MusicPlayerC(threading.Thread):
 
             if key == "us":
                 self.searchMusic("Music\\User", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "lis":
                 self.searchMusic("Music\\Presets\\Life is Strange", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "an":
                 self.searchMusic("Music\\Presets\\Anime", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "phu":
                 self.searchMusic("Music\\Presets\\Phunk", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "cp":
                 self.searchMusic("Music\\Presets\\Caravan Palace", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "es":
                 self.searchMusic("Music\\Presets\\Electro Swing", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "ud":
                 cls()
                 self.searchMusic(input("Your path:\n"), loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "ps":
                 self.searchMusic("Music\\Presets\\Parov Stelar", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "jpop":
                 self.searchMusic("Music\\Presets\\jPOP-etc", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "omfg":
                 self.searchMusic("Music\\Presets\\OMFG", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
 
@@ -2508,43 +2524,53 @@ class MusicPlayerC(threading.Thread):
 
             if key == "us":
                 self.searchMusic("Music\\User", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "lis":
                 self.searchMusic(MusicDir + "\\Games\\Life is Strange", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "an":
                 self.searchMusic(MusicDir + "\\Anime", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "phu":
                 self.searchMusic(MusicDir + "\\Phunk", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "cp":
                 self.searchMusic(MusicDir + "\\Caravan Palace", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "es":
                 self.searchMusic(MusicDir + "\\Electro Swing", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "ud":
                 cls()
                 self.searchMusic(input("Your path:\n"), loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return "ul"
             elif key == "ps":
                 self.searchMusic(MusicDir + "\\Parov Stelar", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "jpop":
                 self.searchMusic(MusicDir + "\\jPOP-etc", loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             elif key == "omfg":
                 self.searchMusic(MusicDir + "\\OMFG" ,loadMu)
+                self.music_playlists_active.append(key)
                 print("Finished")
                 return True
             else:
@@ -2742,6 +2768,22 @@ class MusicPlayerC(threading.Thread):
                 self.spl = True
             else:
                 self.spl = False
+        elif inpt == "exitn":
+            self.musicexitn = True
+        elif inpt == "addpl":
+            self.musicaddpl = True
+        elif self.musicaddpl:
+            if inpt.lower() == "fin":
+                self.musicaddpl = False
+
+            else:
+                x = self.addMusic(inpt.lower())
+
+                if x:
+                    self.music_playlists_used[inpt.lower()] = "X"
+                elif x == "ul":
+                    self.musicman_list.append("unkown list")
+
         else:
             if self.spl:
                 self.splmp.input(inpt=inpt)
@@ -2794,6 +2836,10 @@ class MusicPlayerC(threading.Thread):
             self.lastmusicnumber = self.thismusicnumber
             self.thismusicnumber = self.nextmusicnumber
             self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
+
+            if self.musicexitn:
+                self.Stop()
+
 
 
     def printIt(self):
@@ -2879,6 +2925,34 @@ class MusicPlayerC(threading.Thread):
             if self.spl:
                 print("\n\n")
                 self.splmp.printIt()
+
+        if self.musicaddpl:
+
+            self.musicman_list = []
+            self.music_playlists_used = {}
+
+            for x in self.music_playlists_key:
+                self.music_playlists_used[x] = " "
+
+            for x in self.music_playlists_active:
+                self.music_playlists_used[x] = "X"
+
+            if self.musicaddpl:
+                music_playlists_used_List = []
+                for x in self.music_playlists_key:
+                    music_playlists_used_List.append(self.music_playlists_used[x])
+                cls()
+                print("Playlists:\n")
+                # print(music_playlists_print)
+                # print("User's list (US), User defined (UD)")
+                # print("\nLoaded:")
+                for xl, x2, x3 in zip(music_playlists_used_List, self.music_playlists,
+                                      self.music_playlists_key):
+                    print(" " + xl + " " + x2 + " (" + x3.upper() + ")")
+                for x in self.musicman_list:
+                    print(" X " + x)
+                print("\nFinish (FIN)\n")
+            #self.musicaddpl = False
 
 
 def Music():
@@ -4216,6 +4290,7 @@ def Alarmprint(x=230, y=65, colorCh=False):
 
     def randi(x):
         randlist = ["1", "2", " "]
+        #randlist = ["/", "\\", "_"]
         key = random.randint(0, 100)
         if key == 0:
             randlist.append("X")
