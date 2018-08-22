@@ -1,4 +1,3 @@
-
 import time
 #from cls import *
 import ctypes
@@ -10,8 +9,9 @@ import threading
 import subprocess
 import webbrowser
 #from IPython.core.autocall import ExitAutocall
-import shutil
+#import shutil
 import EveconExceptions
+import EveconMiniDebug
 import psutil
 import random
 import win32process
@@ -26,10 +26,6 @@ def cls():
 
 exitnow = 0
 def exit_now(killmex = False):
-    global ttime_stop, ttime_pause, ttime_pt
-    ttime_stop = False
-    ttime_pause = False
-    ttime_pt = False
 
     ttime.deac()
     global exitnow
@@ -47,7 +43,7 @@ def killme():
     subprocess.call(["taskkill", "/PID", str(os.getpid())])
 
 
-
+pausetime = 180
 musicrun = False
 ss_active = False
 thisIP = None
@@ -367,10 +363,11 @@ class szipC:
 szip = szipC("Programs\\7z")
 
 
+
 class MegacmdC:
     def __init__(self, path):
         self.path = path
-        self.MegacmdServer = False
+        self.MegacmdServer = EveconMiniDebug.MegaCmdServerTest()
         self.Running = False
         self.LoggedIn = False
         self.email = None
@@ -565,44 +562,46 @@ class title_time(threading.Thread):
         threading.Thread.__init__(self)
         self.stop = 0
         self.freq = freq
+        # self.stopped = False
+        self.pause = False
+        self.stop = False
+        self.ss = False
+        self.sstime = ""
+        self.normrun = True
 
     def run(self):
-        global ttime_stop, ttime_pause, ttime_pt
-        ttime_pause = True
-        ttime_stop = True
-        ttime_pt = False
-        while ttime_stop:
-            while ttime_pause:
+        global pausetime
+        while not self.stop:
+            while self.normrun:
                 title()
-                # wenn man hier kein old title mitgibt geht es nicht! warum? Versuch lösche über mir weg
                 time.sleep(self.freq)
             time.sleep(0.1)
-            while ttime_pt:
+            while self.ss:
                 first = time.time()
-                pausetime = 180
-                while ttime_pt:
+                while self.ss:
                     time.sleep(0.25)
 
-                    if (round(time.time() - first) % 60) < 10 :
-                        sstime = str(round(time.time() + pausetime - first) // 60) + ":0" + str(round(time.time() + pausetime - first) % 60)
+                    if (round(time.time() - first) % 60) < 10:
+                        self.sstime = str(round(time.time() + pausetime - first) // 60) + ":0" + str(
+                            round(time.time() + pausetime - first) % 60)
                     else:
-                        sstime = str(round(time.time() + pausetime - first) // 60) + ":" + str(round(time.time() + pausetime - first) % 60)
+                        self.sstime = str(round(time.time() + pausetime - first) // 60) + ":" + str(
+                            round(time.time() + pausetime - first) % 60)
 
-                    title("OLD", "OLD", sstime)
-
+                    title("OLD", "OLD", self.sstime)
 
     def deac(self):
-        global ttime_stop, ttime_pause
-        ttime_pause = False
-        ttime_stop = False
-    def pt(self):
-        global ttime_stop, ttime_pause, ttime_pt
-        if ttime_pt:
-            ttime_pause = True
-            ttime_pt = False
+        self.stop = True
+        self.normrun = False
+        self.ss = False
+
+    def ss_switch(self):
+        if self.ss:
+            self.pause = True
+            self.ss = False
         else:
-            ttime_pause = False
-            ttime_pt = True
+            self.pause = False
+            self.ss = True
 
 
 ttime = title_time(2.5)
@@ -787,7 +786,8 @@ class WindowsBalloonTipC:
         wc.lpszClassName = "PythonTaskbar"
         wc.lpfnWndProc = message_map # could also specify a wndproc.
         self.classAtom = win32gui.RegisterClass(wc)
-
+        self.hwnd = None
+        self.normList = []
     def ShowWindow(self, title, msg):
         # Create the Window.
         style = win32con.WS_OVERLAPPED | win32con.WS_SYSMENU
@@ -807,6 +807,11 @@ class WindowsBalloonTipC:
         win32gui.DestroyWindow(self.hwnd)
 
     def OnDestroy(self, hwnd, msg, wparam, lparam):
+        self.normList.append(hwnd)
+        self.normList.append(msg)
+        self.normList.append(wparam)
+        self.normList.append(lparam)
+
         nid = (self.hwnd, 0)
         win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
         win32api.PostQuitMessage(0) # Terminate the app.
@@ -1995,7 +2000,7 @@ def update():
 
 def upgrade():
     title("Updating this Program", "")
-    dir_tmp = os.getcwd()
+    #dir_tmp = os.getcwd()
     os.chdir("Programs\\Evecon\\Updater")
     subprocess.call(["updater.exe", "-upgrade"])
 
@@ -2016,14 +2021,14 @@ def games(preset="Man"):
     def snake():
         import random, click
 
-        global nothing, me, food, max_x, max_y, lastthing, Title_run, lockMe, test, testx, testy, ttime_stop, paused, Thingyou, Things, now, special, direction, sleep, restart
+        global nothing, me, food, max_x, max_y, lastthing, Title_run, lockMe, testx, testy, Thingyou, Things, special, direction, sleep, restart
 
         nothing = " "
         me = "X"
         food = "O"
         max_x = 120
         max_y = 30
-        ttime_stop = False
+        ttime.deac()
 
         global Titledeac
 
@@ -2045,7 +2050,7 @@ def games(preset="Man"):
         class Titleclass(threading.Thread):
 
             def run(self):
-                global Title_run, nowtime, beginn, score, moves, Things
+                global Title_run, beginn, score, moves, Things
                 Title_run = False
 
                 while True:
@@ -2117,29 +2122,28 @@ def games(preset="Man"):
         direct = Direc()
         direct.start()
 
-        global Thing
-
         class Thing:
-            def __init__(self, beforex, beforey):
+            def __init__(self, beforex, beforey, debug = False):
                 global OurThing
                 #	exec("global pos%s_%s; pos%s_%s = '%s'" % (abs(beforex), abs(beforey), abs(beforex), abs(beforey), me))
                 self.lastdirection = "wait"
                 self.beforex = beforex
                 self.beforey = beforey
-                OurThing.append("")
-
+                if not debug:
+                    OurThing.append("")
 
             def move(self, thisdirect):  # braucht mann nowx und nowy?
                 global Thingyou, Things, lastthing
-                temp = False
+                # temp = False
                 if self.lastdirection == "wait":
-                    exec("global pos%s_%s; pos%s_%s = '%s'" % (self.beforex, self.beforey, self.beforex, self.beforey, me))
+                    exec("global pos%s_%s; pos%s_%s = '%s'" % (
+                    self.beforex, self.beforey, self.beforex, self.beforey, me))
                     lastthing['x'] = self.beforex
                     lastthing['y'] = self.beforey
                 elif self.lastdirection == "up":
                     self.beforey -= 1
                     exec("global pos%s_%s; pos%s_%s = '%s'" % (
-                    self.beforex, self.beforey, self.beforex, self.beforey, me))  # hier werte überprüfen
+                        self.beforex, self.beforey, self.beforex, self.beforey, me))  # hier werte überprüfen
                     OurThing[Thingyou] = ("pos%s_%s" % (self.beforex, self.beforey))
                     if Things > Thingyou:
                         Thingyou += 1
@@ -2150,7 +2154,8 @@ def games(preset="Man"):
 
                 elif self.lastdirection == "down":
                     self.beforey += 1
-                    exec("global pos%s_%s; pos%s_%s = '%s'" % (self.beforex, self.beforey, self.beforex, self.beforey, me))
+                    exec("global pos%s_%s; pos%s_%s = '%s'" % (
+                    self.beforex, self.beforey, self.beforex, self.beforey, me))
                     OurThing[Thingyou] = ("pos%s_%s" % (self.beforex, self.beforey))
                     if Things > Thingyou:
                         Thingyou += 1
@@ -2161,7 +2166,8 @@ def games(preset="Man"):
 
                 elif self.lastdirection == "right":
                     self.beforex += 1
-                    exec("global pos%s_%s; pos%s_%s = '%s'" % (self.beforex, self.beforey, self.beforex, self.beforey, me))
+                    exec("global pos%s_%s; pos%s_%s = '%s'" % (
+                    self.beforex, self.beforey, self.beforex, self.beforey, me))
                     OurThing[Thingyou] = ("pos%s_%s" % (self.beforex, self.beforey))
                     if Things > Thingyou:
                         Thingyou += 1
@@ -2172,7 +2178,8 @@ def games(preset="Man"):
 
                 elif self.lastdirection == "left":
                     self.beforex -= 1
-                    exec("global pos%s_%s; pos%s_%s = '%s'" % (self.beforex, self.beforey, self.beforex, self.beforey, me))
+                    exec("global pos%s_%s; pos%s_%s = '%s'" % (
+                    self.beforex, self.beforey, self.beforex, self.beforey, me))
                     OurThing[Thingyou] = ("pos%s_%s" % (self.beforex, self.beforey))
                     if Things > Thingyou:
                         Thingyou += 1
@@ -2183,11 +2190,10 @@ def games(preset="Man"):
 
                 self.lastdirection = thisdirect
 
-
         def move():
             global direction, restart, Things, Thingyou, now, special, paused
-            temp = False
-            temp2 = False
+            # temp = False
+            # temp2 = False
             Thingyou = 1
 
             for testy in range(1, max_y):
@@ -2224,10 +2230,10 @@ def games(preset="Man"):
 
                         for test1 in range(len(special)):
                             if ("pos%s_%s" % (now["x"], now["y"])) == special[test1]:
-                                temp = True
+                                # temp = True
                                 special[test1] = ("pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)))
                                 Things += 1
-                                exec("global Thing%s; Thing%s = Thing(lastthing['x'], lastthing['y'])" % (Things, Things))
+                                exec("Thing%s = Thing(lastthing['x'], lastthing['y'])" % Things)
 
             if direction == "down":
                 paused = False
@@ -2253,10 +2259,10 @@ def games(preset="Man"):
 
                         for test1 in range(len(special)):
                             if ("pos%s_%s" % (now["x"], now["y"])) == special[test1]:
-                                temp = True
+                                # temp = True
                                 special[test1] = ("pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)))
                                 Things += 1
-                                exec("global Thing%s; Thing%s = Thing(lastthing['x'], lastthing['y'])" % (Things, Things))
+                                exec("Thing%s = Thing(lastthing['x'], lastthing['y'])" % Things)
 
             if direction == "right":
                 paused = False
@@ -2281,10 +2287,10 @@ def games(preset="Man"):
 
                         for test1 in range(len(special)):
                             if ("pos%s_%s" % (now["x"], now["y"])) == special[test1]:
-                                temp = True
+                                # temp = True
                                 special[test1] = ("pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)))
                                 Things += 1
-                                exec("global Thing%s; Thing%s = Thing(lastthing['x'], lastthing['y'])" % (Things, Things))
+                                exec("Thing%s = Thing(lastthing['x'], lastthing['y'])" % Things)
 
             if direction == "left":
                 paused = False
@@ -2310,11 +2316,15 @@ def games(preset="Man"):
 
                         for test1 in range(len(special)):
                             if ("pos%s_%s" % (now["x"], now["y"])) == special[test1]:
-                                temp = True
+                                # temp = True
                                 special[test1] = ("pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)))
                                 Things += 1
-                                exec("global Thing%s; Thing%s = Thing(lastthing['x'], lastthing['y'])" % (Things, Things))
+                                exec("Thing%s = Thing(lastthing['x'], lastthing['y'])" % Things)
 
+        betterdebug = Thing(0, 0, True)
+        betterdebug = 1
+        print(betterdebug)
+        cls()
 
         while True:
             global Title_run, beginn
@@ -2352,17 +2362,17 @@ def games(preset="Man"):
                 exec("%s = '%s'" % (special[test], food))
 
 
-            class printy(threading.Thread):
-                def __init__(self, printx):
-                    super().__init__()  # was ist das?
-                    self.printx = printx
+            #class printy(threading.Thread):
+            #    def __init__(self, printx):
+            #        super().__init__()  # was ist das?
+            #        self.printx = printx
 
-                def run(self):
-                    lockMe.acquire()
-                    for testyp in range(1, max_y):
-                        exec("sys.stdout.write(pos%s_%s)" % (self.printx, testyp))
-                    print("")
-                    lockMe.release()
+            #    def run(self):
+            #        lockMe.acquire()
+            #        for testyp in range(1, max_y):
+            #            exec("sys.stdout.write(pos%s_%s)" % (self.printx, testyp))
+            #        print("")
+            #        lockMe.release()
 
 
             lockMe = threading.Lock()
@@ -2408,8 +2418,7 @@ def games(preset="Man"):
         games_user_input = input("What to do now?\n\n")
 
         if games_user_input.lower() == "snake":
-            global ttime_stop
-            ttime_stop = False
+            ttime.deac()
             snake()
 
 
@@ -2443,6 +2452,7 @@ class MusicPlayerC(threading.Thread):
         self.musicplaying = True
         self.musicexitn = False
         self.musicaddpl = False
+        self.musicrunning = False
 
         self.musicman_list = []
         self.music_playlists_used = {}
@@ -2686,6 +2696,7 @@ class MusicPlayerC(threading.Thread):
         self.musicrun = False
         self.musicplaying = False
         self.musicpause = False
+        self.musicrunning = False
     def Next(self):
         self.musicplaying = False
         if self.musicpause:
@@ -2775,7 +2786,7 @@ class MusicPlayerC(threading.Thread):
         elif self.musicaddpl:
             if inpt.lower() == "fin":
                 self.musicaddpl = False
-
+                self.printIt()
             else:
                 x = self.addMusic(inpt.lower())
 
@@ -2783,6 +2794,8 @@ class MusicPlayerC(threading.Thread):
                     self.music_playlists_used[inpt.lower()] = "X"
                 elif x == "ul":
                     self.musicman_list.append("unkown list")
+
+                self.printIt()
 
         else:
             if self.spl:
@@ -2806,7 +2819,7 @@ class MusicPlayerC(threading.Thread):
             self.musicplayer.play()
             self.musicplayer.volume = self.musicvolumep
             self.music_time = time.time()
-
+            self.musicrunning = True
             title("OLD", self.musiclistname[self.thismusicnumber], "Now Playing")
 
             self.musicplaying = True
@@ -2836,6 +2849,7 @@ class MusicPlayerC(threading.Thread):
             self.lastmusicnumber = self.thismusicnumber
             self.thismusicnumber = self.nextmusicnumber
             self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
+            self.musicrunning = False
 
             if self.musicexitn:
                 self.Stop()
@@ -2843,62 +2857,21 @@ class MusicPlayerC(threading.Thread):
 
 
     def printIt(self):
-        cls()
-        print("Musicplayer\n\nNow Playing:")
-        if self.istype(self.musiclistname[self.thismusicnumber], True) == "mp3":
-            print(self.musiclistname[self.thismusicnumber].rstrip(".mp3"))
-        elif self.istype(self.musiclistname[self.thismusicnumber], True) == "mp4":
-            print(self.musiclistname[self.thismusicnumber].rstrip(".mp4"))
-
-        if (round(time.time() - self.music_time) % 60) < 10 and (
-                round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
-            print(r"%s:%s%s\%s:%s%s" % (
-                round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
-                round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
-                round(self.musiclist[self.thismusicnumber].duration) % 60))
-        elif (round(time.time() - self.music_time) % 60) < 10:
-            print(r"%s:%s%s\%s:%s" % (
-                round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
-                round(self.musiclist[self.thismusicnumber].duration) // 60,
-                round(self.musiclist[self.thismusicnumber].duration) % 60))
-        elif (round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
-            print(r"%s:%s\%s:%s%s" % (
-                round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
-                round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
-                round(self.musiclist[self.thismusicnumber].duration) % 60))
-        else:
-            print(r"%s:%s\%s:%s" % (
-                round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
-                round(self.musiclist[self.thismusicnumber].duration) // 60,
-                round(self.musiclist[self.thismusicnumber].duration) % 60))
-
-        print("\nNext Track:")
-        if self.istype(self.musiclistname[self.nextmusicnumber], True) == "mp3":
-            print(self.musiclistname[self.nextmusicnumber].rstrip(".mp3"))
-        elif self.istype(self.musiclistname[self.nextmusicnumber], True) == "mp4":
-            print(self.musiclistname[self.nextmusicnumber].rstrip(".mp4"))
-
-        print("\n")
-        if not self.musicwait:
-            print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL)")
-        elif self.musicwaitvol:
-            print("Volume (Now: %s)\n" % self.musicvolume)
-        elif self.musicwaitvolp:
-            print("Volume Player:")
-        elif self.musicwaitseek:
-            print("Jump to (in sec) (DO NOT WORK!):")
-        else:
-            print("BUGGI")
-
-        if self.spl:
-            print("\n\n")
-            self.splmp.printIt()
-
-        if self.musicpause:
+        if self.musicrunning:
             cls()
-            print("Musicplayer\n\nPaused:")
-            print(self.musiclistname[self.thismusicnumber])
-            if (round(time.time() - self.music_time) % 60) < 10:
+            print("Musicplayer\n\nNow Playing:")
+            if self.istype(self.musiclistname[self.thismusicnumber], True) == "mp3":
+                print(self.musiclistname[self.thismusicnumber].rstrip(".mp3"))
+            elif self.istype(self.musiclistname[self.thismusicnumber], True) == "mp4":
+                print(self.musiclistname[self.thismusicnumber].rstrip(".mp4"))
+
+            if (round(time.time() - self.music_time) % 60) < 10 and (
+                    round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
+                print(r"%s:%s%s\%s:%s%s" % (
+                    round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
+                    round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
+                    round(self.musiclist[self.thismusicnumber].duration) % 60))
+            elif (round(time.time() - self.music_time) % 60) < 10:
                 print(r"%s:%s%s\%s:%s" % (
                     round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
                     round(self.musiclist[self.thismusicnumber].duration) // 60,
@@ -2908,36 +2881,82 @@ class MusicPlayerC(threading.Thread):
                     round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
                     round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
                     round(self.musiclist[self.thismusicnumber].duration) % 60))
-            elif (round(time.time() - self.music_time) % 60) < 10 and (
-                    round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
-                print(r"%s:%s%s\%s:%s%s" % (
-                    round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
-                    round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
-                    round(self.musiclist[self.thismusicnumber].duration) % 60))
             else:
                 print(r"%s:%s\%s:%s" % (
                     round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
                     round(self.musiclist[self.thismusicnumber].duration) // 60,
                     round(self.musiclist[self.thismusicnumber].duration) % 60))
 
-            print("\n\nPlay (PLAY), Stop (STOP)")
+            print("\nNext Track:")
+            if self.istype(self.musiclistname[self.nextmusicnumber], True) == "mp3":
+                print(self.musiclistname[self.nextmusicnumber].rstrip(".mp3"))
+            elif self.istype(self.musiclistname[self.nextmusicnumber], True) == "mp4":
+                print(self.musiclistname[self.nextmusicnumber].rstrip(".mp4"))
+
+            print("\n")
+            if not self.musicwait:
+                print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL)")
+            elif self.musicwaitvol:
+                print("Volume (Now: %s)\n" % self.musicvolume)
+            elif self.musicwaitvolp:
+                print("Volume Player:")
+            elif self.musicwaitseek:
+                print("Jump to (in sec) (DO NOT WORK!):")
+            else:
+                print("BUGGI")
 
             if self.spl:
                 print("\n\n")
                 self.splmp.printIt()
 
-        if self.musicaddpl:
+            if self.musicpause:
+                cls()
+                print("Musicplayer\n\nPaused:")
+                if self.istype(self.musiclistname[self.thismusicnumber], True) == "mp3":
+                    print(self.musiclistname[self.thismusicnumber].rstrip(".mp3"))
+                elif self.istype(self.musiclistname[self.thismusicnumber], True) == "mp4":
+                    print(self.musiclistname[self.thismusicnumber].rstrip(".mp4"))
 
-            self.musicman_list = []
-            self.music_playlists_used = {}
+                if (round(time.time() - self.music_time) % 60) < 10:
+                    print(r"%s:%s%s\%s:%s" % (
+                        round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
+                        round(self.musiclist[self.thismusicnumber].duration) // 60,
+                        round(self.musiclist[self.thismusicnumber].duration) % 60))
+                elif (round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
+                    print(r"%s:%s\%s:%s%s" % (
+                        round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
+                        round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
+                        round(self.musiclist[self.thismusicnumber].duration) % 60))
+                elif (round(time.time() - self.music_time) % 60) < 10 and (
+                        round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
+                    print(r"%s:%s%s\%s:%s%s" % (
+                        round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
+                        round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
+                        round(self.musiclist[self.thismusicnumber].duration) % 60))
+                else:
+                    print(r"%s:%s\%s:%s" % (
+                        round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
+                        round(self.musiclist[self.thismusicnumber].duration) // 60,
+                        round(self.musiclist[self.thismusicnumber].duration) % 60))
 
-            for x in self.music_playlists_key:
-                self.music_playlists_used[x] = " "
+                print("\n\nPlay (PLAY), Stop (STOP)")
 
-            for x in self.music_playlists_active:
-                self.music_playlists_used[x] = "X"
+                if self.spl:
+                    print("\n\n")
+                    self.splmp.printIt()
 
             if self.musicaddpl:
+
+                self.musicman_list = []
+                self.music_playlists_used = {}
+
+                for x in self.music_playlists_key:
+                    self.music_playlists_used[x] = " "
+
+                for x in self.music_playlists_active:
+                    self.music_playlists_used[x] = "X"
+
+                #if self.musicaddpl:
                 music_playlists_used_List = []
                 for x in self.music_playlists_key:
                     music_playlists_used_List.append(self.music_playlists_used[x])
@@ -2952,7 +2971,10 @@ class MusicPlayerC(threading.Thread):
                 for x in self.musicman_list:
                     print(" X " + x)
                 print("\nFinish (FIN)\n")
-            #self.musicaddpl = False
+                #self.musicaddpl = False
+        else:
+            cls()
+            print("Musicplayer\n\nLoading...")
 
 
 def Music():
@@ -3108,27 +3130,27 @@ def screensaver(preset = None):
         oldEP = Tools.EnergyPlan.getEP()
         Tools.EnergyPlan.Change(1)
 
-        ttime.pt()
+        ttime.ss_switch()
 
         killmem = False
         sleeps = True
         ss_active = True
         color = "dark"
 
-        class Timecount(threading.Thread):
-            def run(self):
-                global ss_pause
+        # class Timecount(threading.Thread):
+        #    def run(self):
+        #        global ss_pause##
 
-                ss_start = time.time()
-                while sleeps:
-                    time.sleep(0.1)
+        #        ss_start = time.time()
+        #        while sleeps:
+        #            time.sleep(0.1)
 
-                ss_pause = time.time() - ss_start
+        #        ss_pause = time.time() - ss_start
 
+        # Machen wenn pause time counter
+        #backtime = Timecount()
 
-        backtime = Timecount()
-
-        ss_start = time.time()
+        # ss_start = time.time()
 
         #dir_tmp = os.getcwd()
         #os.chdir("Programs\\Evecon\\Screensaver_time")
@@ -3198,7 +3220,7 @@ def screensaver(preset = None):
         subprocess.call(["taskkill", "/IM", "ss_time.exe"])
 
         # schreibe in die Datei ...
-        ss_pause = time.time() - ss_start
+        #ss_pause = time.time() - ss_start
         Tools.EnergyPlan.Change(oldEP)
         exit_now(killmem)
 
@@ -3747,8 +3769,7 @@ def Timeprint():
     lastsec = "EE"
 
 
-    global ttime_stop
-    ttime_stop = False
+    ttime.deac()
 
     while True:
         refreshtime()
@@ -4474,15 +4495,15 @@ def passwordmanager():
 
             def start_input():
 
-                pwlvl = None
-                pwfullname = None
-                pwemail = None
-                pwnumber = None
-                pwbdate = None
-                pwgender = None
-                pwresidence = None
-                pwpassword = None
-                pwsq1 = None
+                #pwlvl = None
+                #pwfullname = None
+                #pwemail = None
+                #pwnumber = None
+                #pwbdate = None
+                #pwgender = None
+                #pwresidence = None
+                #pwpassword = None
+                #pwsq1 = None
                 pwsq1a = None
                 pwsq2 = None
                 pwsq2a = None
@@ -4994,23 +5015,22 @@ def passwordmanager():
 
                     passwordskip = True
 
-                if pwlvl == 1:
-                    if pw1 is not None:
-                        pwlvlunlock = True
-                        a1 = True
-
-                    else:
-                        pwlvlunlock = False
-                elif pwlvl == 2:
-                    if pw2 is not None:
-                        pwlvlunlock = True
-                    else:
-                        pwlvlunlock = False
-                elif pwlvl == 3:
-                    if pw3 is not None:
-                        pwlvlunlock = True
-                    else:
-                        pwlvlunlock = False
+                #if pwlvl == 1:
+                #    if pw1 is not None:
+                #        pwlvlunlock = True
+                #        a1 = True
+                #    else:
+                #        pwlvlunlock = False
+                #elif pwlvl == 2:
+                #    if pw2 is not None:
+                #        pwlvlunlock = True
+                #    else:
+                #        pwlvlunlock = False
+                #elif pwlvl == 3:
+                #    if pw3 is not None:
+                #        pwlvlunlock = True
+                #    else:
+                #        pwlvlunlock = False
 
                 if not userdataskip:
                     if userdata:
@@ -5606,7 +5626,6 @@ def main():
 
 
 def Arg():
-    global ttime_stop
 
     skiparg = []
 
@@ -5616,7 +5635,6 @@ def Arg():
         except IndexError:
             sys.argv.append(None)
             skiparg.append(x)
-    test = []
     if not skiparg:
         skiparg.append(4)
 
@@ -5631,17 +5649,17 @@ def Arg():
             color.change("F0")
         if sys.argv[x] == "-np_fox":
             title("Load Argument", "Notie: FOX")
-            ttime_stop = False
+            ttime.deac()
             np("fox")
             exit_now()
         if sys.argv[x] == "-np_foxpage":
             title("Load Argument", "Notie: FOXPAGE")
-            ttime_stop = False
+            ttime.deac()
             np("foxpage")
             exit_now()
         if sys.argv[x] == "-np_foxname":
             title("Load Argument", "Notie: FOXNAME")
-            ttime_stop = False
+            ttime.deac()
             np("foxname")
             exit_now()
         if sys.argv[x] == "-np_notie":
@@ -5649,12 +5667,12 @@ def Arg():
             np("Man")
         if sys.argv[x] == "-np_now":
             title("Load Argument", "Notie: NOW")
-            ttime_stop = False
+            ttime.deac()
             np("now")
             exit_now()
         if sys.argv[x] == "-np_shota":
             title("Load Argument", "Notie: SHOTA")
-            ttime_stop = False
+            ttime.deac()
             np("shota")
             exit_now()
         if sys.argv[x] == "-nc_stdsize":
@@ -5665,7 +5683,7 @@ def Arg():
             title_time.freq = float(sys.argv[x + 1])
         if sys.argv[x] == "-tt_deac":
             title("Load Argument", "TTime: Deactivate")
-            ttime_stop = False
+            ttime.deac()
         if sys.argv[x] == "-update":
             title("Load Argument", "Updater: Updating")
             update()
@@ -5677,25 +5695,25 @@ def Arg():
             screensaver()
         if sys.argv[x] == "-ep_switch":
             title("Load Argument", "Switch Energy Plan")
-            ttime_stop = False
+            ttime.deac()
             Tools.EnergyPlan.Switch()
             Tools.EnergyPlan.getEP(True)
             time.sleep(2)
             exit_now()
         if sys.argv[x] == "-shutdown":
             title("Load Argument", "Shutdown")
-            ttime_stop = False
+            ttime.deac()
             Tools.Shutdown()
             exit_now()
         if sys.argv[x] == "-reboot":
-            title("Load Argument", "Shutdown")
-            ttime_stop = False
+            title("Load Argument", "Reboot")
+            ttime.deac()
             Tools.Reboot()
             exit_now()
         if sys.argv[x] == "-start_server":
             global StartupServer
             title("Server", " ", " ")
-            ttime_stop = False
+            ttime.deac()
             serverport = int(sys.argv[x + 1])
             if not sys.argv[x + 2] == "app":
                 killConsole()
@@ -5704,7 +5722,7 @@ def Arg():
             exit_now()
         if sys.argv[x] == "-inter_client":
             title("Interactive Client", " ", " ")
-            ttime_stop = False
+            ttime.deac()
             host = sys.argv[x + 1]
             port = int(sys.argv[x + 2])
             InteractiveClient(host, port)

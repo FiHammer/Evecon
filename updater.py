@@ -1099,7 +1099,7 @@ def zipme():
     global this_version
     newarchive = "data\\Update\\Evecon-" + this_version[1] + ".zip"
     allfiles = ["!Evecon\\dev\\!Console.py", "!Evecon\\dev\\updater.py", "!Evecon\\dev\\ss_time.py",
-                "!Evecon\\dev\\EveconExceptions.py",
+                "!Evecon\\dev\\EveconExceptions.py", "!Evecon\\dev\\EveconMiniDebug.py"
                 "data\\Info\\Changelog.txt", "data\\Info\\version"]
     alldic = ["!Evecon\\!Console"]
 
@@ -1181,6 +1181,7 @@ def upgrade():
         shutil.copy("!Evecon\\dev\\EveconExceptions.py", "data\\Backup\\!Evecon\\dev")
         shutil.copy("!Evecon\\dev\\ss_time.py", "data\\Backup\\!Evecon\\dev")
         shutil.copy("!Evecon\\dev\\updater.py", "data\\Backup\\!Evecon\\dev")
+        shutil.copy("!Evecon\\dev\\EveconMiniDebug.py", "data\\Backup\\!Evecon\\dev")
 
         os.remove("data\\Backup\\data\\Info\\version")
         shutil.copy("data\\Info\\version", "data\\Backup\\data\\Info")
