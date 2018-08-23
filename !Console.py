@@ -300,7 +300,7 @@ def nircmd(preset="Man", a=None, b=None, c=None, d=None, every=False):
 
 class szipC:
     def __init__(self, path):
-        self.path = path
+        self.path = path + "\\7za.exe"
     def create_archive(self, archive, filenames, switches=None, workpath=None, archive_type="zip"):
         if archive[len(archive)-1] == archive_type[len(archive_type)-1] and archive[len(archive)-2] == archive_type[len(archive_type)-2] and archive[len(archive)-3] == archive_type[len(archive_type)-3]:
             if archive_type == "zip" : # is the archive_type supported?
@@ -314,17 +314,12 @@ class szipC:
                     for x in range(len(filenames)):
                         filenames[x] = workpath + "\\" + filenames[x]
 
-                os.chdir(self.path)
-
                 if switches is None:
-                    command = ["7za.exe", "a", "-t" + archive_type, archive] + list(filenames)
+                    command = [self.path, "a", "-t" + archive_type, archive] + list(filenames)
                 else:
-                    command = ["7za.exe", "a", "-t" + archive_type] + list(switches) + [archive] + list(filenames)
+                    command = [self.path, "a", "-t" + archive_type] + list(switches) + [archive] + list(filenames)
 
                 subprocess.call(command)
-
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
 
             else:
                 print("error archive type is not supported")
@@ -339,24 +334,20 @@ class szipC:
             else:
                 archive = workpath + "\\" +  archive
 
-            os.chdir(self.path)
-
             if switches is None:
                 if output is None:
-                    command = ["7za.exe", "x", archive]
+                    command = [self.path, "x", archive]
                 else:
-                    command = ["7za.exe", "x", "-o" + output, archive]
+                    command = [self.path, "x", "-o" + output, archive]
             else:
                 if output is None:
-                    command = ["7za.exe", "x"] + list(switches) + [archive]
+                    command = [self.path, "x"] + list(switches) + [archive]
                 else:
-                    command = ["7za.exe", "x", "-o" + output] + list(switches) + [archive]
+                    command = [self.path, "x", "-o" + output] + list(switches) + [archive]
 
 
             subprocess.call(command)
 
-            time.sleep(0.25)
-            os.chdir(dir_tmp)
         else:
             print("error archive not found")
 
@@ -366,7 +357,7 @@ szip = szipC("Programs\\7z")
 
 class MegacmdC:
     def __init__(self, path):
-        self.path = path
+        self.path = path + "\\MEGAclient.exe"
         self.MegacmdServer = EveconMiniDebug.MegaCmdServerTest()
         self.Running = False
         self.LoggedIn = False
@@ -374,19 +365,10 @@ class MegacmdC:
         self.pw = None
     def __start__(self, command):
         if self.Running:
-            dir_tmp = os.getcwd()
-            os.chdir(self.path)
-            subprocess.call(["MEGAclient.exe"] + list(command))
-            time.sleep(0.25)
-            os.chdir(dir_tmp)
+            subprocess.call([self.path] + list(command))
         else:
             self.startServer()
-            time.sleep(0.25)
-            dir_tmp = os.getcwd()
-            os.chdir(self.path)
-            subprocess.call(["MEGAclient.exe"] + list(command))
-            time.sleep(0.25)
-            os.chdir(dir_tmp)
+            subprocess.call([self.path] + list(command))
     def startServer(self):
         if not self.Running:
             if "MEGAcmdServer.exe" in (p.name() for p in psutil.process_iter()):
@@ -395,12 +377,10 @@ class MegacmdC:
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
-                dir_tmp = os.getcwd()
-                os.chdir(self.path)
-                self.MegacmdServer = subprocess.Popen(["MEGAcmdServer.exe"], startupinfo=startupinfo, shell=False)
+                self.MegacmdServer = subprocess.Popen([self.path], startupinfo=startupinfo, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, shell=False)
                 self.Running = True
                 time.sleep(1)
-                os.chdir(dir_tmp)
 
                 cls()
                 print("Started Server!")
@@ -485,6 +465,59 @@ class MegacmdC:
         self.Running = True
 
 Megacmd = MegacmdC("Programs\\MEGAcmd")
+
+class MPlayerC:
+    def __init__(self, path):
+        self.path = path + "\\mplayer.exe"
+        self.Running = False
+        self.Paused = False
+        self.Stopped = False
+        self.Type = None
+        self.mplayer = None
+        self.Track = None
+
+    def start(self, track):
+        if not self.Running:
+            self.Track = track
+            if lsame(self.Track, "http"):
+                self.Type = "stream"
+            else:
+                self.Type = MusicType(self.Track, True)
+            self.mplayer = subprocess.Popen([self.path, self.Track], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+
+            self.Stopped = False
+            self.Running = True
+            self.Paused = False
+
+    def stop(self):
+        if self.Running:
+            self.mplayer.terminate()
+            self.Stopped = True
+            self.Track = None
+            self.Type = None
+            self.Running = False
+            self.mplayer = None
+
+    def pause(self):
+        if not self.Paused:
+            self.mplayer.terminate()
+            self.Paused = True
+            self.Running = False
+
+    def unpause(self):
+        if self.Paused:
+            self.mplayer = subprocess.Popen([self.path, self.Track])
+            self.Running = True
+            self.Paused = False
+
+    def switch(self):
+        if self.Paused:
+            self.unpause()
+        else:
+            self.pause()
+
+MPlayer = MPlayerC("Programs\\MPlayer")
 
 
 def title_time_now():
@@ -795,6 +828,7 @@ class WindowsBalloonTipC:
         win32gui.UpdateWindow(self.hwnd)
         iconPathName = os.path.abspath(os.path.join( sys.path[0], "balloontip.ico" ))
         icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
+        # noinspection PyBroadException
         try:
            hicon = win32gui.LoadImage(self.hinst, iconPathName, win32con.IMAGE_ICON, 0, 0, icon_flags)
         except:
@@ -1290,13 +1324,23 @@ def gerPartStrToStr(word: str, endkey: str, beginkey="", exact=False):
 
     return part
 
-
-
+def MusicType(mType, exact=False):
+    if rsame(mType, "mp3"):
+        if exact:
+            return "mp3"
+        else:
+            return True
+    elif rsame(mType, "mp4"):
+        if exact:
+            return "mp4"
+        else:
+            return True
+    else:
+        return False
 
 def MusicEncode(musicname):
-
-    if MusicPlayerTest.istype(musicname):
-        name = musicname.rstrip("." + MusicPlayerTest.istype(musicname, True))
+    if MusicType(musicname):
+        name = musicname.rstrip("." + MusicType(musicname, True))
     else:
         name = musicname
 
@@ -2322,7 +2366,6 @@ def games(preset="Man"):
                                 exec("Thing%s = Thing(lastthing['x'], lastthing['y'])" % Things)
 
         betterdebug = Thing(0, 0, True)
-        betterdebug = 1
         print(betterdebug)
         cls()
 
@@ -2426,7 +2469,6 @@ def games(preset="Man"):
 class MusicPlayerC(threading.Thread):
     def __init__(self):
         super().__init__()
-        self.unerror = 0
 
         self.musiclist = []
         self.musiclistname = []
@@ -2664,21 +2706,6 @@ class MusicPlayerC(threading.Thread):
         os.chdir("..")
         os.chdir(firstDir)
 
-    def istype(self, mType, exact=False):
-        self.unerror += 1
-        if mType[len(mType) - 3] == "m" and mType[len(mType) - 2] == "p" and mType[len(mType) - 1] == "3":
-            if exact:
-                return "mp3"
-            else:
-                return True
-        elif mType[len(mType) - 3] == "m" and mType[len(mType) - 2] == "p" and mType[len(mType) - 1] == "4":
-            if exact:
-                return "mp4"
-            else:
-                return True
-        else:
-            return False
-
     def Play(self):
         self.musicpause = False
         self.musicplayer.play()
@@ -2860,9 +2887,9 @@ class MusicPlayerC(threading.Thread):
         if self.musicrunning:
             cls()
             print("Musicplayer\n\nNow Playing:")
-            if self.istype(self.musiclistname[self.thismusicnumber], True) == "mp3":
+            if MusicType(self.musiclistname[self.thismusicnumber], True) == "mp3":
                 print(self.musiclistname[self.thismusicnumber].rstrip(".mp3"))
-            elif self.istype(self.musiclistname[self.thismusicnumber], True) == "mp4":
+            elif MusicType(self.musiclistname[self.thismusicnumber], True) == "mp4":
                 print(self.musiclistname[self.thismusicnumber].rstrip(".mp4"))
 
             if (round(time.time() - self.music_time) % 60) < 10 and (
@@ -2888,9 +2915,9 @@ class MusicPlayerC(threading.Thread):
                     round(self.musiclist[self.thismusicnumber].duration) % 60))
 
             print("\nNext Track:")
-            if self.istype(self.musiclistname[self.nextmusicnumber], True) == "mp3":
+            if MusicType(self.musiclistname[self.thismusicnumber], True) == "mp3":
                 print(self.musiclistname[self.nextmusicnumber].rstrip(".mp3"))
-            elif self.istype(self.musiclistname[self.nextmusicnumber], True) == "mp4":
+            elif MusicType(self.musiclistname[self.thismusicnumber], True) == "mp4":
                 print(self.musiclistname[self.nextmusicnumber].rstrip(".mp4"))
 
             print("\n")
@@ -2912,9 +2939,9 @@ class MusicPlayerC(threading.Thread):
             if self.musicpause:
                 cls()
                 print("Musicplayer\n\nPaused:")
-                if self.istype(self.musiclistname[self.thismusicnumber], True) == "mp3":
+                if MusicType(self.musiclistname[self.thismusicnumber], True) == "mp3":
                     print(self.musiclistname[self.thismusicnumber].rstrip(".mp3"))
-                elif self.istype(self.musiclistname[self.thismusicnumber], True) == "mp4":
+                elif MusicType(self.musiclistname[self.thismusicnumber], True) == "mp4":
                     print(self.musiclistname[self.thismusicnumber].rstrip(".mp4"))
 
                 if (round(time.time() - self.music_time) % 60) < 10:
@@ -5567,7 +5594,7 @@ class SplatoonC:
 
 
 
-MusicPlayerTest = MusicPlayerC()
+#MusicPlayerTest = MusicPlayerC()
 
 def Splatoon():
     spl = SplatoonC()
