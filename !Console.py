@@ -19,6 +19,9 @@ import pyglet
 import win32api
 import win32gui
 import win32con
+import win32gui_struct
+import itertools
+import glob
 
 def cls():
     os.system("cls")
@@ -640,7 +643,7 @@ class title_time(threading.Thread):
 ttime = title_time(2.5)
 ttime.start()
 
-def killConsole():
+def killConsoleWin():
     ttime.deac()
     title(deac=True)
     hwnd = ctypes.windll.kernel32.GetConsoleWindow()
@@ -813,16 +816,14 @@ class WindowsBalloonTipC:
         message_map = {
                 win32con.WM_DESTROY: self.OnDestroy,
         }
-        # Register the Window class.
         wc = win32gui.WNDCLASS()
         self.hinst = wc.hInstance = win32api.GetModuleHandle(None)
         wc.lpszClassName = "PythonTaskbar"
-        wc.lpfnWndProc = message_map # could also specify a wndproc.
+        wc.lpfnWndProc = message_map
         self.classAtom = win32gui.RegisterClass(wc)
         self.hwnd = None
         self.normList = []
     def ShowWindow(self, title, msg):
-        # Create the Window.
         style = win32con.WS_OVERLAPPED | win32con.WS_SYSMENU
         self.hwnd = win32gui.CreateWindow( self.classAtom, "Taskbar", style, 0, 0, win32con.CW_USEDEFAULT, win32con.CW_USEDEFAULT, 0, 0, self.hinst, None)
         win32gui.UpdateWindow(self.hwnd)
@@ -837,7 +838,6 @@ class WindowsBalloonTipC:
         nid = (self.hwnd, 0, flags, win32con.WM_USER+20, hicon, "tooltip")
         win32gui.Shell_NotifyIcon(win32gui.NIM_ADD, nid)
         win32gui.Shell_NotifyIcon(win32gui.NIM_MODIFY, (self.hwnd, 0, win32gui.NIF_INFO, win32con.WM_USER+20, hicon, "Balloon  tooltip", msg, 200, title))
-        # self.show_balloon(title, msg)
         win32gui.DestroyWindow(self.hwnd)
 
     def OnDestroy(self, hwnd, msg, wparam, lparam):
@@ -848,7 +848,7 @@ class WindowsBalloonTipC:
 
         nid = (self.hwnd, 0)
         win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
-        win32api.PostQuitMessage(0) # Terminate the app.
+        win32api.PostQuitMessage(0)
 
 WindowsBalloonTip = WindowsBalloonTipC()
 
@@ -859,6 +859,256 @@ def balloon_tip(title, msg):
     tipp = tip()
     tipp.start()
 
+
+
+class SysTrayIcon(object):
+    QUIT = 'QUIT'
+    SPECIAL_ACTIONS = [QUIT]
+
+    FIRST_ID = 1023
+
+    def __init__(self,
+                 icon,
+                 hover_text,
+                 menu_options,
+                 on_quit=None,
+                 default_menu_index=None,
+                 window_class_name=None,):
+        self.unerror = 0
+
+        self.icon = icon
+        self.hover_text = hover_text
+        self.on_quit = on_quit
+
+        menu_options = menu_options + (('Quit', None, self.QUIT),)
+        self._next_action_id = self.FIRST_ID
+        self.menu_actions_by_id = set()
+        self.menu_options = self._add_ids_to_menu_options(list(menu_options))
+        self.menu_actions_by_id = dict(self.menu_actions_by_id)
+        del self._next_action_id
+
+
+        self.default_menu_index = (default_menu_index or 0)
+        self.window_class_name = window_class_name or "SysTrayIconPy"
+
+        message_map = {win32gui.RegisterWindowMessage("TaskbarCreated"): self.restart,
+                       win32con.WM_DESTROY: self.destroy,
+                       win32con.WM_COMMAND: self.command,
+                       win32con.WM_USER+20 : self.notify}
+        window_class = win32gui.WNDCLASS()
+        hinst = window_class.hInstance = win32gui.GetModuleHandle(None)
+        window_class.lpszClassName = self.window_class_name
+        window_class.style = win32con.CS_VREDRAW | win32con.CS_HREDRAW
+        window_class.hCursor = win32gui.LoadCursor(0, win32con.IDC_ARROW)
+        window_class.hbrBackground = win32con.COLOR_WINDOW
+        window_class.lpfnWndProc = message_map
+        classAtom = win32gui.RegisterClass(window_class)
+        style = win32con.WS_OVERLAPPED | win32con.WS_SYSMENU
+        self.hwnd = win32gui.CreateWindow(classAtom,
+                                          self.window_class_name,
+                                          style,
+                                          0,
+                                          0,
+                                          win32con.CW_USEDEFAULT,
+                                          win32con.CW_USEDEFAULT,
+                                          0,
+                                          0,
+                                          hinst,
+                                          None)
+        win32gui.UpdateWindow(self.hwnd)
+        self.notify_id = None
+        self.refresh_icon()
+
+        win32gui.PumpMessages()
+
+    def _add_ids_to_menu_options(self, menu_options):
+        result = []
+        for menu_option in menu_options:
+            option_text, option_icon, option_action = menu_option
+            if callable(option_action) or option_action in self.SPECIAL_ACTIONS:
+                self.menu_actions_by_id.add((self._next_action_id, option_action))
+                result.append(menu_option + (self._next_action_id,))
+            elif non_string_iterable(option_action):
+                result.append((option_text,
+                               option_icon,
+                               self._add_ids_to_menu_options(option_action),
+                               self._next_action_id))
+            else:
+                print('Unknown item', option_text, option_icon, option_action)
+            self._next_action_id += 1
+        return result
+
+    def refresh_icon(self):
+        hinst = win32gui.GetModuleHandle(None)
+        if os.path.isfile(self.icon):
+            icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
+            hicon = win32gui.LoadImage(hinst,
+                                       self.icon,
+                                       win32con.IMAGE_ICON,
+                                       0,
+                                       0,
+                                       icon_flags)
+        else:
+            print("Can't find icon file - using default.")
+            hicon = win32gui.LoadIcon(0, win32con.IDI_APPLICATION)
+
+        if self.notify_id: message = win32gui.NIM_MODIFY
+        else: message = win32gui.NIM_ADD
+        self.notify_id = (self.hwnd,
+                          0,
+                          win32gui.NIF_ICON | win32gui.NIF_MESSAGE | win32gui.NIF_TIP,
+                          win32con.WM_USER+20,
+                          hicon,
+                          self.hover_text)
+        win32gui.Shell_NotifyIcon(message, self.notify_id)
+
+    def restart(self, hwnd, msg, wparam, lparam):
+        self.refresh_icon()
+
+    def destroy(self, hwnd, msg, wparam, lparam):
+        if self.on_quit: self.on_quit(self)
+        nid = (self.hwnd, 0)
+        win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
+        win32gui.PostQuitMessage(0)
+
+    def notify(self, hwnd, msg, wparam, lparam):
+        if lparam == win32con.WM_LBUTTONDBLCLK:
+            self.execute_menu_option(self.default_menu_index + self.FIRST_ID)
+        elif lparam==win32con.WM_RBUTTONUP:
+            self.show_menu()
+        elif lparam==win32con.WM_LBUTTONUP:
+            pass
+        return True
+
+    def show_menu(self):
+        menu = win32gui.CreatePopupMenu()
+        self.create_menu(menu, self.menu_options)
+
+        pos = win32gui.GetCursorPos()
+        win32gui.SetForegroundWindow(self.hwnd)
+        win32gui.TrackPopupMenu(menu,
+                                win32con.TPM_LEFTALIGN,
+                                pos[0],
+                                pos[1],
+                                0,
+                                self.hwnd,
+                                None)
+        win32gui.PostMessage(self.hwnd, win32con.WM_NULL, 0, 0)
+
+    def create_menu(self, menu, menu_options):
+        for option_text, option_icon, option_action, option_id in menu_options[::-1]:
+            if option_icon:
+                option_icon = self.prep_menu_icon(option_icon)
+
+            if option_id in self.menu_actions_by_id:
+                item, extras = win32gui_struct.PackMENUITEMINFO(text=option_text,
+                                                                hbmpItem=option_icon,
+                                                                wID=option_id)
+                win32gui.InsertMenuItem(menu, 0, 1, item)
+            else:
+                submenu = win32gui.CreatePopupMenu()
+                self.create_menu(submenu, option_action)
+                item, extras = win32gui_struct.PackMENUITEMINFO(text=option_text,
+                                                                hbmpItem=option_icon,
+                                                                hSubMenu=submenu)
+                win32gui.InsertMenuItem(menu, 0, 1, item)
+
+    def prep_menu_icon(self, icon):
+        self.unerror += 1
+        ico_x = win32api.GetSystemMetrics(win32con.SM_CXSMICON)
+        ico_y = win32api.GetSystemMetrics(win32con.SM_CYSMICON)
+        hicon = win32gui.LoadImage(0, icon, win32con.IMAGE_ICON, ico_x, ico_y, win32con.LR_LOADFROMFILE)
+
+        hdcBitmap = win32gui.CreateCompatibleDC(0)
+        hdcScreen = win32gui.GetDC(0)
+        hbm = win32gui.CreateCompatibleBitmap(hdcScreen, ico_x, ico_y)
+        hbmOld = win32gui.SelectObject(hdcBitmap, hbm)
+        brush = win32gui.GetSysColorBrush(win32con.COLOR_MENU)
+        win32gui.FillRect(hdcBitmap, (0, 0, 16, 16), brush)
+        win32gui.DrawIconEx(hdcBitmap, 0, 0, hicon, ico_x, ico_y, 0, 0, win32con.DI_NORMAL)
+        win32gui.SelectObject(hdcBitmap, hbmOld)
+        win32gui.DeleteDC(hdcBitmap)
+
+        return hbm
+
+    def command(self, hwnd, msg, wparam, lparam):
+        idt = win32gui.LOWORD(wparam)
+        self.execute_menu_option(idt)
+
+    def execute_menu_option(self, idt):
+        menu_action = self.menu_actions_by_id[idt]
+        if menu_action == self.QUIT:
+            win32gui.DestroyWindow(self.hwnd)
+        else:
+            menu_action(self)
+
+def non_string_iterable(obj):
+    try:
+        iter(obj)
+    except TypeError:
+        return False
+    else:
+        return not isinstance(obj, str)
+
+
+class SysTray(threading.Thread):
+    def __init__(self, icon: str, hover_text: str, menu: dict, sub_menu_name1: str=None, sub_menu1: dict=None,
+                 sub_menu_name2: str=None, sub_menu2: dict=None,
+                 sub_menu_name3: str=None, sub_menu3: dict=None,
+                 sub_menu_name4: str=None, sub_menu4: dict=None,
+                 sub_menu_name5: str=None, sub_menu5: dict=None, quitFunc=None):
+        super().__init__()
+        self.End = False
+        self.icon = icon
+        self.icons = itertools.cycle(glob.glob(self.icon))
+        self.hover_text = hover_text
+
+        if quitFunc is None:
+            def quitFuncT(sysTrayIcon):
+                pass
+            self.quitFunc = quitFuncT
+        else:
+            self.quitFunc = quitFunc
+
+        menu_options = []
+        for x in menu:
+            menu_options.append((x, next(self.icons), menu[x]))
+
+        if sub_menu1 is not None:
+            sub_menu_list = []
+            for x in sub_menu1:
+                sub_menu_list.append((x, next(self.icons), sub_menu1[x]))
+            menu_options.append((sub_menu_name1, next(self.icons), tuple(sub_menu_list)))
+
+        if sub_menu2 is not None:
+            sub_menu_list = []
+            for x in sub_menu2:
+                sub_menu_list.append((x, next(self.icons), sub_menu2[x]))
+            menu_options.append((sub_menu_name2, next(self.icons), tuple(sub_menu_list)))
+
+        if sub_menu3 is not None:
+            sub_menu_list = []
+            for x in sub_menu3:
+                sub_menu_list.append((x, next(self.icons), sub_menu3[x]))
+            menu_options.append((sub_menu_name3, next(self.icons), tuple(sub_menu_list)))
+
+        if sub_menu4 is not None:
+            sub_menu_list = []
+            for x in sub_menu4:
+                sub_menu_list.append((x, next(self.icons), sub_menu4[x]))
+            menu_options.append((sub_menu_name4, next(self.icons), tuple(sub_menu_list)))
+
+        if sub_menu5 is not None:
+            sub_menu_list = []
+            for x in sub_menu5:
+                sub_menu_list.append((x, next(self.icons), sub_menu5[x]))
+            menu_options.append((sub_menu_name5, next(self.icons), tuple(sub_menu_list)))
+
+        self.menu_options = tuple(menu_options)
+
+    def run(self):
+        SysTrayIcon(next(self.icons), self.hover_text, self.menu_options, on_quit=self.quitFunc, default_menu_index=1)
+        self.End = True
 
 
 title("Load first Programs")
@@ -2065,7 +2315,7 @@ def games(preset="Man"):
     def snake():
         import random, click
 
-        global nothing, me, food, max_x, max_y, lastthing, Title_run, lockMe, testx, testy, Thingyou, Things, special, direction, sleep, restart
+        global nothing, me, food, max_x, max_y, lastthing, Title_run, lockMe, testx, testy, Thingyou, Things, special, direction, sleep
 
         nothing = " "
         me = "X"
@@ -3129,10 +3379,12 @@ def Music():
     else:
         print("No track found")
 
-
-
-
     normaltitle()
+
+
+def StreamMusic():
+    pass
+
 
 
 def screensaver(preset = None):
@@ -4396,6 +4648,14 @@ def Alarmprint(x=230, y=65, colorCh=False):
     input()
     afk = False
     color.change(oldColor)
+
+def Timer():
+    cls()
+    hr = int(input("Hour:\n"))
+    mi = int(input("\nMinute:\n"))
+    sec = int(input("\nSecond:\n"))
+    Timerprint(hr,mi,sec)
+    Alarmprint(colorCh=True)
 
 def randompw(returnpw = False, length = 150):
     import random
@@ -5743,7 +6003,7 @@ def Arg():
             ttime.deac()
             serverport = int(sys.argv[x + 1])
             if not sys.argv[x + 2] == "app":
-                killConsole()
+                killConsoleWin()
             StartupServer = ServerC(thisIP, serverport, reac=StartupServerTasks, reacSendData=True, mess=True)
             StartupServer.start()
             exit_now()
@@ -5775,3 +6035,6 @@ if exitnow == 0:
         exit_now()
 
 
+
+# Ideas:
+# Status, Time/Timer benutzernutzbar, settings ?, better interface (with version)
