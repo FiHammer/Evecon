@@ -21,6 +21,961 @@ import itertools
 import glob
 
 
+def nircmd(preset="Man", a=None, b=None, c=None, d=None, every=False):
+
+    def setsize(length=995, width=521, x=100, y=100):
+
+        dir_tmp = os.getcwd()
+        os.chdir("Programs\\nircmd")
+        #subprocess.call(["nircmd", "win", "setsize", "process", "py.exe", x, y, length, width])
+        #subprocess.call(["nircmd", "win", "setsize", "process", "/%s" % os.getpid(), x, y, length, width])
+        os.system("nircmdc win setsize process py.exe %s %s %s %s" % (x, y, length, width))
+        #os.system("nircmdc win setsize process /%s %s %s %s %s" % (os.getpid(), x, y, length, width))
+        time.sleep(0.25)
+        os.chdir(dir_tmp)
+
+    def volume(volume_i):   #   0.45
+
+        volume_o = round(65535 * volume_i)
+        if volume_o > 65535:
+            volume_o = 65535
+
+
+        dir_tmp = os.getcwd()
+        os.chdir("Programs\\nircmd")
+        subprocess.call(["nircmd", "setsysvolume", str(volume_o)])
+        # os.system("nircmdc nircmd setsysvolume %s" % volume_o)
+        time.sleep(0.25)
+        os.chdir(dir_tmp)
+
+    def maxi():
+        dir_tmp = os.getcwd()
+        os.chdir("Programs\\nircmd")
+        subprocess.call(["nircmdc", "win", "max", "process", "py.exe"])
+        subprocess.call(["nircmdc", "win", "max", "process", "/%s" % os.getpid()])
+        time.sleep(0.25)
+        os.chdir(dir_tmp)
+
+    def foreground():
+        dir_tmp = os.getcwd()
+        os.chdir("Programs\\nircmd")
+        #global ttime_pause
+        #ttime_pause = False
+        #ctypes.windll.kernel32.SetConsoleTitleW("Evecon: Loading")
+        subprocess.call(["nircmdc", "win", "activate", "process", "py.exe"])
+        subprocess.call(["nircmdc", "win", "activate", "process", "/%s" % os.getpid()])
+        #subprocess.call(["nircmdc", "win", "activate", "title", "Evecon: Loading"])
+        #os.system('nircmd win activate title "Evecon: Loading"')
+        #ttime_pause = True
+        os.chdir(dir_tmp)
+
+    if preset == "setsize":
+        if a is None and b is None and c is None and d is None:
+            setsize()
+        elif every is True:
+            setsize(a, b, c, d)
+        else:
+            setsize(a, b)
+    elif preset == "volume":
+        volume(a)
+    elif preset == "maxi":
+        maxi()
+    elif preset == "foreground":
+        foreground()
+
+class szipC:
+    def __init__(self, path):
+        self.path = path + "\\7za.exe"
+    def create_archive(self, archive, filenames, switches=None, workpath=None, archive_type="zip"):
+        if archive[len(archive)-1] == archive_type[len(archive_type)-1] and archive[len(archive)-2] == archive_type[len(archive_type)-2] and archive[len(archive)-3] == archive_type[len(archive_type)-3]:
+            if archive_type == "zip" : # is the archive_type supported?
+                dir_tmp = os.getcwd()
+                if workpath is None:
+                    archive = dir_tmp + "\\" + archive
+                    for x in range(len(filenames)):
+                        filenames[x] = dir_tmp + "\\" + filenames[x]
+                else:
+                    archive = workpath + "\\" + archive
+                    for x in range(len(filenames)):
+                        filenames[x] = workpath + "\\" + filenames[x]
+
+                if switches is None:
+                    command = [self.path, "a", "-t" + archive_type, archive] + list(filenames)
+                else:
+                    command = [self.path, "a", "-t" + archive_type] + list(switches) + [archive] + list(filenames)
+
+                subprocess.call(command)
+
+            else:
+                print("error archive type is not supported")
+        else:
+            print("error archive type is not the same as the archive name")
+
+    def extract_archive(self, archive, output=None, switches=None, workpath=None):
+        if os.path.exists(archive) or os.path.exists(workpath + "\\" + archive):
+            dir_tmp = os.getcwd()
+            if workpath is None:
+                archive = dir_tmp + "\\" + archive
+            else:
+                archive = workpath + "\\" +  archive
+
+            if switches is None:
+                if output is None:
+                    command = [self.path, "x", archive]
+                else:
+                    command = [self.path, "x", "-o" + output, archive]
+            else:
+                if output is None:
+                    command = [self.path, "x"] + list(switches) + [archive]
+                else:
+                    command = [self.path, "x", "-o" + output] + list(switches) + [archive]
+
+
+            subprocess.call(command)
+
+        else:
+            print("error archive not found")
+
+szip = szipC("Programs\\7z")
+
+
+
+class MegacmdC:
+    def __init__(self, path):
+        self.path = path + "\\MEGAclient.exe"
+        self.MegacmdServer = EveconMiniDebug.MegaCmdServerTest()
+        self.Running = False
+        self.LoggedIn = False
+        self.email = None
+        self.pw = None
+    def __start__(self, command):
+        if self.Running:
+            subprocess.call([self.path] + list(command))
+        else:
+            self.startServer()
+            subprocess.call([self.path] + list(command))
+    def startServer(self):
+        if not self.Running:
+            if "MEGAcmdServer.exe" in (p.name() for p in psutil.process_iter()):
+                raise EveconExceptions.MegaIsRunning(True)
+            else:
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+                self.MegacmdServer = subprocess.Popen([self.path], startupinfo=startupinfo, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, shell=False)
+                self.Running = True
+                time.sleep(1)
+
+                cls()
+                print("Started Server!")
+        else:
+            raise EveconExceptions.MegaIsRunning(False)
+
+    def stopServer(self):
+        if self.Running:
+            if not self.LoggedIn:
+                self.MegacmdServer.kill()
+                self.Running = False
+            else:
+                self.logout()
+                self.MegacmdServer.kill()
+                self.Running = False
+            print("Stopped Server!")
+        else:
+            raise EveconExceptions.MegaNotRunning
+    def login(self, email, pw):
+        if not self.LoggedIn:
+            self.LoggedIn = True
+            self.email = email
+            self.pw = pw
+            self.__start__(["login", email, pw])
+            print("Logged In!")
+        else:
+            raise EveconExceptions.MegaLoggedIn
+    def logout(self):
+        if self.LoggedIn:
+            self.LoggedIn = False
+            self.email = None
+            self.pw = None
+            self.__start__(["logout"])
+            print("Logged Out!")
+        else:
+            raise EveconExceptions.MegaNotLoggedIn("logout")
+    def upload(self, localfilesx, remotepath, Eveconpath=True): # put \test.txt /Evecon
+        if self.LoggedIn:
+            localfiles = []
+            if Eveconpath:
+                if type(localfilesx) == list:
+                    for x in range(len(localfilesx)):
+                        localfiles.append(os.getcwd() + "\\" + localfilesx[x])
+                else:
+                    localfiles = [os.getcwd() + "\\" + localfilesx]
+            else:
+                localfiles = [localfilesx]
+
+            self.__start__(["put"] + localfiles + [remotepath])
+            print(["put"] + localfiles + [remotepath])
+            print("Upload successful!")
+        else:
+            raise EveconExceptions.MegaNotLoggedIn("upload")
+    def download(self, remotepath, localpathx, Eveconpath = True): # get ! remotepath could also be a normal download link
+        if Eveconpath:
+            localpath = [os.getcwd() + "\\" + localpathx]
+        else:
+            localpath = [localpathx]
+
+        self.__start__(["get"] + [remotepath] + localpath)
+        print("Download successful!")
+    def rm(self, remotepath): # rm (removes folder, file)
+        self.__start__(["rm"] + [remotepath])
+    def mkdir(self, remotepath): # mkdir
+        self.__start__(["mkdir"] + [remotepath])
+    def cd(self, remotepath): # cd
+        self.__start__(["mkdir"] + [remotepath])
+    def exit(self):
+        self.logout()
+        self.stopServer()
+    def debug_reset(self):
+        self.LoggedIn = False
+        self.email = None
+        self.pw = None
+        if self.Running:
+            self.stopServer()
+        else:
+            self.Running = False
+        self.MegacmdServer = False
+    def debug_start(self):
+        self.LoggedIn = True
+        self.Running = True
+
+Megacmd = MegacmdC("Programs\\MEGAcmd")
+
+
+class MPlayerC:
+    def __init__(self, path):
+        self.path = path + "\\mplayer.exe"
+        self.Running = False
+        self.Paused = False
+        self.Stopped = False
+        self.Type = None
+        self.mplayer = None
+        self.Track = None
+
+    def start(self, track):
+        if not self.Running:
+            self.Track = track
+            if lsame(self.Track, "http"):
+                self.Type = "stream"
+            else:
+                self.Type = MusicType(self.Track, True)
+            self.mplayer = subprocess.Popen([self.path, self.Track], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+
+            self.Stopped = False
+            self.Running = True
+            self.Paused = False
+
+    def stop(self):
+        if self.Running:
+            self.mplayer.terminate()
+            self.Stopped = True
+            self.Track = None
+            self.Type = None
+            self.Running = False
+            self.mplayer = None
+
+    def pause(self):
+        if not self.Paused:
+            self.mplayer.terminate()
+            self.Paused = True
+            self.Running = False
+
+    def unpause(self):
+        if self.Paused:
+            self.mplayer = subprocess.Popen([self.path, self.Track], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            self.Running = True
+            self.Paused = False
+
+    def switch(self):
+        if self.Paused:
+            self.unpause()
+        else:
+            self.pause()
+
+MPlayer = MPlayerC("Programs\\MPlayer")
+
+class MusicPlayerC(threading.Thread):
+    def __init__(self):
+        super().__init__()
+
+        self.musiclist = []
+        self.musiclistname = []
+        self.musiclistpath = []
+        self.musiclistdirname = []
+        self.musiclistdirnamefull = []
+
+        global musicrun
+        musicrun = True
+        self.musicrun = True
+
+        self.musicpause = False
+        self.musicwait = False
+        self.musicwaitvol = False
+        self.musicwaitvolp = False
+        self.musicwaitseek = False
+        self.musicwaitSpl = False
+        self.musicback = False
+        self.music_time = 0
+        self.musicvolume = 0.5
+        self.musicvolumep = 1
+        self.musicplayer = None
+        self.musicplaying = True
+        self.musicexitn = False
+        self.musicaddpl = False
+        self.musicrunning = False
+
+        self.musicman_list = []
+        self.music_playlists_used = {}
+
+        self.lastmusicnumber = 0
+        self.thismusicnumber = 0
+        self.nextmusicnumber = 0
+
+        self.music_playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing", "Parov Stelar", "jPOP & etc", "OMFG"]
+        self.music_playlists_key = ["lis", "an", "phu", "cp", "es", "ps", "jpop", "omfg"]
+        self.music_playlists_active = []
+
+        self.spl = False
+        self.splmp = SplatoonC()
+
+    def addMusic(self, key, loadMu=True): # key (AN, LIS)
+        if not Computerfind_MiniPC:
+            cls()
+            print("Loading...")
+
+            if key == "us":
+                self.searchMusic("Music\\User", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "lis":
+                self.searchMusic("Music\\Presets\\Life is Strange", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "an":
+                self.searchMusic("Music\\Presets\\Anime", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "phu":
+                self.searchMusic("Music\\Presets\\Phunk", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "cp":
+                self.searchMusic("Music\\Presets\\Caravan Palace", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "es":
+                self.searchMusic("Music\\Presets\\Electro Swing", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "ud":
+                cls()
+                self.searchMusic(input("Your path:\n"), loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "ps":
+                self.searchMusic("Music\\Presets\\Parov Stelar", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "jpop":
+                self.searchMusic("Music\\Presets\\jPOP-etc", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "omfg":
+                self.searchMusic("Music\\Presets\\OMFG", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+
+            else:
+                return False
+
+        else:
+            cls()
+            print("Loading... (On Mini-PC)")
+
+            if key == "us":
+                self.searchMusic("Music\\User", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "lis":
+                self.searchMusic(MusicDir + "\\Games\\Life is Strange", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "an":
+                self.searchMusic(MusicDir + "\\Anime", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "phu":
+                self.searchMusic(MusicDir + "\\Phunk", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "cp":
+                self.searchMusic(MusicDir + "\\Caravan Palace", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "es":
+                self.searchMusic(MusicDir + "\\Electro Swing", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "ud":
+                cls()
+                self.searchMusic(input("Your path:\n"), loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return "ul"
+            elif key == "ps":
+                self.searchMusic(MusicDir + "\\Parov Stelar", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "jpop":
+                self.searchMusic(MusicDir + "\\jPOP-etc", loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            elif key == "omfg":
+                self.searchMusic(MusicDir + "\\OMFG" ,loadMu)
+                self.music_playlists_active.append(key)
+                print("Finished")
+                return True
+            else:
+                return False
+    def reloadMusic(self, tracknum):
+        print(tracknum)
+        self.musiclist[tracknum] = pyglet.media.load(self.musiclistpath[tracknum])
+
+    def searchMusic(self, mDir, loadMu=True): # sucht nur
+        firstDir = os.getcwd()
+        os.chdir(mDir)
+
+        dirtmp = os.getcwd()
+        os.chdir("..")
+        nowtmp = os.getcwd()
+        os.chdir(dirtmp)
+
+        dirx = dirtmp.lstrip(nowtmp)
+        self.musiclistdirname.append(dirx)
+        self.musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dirx)
+
+        dir1 = os.listdir(os.getcwd())
+        for x1 in range(len(os.listdir(os.getcwd()))):
+            if os.path.isdir(dir1[x1]):
+                self.musiclistdirname.append(dir1[x1])
+                self.musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dir1[x1])
+                os.chdir(dir1[x1])
+                dir2 = os.listdir(os.getcwd())
+                for x2 in range(len(os.listdir(os.getcwd()))):
+                    if os.path.isdir(dir2[x2]):
+                        self.musiclistdirname.append(dir2[x2])
+                        self.musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dir2[x2])
+                        os.chdir(dir2[x2])
+                        dir3 = os.listdir(os.getcwd())
+                        for x3 in range(len(os.listdir(os.getcwd()))):
+                            if os.path.isdir(dir3[x3]):
+                                os.chdir(dir3[x3])
+                                os.chdir("..")
+                            if os.path.isfile(dir3[x3]):
+                                if dir3[x3][len(dir3[x3]) - 3] == "m" and dir3[x3][len(dir3[x3]) - 2] == "p" and \
+                                        dir3[x3][len(dir3[x3]) - 1] == "3":
+                                    if loadMu:
+                                        self.musiclist.append(pyglet.media.load(dir3[x3]))
+                                    self.musiclistname.append(dir3[x3])
+                                    self.musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
+                                elif dir3[x3][len(dir3[x3]) - 3] == "m" and dir3[x3][len(dir3[x3]) - 2] == "p" and \
+                                        dir3[x3][len(dir3[x3]) - 1] == "4":
+                                    if loadMu:
+                                        self.musiclist.append(pyglet.media.load(dir3[x3]))
+                                    self.musiclistname.append(dir3[x3])
+                                    self.musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
+                        os.chdir("..")
+                    if os.path.isfile(dir2[x2]):
+                        if dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][
+                            len(dir2[x2]) - 1] == "3":
+                            if loadMu:
+                                self.musiclist.append(pyglet.media.load(dir2[x2]))
+                            self.musiclistname.append(dir2[x2])
+                            self.musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
+                        elif dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][
+                            len(dir2[x2]) - 1] == "4":
+                            if loadMu:
+                                self.musiclist.append(pyglet.media.load(dir2[x2]))
+                            self.musiclistname.append(dir2[x2])
+                            self.musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
+
+                os.chdir("..")
+            if os.path.isfile(dir1[x1]):
+                if dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][
+                    len(dir1[x1]) - 1] == "3":
+                    if loadMu:
+                        self.musiclist.append(pyglet.media.load(dir1[x1]))
+                    self.musiclistname.append(dir1[x1])
+                    self.musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
+                elif dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][
+                    len(dir1[x1]) - 1] == "4":
+                    if loadMu:
+                        self.musiclist.append(pyglet.media.load(dir1[x1]))
+                    self.musiclistname.append(dir1[x1])
+                    self.musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
+        os.chdir("..")
+        os.chdir(firstDir)
+
+    def Play(self):
+        self.musicpause = False
+        self.musicplayer.play()
+    def Pause(self):
+        self.musicpause = True
+        self.musicplayer.pause()
+    def Switch(self):
+        if self.musicpause:
+            self.Play()
+        else:
+            self.Pause()
+    def Stop(self):
+        global musicrun
+        musicrun = False
+        self.musicrun = False
+        self.musicplaying = False
+        self.musicpause = False
+        self.musicrunning = False
+    def Next(self):
+        self.musicplaying = False
+        if self.musicpause:
+            self.musicpause = False
+            self.musicplayer.play()
+    def Last(self):
+        pass
+    def Del(self, mId):
+        del self.musiclist[mId]
+        del self.musiclistname[mId]
+    def vol(self, vol):
+        self.musicvolume = vol
+        nircmd("volume", self.musicvolume)
+    def volp(self, vol):
+        self.musicvolumep = vol
+        self.musicplayer.volume = self.musicvolumep
+    def seek(self, ti):
+
+        if ti < self.musiclist[self.thismusicnumber].duration:
+            self.musicplayer.seek(ti)
+            self.music_time = time.time() - ti
+    def reroll(self):
+        self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
+    def input(self, inpt):
+        inpt = inpt.lower()
+        if inpt == "":
+            if not self.spl:
+                self.musicplaying = False
+                if self.musicpause:
+                    self.musicpause = False
+                    self.musicplayer.play()
+            else:
+                if self.spl:
+                    if self.splmp.RoundOver:
+                        self.splmp.RoundOverF()
+                    else:
+                        self.musicplaying = False
+                        if self.musicpause:
+                            self.musicpause = False
+                            self.musicplayer.play()
+        elif inpt == "play" or inpt == "pau" or inpt == "pause" or inpt == "p":
+            self.Switch()
+        elif inpt == "next" or inpt == "n":
+            self.Next()
+        elif inpt == "stop" or inpt == "exit":
+            self.Stop()
+        elif inpt == "del":
+            self.Del(self.thismusicnumber)
+            self.musicplaying = False
+            if self.musicpause:
+                self.musicpause = False
+                self.musicplayer.play()
+        elif inpt == "deln" or inpt == "delnext":
+            nmnold = self.nextmusicnumber
+            self.Del(self.nextmusicnumber)
+            if nmnold < self.thismusicnumber:
+                self.thismusicnumber -= 1
+        elif inpt == "vol":
+            self.musicwait = True
+            self.musicwaitvol = True
+            self.vol(float(input("Volume (Now: %s)\n" % self.musicvolume)))
+            self.musicwait = False
+            self.musicwaitvol = False
+        elif inpt == "volp":
+            self.musicwait = True
+            self.musicwaitvolp = True
+            self.volp(float(input("Volume Player")))
+            self.musicwait = False
+            self.musicwaitvolp = False
+        elif inpt == "jump" or inpt == "j" or inpt == "seek" or inpt == "s":
+            self.musicwait = True
+            self.musicwaitseek = True
+            self.seek(float(input().lower()))
+            self.musicwait = False
+            self.musicwaitseek = False
+        elif inpt == "rm" or inpt == "rem" or inpt == "rerollm":
+            self.reroll()
+        elif inpt == "spl":
+            if not self.spl:
+                self.spl = True
+            else:
+                self.spl = False
+        elif inpt == "exitn":
+            self.musicexitn = True
+        elif inpt == "addpl":
+            self.musicaddpl = True
+        elif self.musicaddpl:
+            if inpt.lower() == "fin":
+                self.musicaddpl = False
+                self.printIt()
+            else:
+                x = self.addMusic(inpt.lower())
+
+                if x:
+                    self.music_playlists_used[inpt.lower()] = "X"
+                elif x == "ul":
+                    self.musicman_list.append("unkown list")
+
+                self.printIt()
+
+        else:
+            if self.spl:
+                self.splmp.input(inpt=inpt)
+
+         # play, next, stop, pause, last, del, deln, vol, volp, mute, mutep, jump (to 0), reroll
+         # SPL: spl (On/Off), wr, reroll, start (""), effect (E--)
+    def run(self):
+
+        self.thismusicnumber = random.randint(0, len(self.musiclist) - 1)
+        self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
+
+        while self.musicrun:
+
+
+            if self.musiclist[self.thismusicnumber].is_queued:
+                self.reloadMusic(self.thismusicnumber)
+
+            self.musicplayer = pyglet.media.Player()
+            self.musicplayer.queue(self.musiclist[self.thismusicnumber])
+            self.musicplayer.play()
+            self.musicplayer.volume = self.musicvolumep
+            self.music_time = time.time()
+            self.musicrunning = True
+            title("OLD", self.musiclistname[self.thismusicnumber], "Now Playing")
+
+            self.musicplaying = True
+
+            while self.musicplaying:
+
+                time.sleep(0.25)
+                for x in range(5):
+                    if self.musicplayer.time == 0:
+                        self.musicplaying = False
+                    elif round(self.musiclist[self.thismusicnumber].duration) == round(time.time() - self.music_time):
+                        self.musicplaying = False
+                    time.sleep(0.05)
+                while self.musicpause:
+                    music_time_wait = time.time()
+
+                    while self.musicpause:
+                        time.sleep(0.25)
+                    title("OLD", "OLD", "Now Playing:")
+                    self.music_time += time.time() - music_time_wait
+
+                    if self.spl:
+                        self.splmp.PlaytimeStart += time.time() - music_time_wait
+                        self.splmp.TimeLeftStart += time.time() - music_time_wait
+
+            self.musicplayer.next()
+            self.lastmusicnumber = self.thismusicnumber
+            self.thismusicnumber = self.nextmusicnumber
+            self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
+            self.musicrunning = False
+
+            if self.musicexitn:
+                self.Stop()
+
+
+
+    def printIt(self):
+        if self.musicrunning:
+            cls()
+            print("Musicplayer\n\nNow Playing:")
+            if MusicType(self.musiclistname[self.thismusicnumber], True) == "mp3":
+                print(self.musiclistname[self.thismusicnumber].rstrip(".mp3"))
+            elif MusicType(self.musiclistname[self.thismusicnumber], True) == "mp4":
+                print(self.musiclistname[self.thismusicnumber].rstrip(".mp4"))
+
+            if (round(time.time() - self.music_time) % 60) < 10 and (
+                    round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
+                print(r"%s:%s%s\%s:%s%s" % (
+                    round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
+                    round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
+                    round(self.musiclist[self.thismusicnumber].duration) % 60))
+            elif (round(time.time() - self.music_time) % 60) < 10:
+                print(r"%s:%s%s\%s:%s" % (
+                    round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
+                    round(self.musiclist[self.thismusicnumber].duration) // 60,
+                    round(self.musiclist[self.thismusicnumber].duration) % 60))
+            elif (round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
+                print(r"%s:%s\%s:%s%s" % (
+                    round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
+                    round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
+                    round(self.musiclist[self.thismusicnumber].duration) % 60))
+            else:
+                print(r"%s:%s\%s:%s" % (
+                    round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
+                    round(self.musiclist[self.thismusicnumber].duration) // 60,
+                    round(self.musiclist[self.thismusicnumber].duration) % 60))
+
+            print("\nNext Track:")
+            if MusicType(self.musiclistname[self.thismusicnumber], True) == "mp3":
+                print(self.musiclistname[self.nextmusicnumber].rstrip(".mp3"))
+            elif MusicType(self.musiclistname[self.thismusicnumber], True) == "mp4":
+                print(self.musiclistname[self.nextmusicnumber].rstrip(".mp4"))
+
+            print("\n")
+            if not self.musicwait:
+                print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL)")
+            elif self.musicwaitvol:
+                print("Volume (Now: %s)\n" % self.musicvolume)
+            elif self.musicwaitvolp:
+                print("Volume Player:")
+            elif self.musicwaitseek:
+                print("Jump to (in sec) (DO NOT WORK!):")
+            else:
+                print("BUGGI")
+
+            if self.spl:
+                print("\n\n")
+                self.splmp.printIt()
+
+            if self.musicpause:
+                cls()
+                print("Musicplayer\n\nPaused:")
+                if MusicType(self.musiclistname[self.thismusicnumber], True) == "mp3":
+                    print(self.musiclistname[self.thismusicnumber].rstrip(".mp3"))
+                elif MusicType(self.musiclistname[self.thismusicnumber], True) == "mp4":
+                    print(self.musiclistname[self.thismusicnumber].rstrip(".mp4"))
+
+                if (round(time.time() - self.music_time) % 60) < 10:
+                    print(r"%s:%s%s\%s:%s" % (
+                        round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
+                        round(self.musiclist[self.thismusicnumber].duration) // 60,
+                        round(self.musiclist[self.thismusicnumber].duration) % 60))
+                elif (round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
+                    print(r"%s:%s\%s:%s%s" % (
+                        round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
+                        round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
+                        round(self.musiclist[self.thismusicnumber].duration) % 60))
+                elif (round(time.time() - self.music_time) % 60) < 10 and (
+                        round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
+                    print(r"%s:%s%s\%s:%s%s" % (
+                        round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
+                        round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
+                        round(self.musiclist[self.thismusicnumber].duration) % 60))
+                else:
+                    print(r"%s:%s\%s:%s" % (
+                        round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
+                        round(self.musiclist[self.thismusicnumber].duration) // 60,
+                        round(self.musiclist[self.thismusicnumber].duration) % 60))
+
+                print("\n\nPlay (PLAY), Stop (STOP)")
+
+                if self.spl:
+                    print("\n\n")
+                    self.splmp.printIt()
+
+            if self.musicaddpl:
+
+                self.musicman_list = []
+                self.music_playlists_used = {}
+
+                for x in self.music_playlists_key:
+                    self.music_playlists_used[x] = " "
+
+                for x in self.music_playlists_active:
+                    self.music_playlists_used[x] = "X"
+
+                #if self.musicaddpl:
+                music_playlists_used_List = []
+                for x in self.music_playlists_key:
+                    music_playlists_used_List.append(self.music_playlists_used[x])
+                cls()
+                print("Playlists:\n")
+                # print(music_playlists_print)
+                # print("User's list (US), User defined (UD)")
+                # print("\nLoaded:")
+                for xl, x2, x3 in zip(music_playlists_used_List, self.music_playlists,
+                                      self.music_playlists_key):
+                    print(" " + xl + " " + x2 + " (" + x3.upper() + ")")
+                for x in self.musicman_list:
+                    print(" X " + x)
+                print("\nFinish (FIN)\n")
+                #self.musicaddpl = False
+        else:
+            cls()
+            print("Musicplayer\n\nLoading...")
+
+
+def Music():
+
+    def Play():
+        class Printerr(threading.Thread):
+            def run(self):
+                while muPlayer.musicrun:
+                    cls()
+                    muPlayer.printIt()
+                    time.sleep(0.75)
+                    if muPlayer.musicpause:
+                        cls()
+                        muPlayer.printIt()
+                    while muPlayer.musicpause:
+                        time.sleep(0.5)
+
+        Printer = Printerr()
+        Printer.start()
+
+        while muPlayer.musicrun:
+            user_input = input()
+            muPlayer.input(user_input)
+
+
+    muPlayer = MusicPlayerC()
+
+    music_playlists_print = ""
+    for x, y in zip(muPlayer.music_playlists, muPlayer.music_playlists_key):
+        music_playlists_print += x + " (" + y.upper() + "), "
+    music_playlists_print = music_playlists_print.rstrip(", ")
+
+    cls()
+    print("Playlists:")
+    print("\nFix Playlists:")
+    print(music_playlists_print)
+    print("\nCustom:")
+    print("User's Playlist (US), User defined (UD), Mix (MIX), Multiple PL (MPL), All (ALL)\n")
+    music_user_input = input()
+
+    if music_user_input.lower() == "mix":
+        muPlayer.addMusic("an")
+        muPlayer.addMusic("phu")
+        muPlayer.addMusic("cp")
+        muPlayer.addMusic("es")
+        muPlayer.addMusic("jpop")
+    elif music_user_input.lower() == "j":
+        muPlayer.addMusic("an")
+        muPlayer.addMusic("jpop")
+    elif music_user_input.lower() == "all":
+        for x in muPlayer.music_playlists_key:
+            muPlayer.addMusic(x)
+
+    elif music_user_input.lower() == "mpl":
+        musicman_search = True
+
+        muPlayer.music_playlists.append("User's List")
+
+        musicman_list = []
+        music_playlists_used = {}
+
+        for x in muPlayer.music_playlists_key:
+            music_playlists_used[x] = " "
+
+        while musicman_search:
+            music_playlists_used_List = []
+            for x in muPlayer.music_playlists_key:
+                music_playlists_used_List.append(music_playlists_used[x])
+            cls()
+            print("Playlists:\n")
+            #print(music_playlists_print)
+            #print("User's list (US), User defined (UD)")
+            #print("\nLoaded:")
+            for xl, x2, x3 in zip(music_playlists_used_List, muPlayer.music_playlists, muPlayer.music_playlists_key):
+                print(" " + xl + " " + x2 + " (" + x3.upper() + ")")
+            for x in musicman_list:
+                print(" X " + x)
+            print("\nFinish (FIN)\n")
+
+            musicman_user_input = input()
+
+
+            if musicman_user_input.lower() == "fin":
+                musicman_search = False
+
+            else:
+                x = muPlayer.addMusic(musicman_user_input.lower())
+
+                if x:
+                    music_playlists_used[musicman_user_input.lower()] = "X"
+                elif x == "ul":
+                    musicman_list.append("unkown list")
+
+    elif music_user_input.lower() == "search":
+        for x in muPlayer.music_playlists_key:
+            muPlayer.addMusic(x, False)
+
+        cls()
+        print("What do you want to hear?")
+
+        user_input_search = input()
+
+        searchdir = Search(user_input_search, muPlayer.musiclistdirname)
+        searchtrack = Search(user_input_search, muPlayer.musiclistname)
+
+        musiclistpathold = muPlayer.musiclistpath
+        muPlayer.musiclistpath = []
+        musiclistnameold = muPlayer.musiclistname
+        muPlayer.musiclistname = []
+
+        for x in searchdir:
+            muPlayer.searchMusic(muPlayer.musiclistdirnamefull[x])
+
+        for x in searchtrack:
+            muPlayer.musiclist.append(pyglet.media.load(musiclistpathold[x]))
+            muPlayer.musiclistpath.append(musiclistpathold[x])
+            muPlayer.musiclistname.append(musiclistnameold[x])
+
+    else:
+        muPlayer.addMusic(music_user_input.lower())
+
+    if muPlayer.musiclist:
+        muPlayer.start()
+        Play()
+    else:
+        print("No track found")
+
+    normaltitle()
+
+
+def normaltitle():
+    pass
+
+
 def title(status="OLD", something="OLD", pc="OLD", deac=False):
     pass
 

@@ -874,6 +874,7 @@ class SysTrayIcon(object):
                  on_quit=None,
                  default_menu_index=None,
                  window_class_name=None,):
+        self.unerrorl = []
         self.unerror = 0
 
         self.icon = icon
@@ -964,14 +965,24 @@ class SysTrayIcon(object):
 
     def restart(self, hwnd, msg, wparam, lparam):
         self.refresh_icon()
-
+        self.unerrorl.append(hwnd)
+        self.unerrorl.append(msg)
+        self.unerrorl.append(wparam)
+        self.unerrorl.append(lparam)
     def destroy(self, hwnd, msg, wparam, lparam):
         if self.on_quit: self.on_quit(self)
         nid = (self.hwnd, 0)
         win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
         win32gui.PostQuitMessage(0)
+        self.unerrorl.append(hwnd)
+        self.unerrorl.append(msg)
+        self.unerrorl.append(wparam)
+        self.unerrorl.append(lparam)
 
     def notify(self, hwnd, msg, wparam, lparam):
+        self.unerrorl.append(hwnd)
+        self.unerrorl.append(msg)
+        self.unerrorl.append(wparam)
         if lparam == win32con.WM_LBUTTONDBLCLK:
             self.execute_menu_option(self.default_menu_index + self.FIRST_ID)
         elif lparam==win32con.WM_RBUTTONUP:
@@ -1034,6 +1045,9 @@ class SysTrayIcon(object):
     def command(self, hwnd, msg, wparam, lparam):
         idt = win32gui.LOWORD(wparam)
         self.execute_menu_option(idt)
+        self.unerrorl.append(hwnd)
+        self.unerrorl.append(msg)
+        self.unerrorl.append(lparam)
 
     def execute_menu_option(self, idt):
         menu_action = self.menu_actions_by_id[idt]
@@ -1065,7 +1079,7 @@ class SysTray(threading.Thread):
 
         if quitFunc is None:
             def quitFuncT(sysTrayIcon):
-                pass
+                debug = [sysTrayIcon]
             self.quitFunc = quitFuncT
         else:
             self.quitFunc = quitFunc
@@ -3382,8 +3396,114 @@ def Music():
     normaltitle()
 
 
-def StreamMusic():
-    pass
+class RadioC:
+    def __init__(self):
+        super().__init__()
+
+        self.streampause = False
+        self.streamrun = True
+        self.streamvolume = 0.5
+
+        self.streamplayer = MPlayerC("Programs\\MPlayer")
+
+        self.streamPrintOth = False
+        self.streamPrintCh = False
+        self.streamPrintVol = False
+
+
+
+        self.stream_playlists = ["EgoFM", "HR1", "HR3", "Bayern3", "ByteFM"]
+        self.stream_playlists_key = ["egofm", "hr1", "hr3", "br3", "bytefm"]
+        self.stream_playlists_link = {"egofm" : "https://egofm-live.cast.addradio.de/egofm/live/mp3/high/stream.mp3",
+                                      "hr1" : "http://hr-hr1-live.cast.addradio.de/hr/hr1/live/mp3/128/stream.mp3",
+                                      "hr3" : "http://hr-hr3-live.cast.addradio.de/hr/hr3/live/mp3/128/stream.mp3",
+                                      "br3" : "https://br-br3-live.sslcast.addradio.de/br/br3/live/mp3/128/stream.mp3",
+                                      "bytefm" : "https://dg-ice-eco-https-fra-eco-cdn.cast.addradio.de/bytefm/main/mid/stream.mp3"}
+
+        self.streamplaying = self.stream_playlists_key[random.randint(0, len(self.stream_playlists_key) - 1)]
+
+    def Unpause(self):
+        self.streamplayer.unpause()
+        self.streampause = False
+    def Pause(self):
+        self.streamplayer.pause()
+        self.streampause = True
+    def Switch(self):
+        self.streamplayer.switch()
+        self.streampause = self.streamplayer.Paused
+    def Change(self, key):
+        self.streamplayer.stop()
+        self.streamplaying = key
+        self.streamplayer.start(self.stream_playlists_link[key])
+    def vol(self, vol):
+        self.streamvolume = vol
+        nircmd("volume", self.streamvolume)
+    def Stop(self):
+        self.streamplaying = None
+        self.streampause = False
+        self.streamrun = True
+        self.streamplayer.stop()
+    def input(self, inpt):
+        inpt = inpt.lower()
+        if inpt == "play" or inpt == "pau" or inpt == "pause" or inpt == "p":
+            self.Switch()
+        elif inpt == "change" or inpt == "ch" or inpt == "c":
+            self.streamPrintOth = True
+            self.streamPrintCh = True
+            self.Change(input("Change to:"))
+            self.streamPrintOth = False
+            self.streamPrintCh = False
+        elif inpt == "stop" or inpt == "exit":
+            self.Stop()
+        elif inpt == "vol":
+            self.streamPrintOth = True
+            self.streamPrintVol = True
+            self.vol(float(input("Volume (Now: %s)\n" % self.streamvolume)))
+            self.streamPrintOth = False
+            self.streamPrintVol = False
+
+    def start(self):
+        self.streamplayer.start(self.stream_playlists_link[self.streamplaying])
+    def printit(self):
+        cls()
+        print("Radio:\n\nPlaying:")
+        print(self.streamplaying)
+        print("\n")
+        if not self.streamPrintOth:
+            print("Pause (PAU), Stop (STOP), Change (CH), Volume (VOL)")
+        elif self.streamPrintVol:
+            print("Volume (Now: %s)\n" % self.streamvolume)
+
+        elif self.streamPrintCh:
+
+            for xl, x2 in zip(self.stream_playlists, self.stream_playlists_key):
+                print(x2 + " (" + x2.upper() + ")")
+
+            print("Change to:\n")
+
+
+def Radio():
+    radioPlayer = RadioC()
+    cls()
+
+    print("Radios:\n")
+
+    for x1, x2 in zip(radioPlayer.stream_playlists, radioPlayer.stream_playlists_key):
+        print(x1 + " (" + x2.upper() + ")")
+
+    print("Change to:\n")
+
+    user_input = input().lower()
+    y = False
+    for x in radioPlayer.stream_playlists_key:
+        if x == user_input:
+            y = True
+    if y:
+        radioPlayer.streamplaying = user_input
+        radioPlayer.start()
+
+    while y:
+        radioPlayer.input(input())
 
 
 
@@ -3490,6 +3610,8 @@ def screensaver(preset = None):
             elif user_input.lower() == "music":
                 Music()
                 killmem = True
+            elif user_input.lower() == "radio":
+                Radio()
             elif user_input.lower() == "main":
                 main()
             else:
@@ -5882,34 +6004,36 @@ def main():
 
     if user_input.lower() == "np":
         np()
-    if user_input.lower() == "npnow":
+    elif user_input.lower() == "npnow":
         np("now")
-    if user_input.lower() == "npfox":
+    elif user_input.lower() == "npfox":
         np("fox")
-    if user_input.lower() == "npfoxpage":
+    elif user_input.lower() == "npfoxpage":
         np("foxpage")
-    if user_input.lower() == "npfoxname":
+    elif user_input.lower() == "npfoxname":
         np("foxname")
-    if user_input.lower() == "npshota":
+    elif user_input.lower() == "npshota":
         np("shota")
-    if user_input.lower() == "l":
+    elif user_input.lower() == "l":
         color.Man()
-    if user_input.lower() == "ug":
+    elif user_input.lower() == "ug":
         upgrade()
-    if user_input.lower() == "debug":
+    elif user_input.lower() == "debug":
         debug()
-    if user_input.lower() == "games":
+    elif user_input.lower() == "games":
         games()
-    if user_input.lower() == "snake":
+    elif user_input.lower() == "snake":
         games("snake")
-    if user_input.lower() == "music":
+    elif user_input.lower() == "music":
         Music()
-    if user_input.lower() == "time":
+    elif user_input.lower() == "time":
         Timeprint()
-    if user_input.lower() == "randpw":
+    elif user_input.lower() == "randpw":
         randompw()
-    if user_input.lower() == "pw":
+    elif user_input.lower() == "pw":
         passwordmanager()
+    elif user_input.lower() == "radio":
+        Radio()
 
 
 def Arg():
@@ -6018,7 +6142,10 @@ def Arg():
             title("Load Argument", "Musicplayer")
             Music()
             exit_now()
-
+        if sys.argv[x] == "-radio":
+            title("Load Argument", "Radio")
+            Radio()
+            exit_now()
 
 if sys.argv:
     Arg()
