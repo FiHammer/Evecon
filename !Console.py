@@ -10,6 +10,7 @@ import subprocess
 import webbrowser
 #from IPython.core.autocall import ExitAutocall
 #import shutil
+
 import EveconExceptions
 import EveconMiniDebug
 import psutil
@@ -1080,6 +1081,9 @@ class SysTray(threading.Thread):
         if quitFunc is None:
             def quitFuncT(sysTrayIcon):
                 debug = [sysTrayIcon]
+                x = "ss"
+                debug.append(x)
+
             self.quitFunc = quitFuncT
         else:
             self.quitFunc = quitFunc
@@ -2731,7 +2735,7 @@ def games(preset="Man"):
 
 
 class MusicPlayerC(threading.Thread):
-    def __init__(self):
+    def __init__(self, systray=True):
         super().__init__()
 
         self.musiclist = []
@@ -2743,6 +2747,9 @@ class MusicPlayerC(threading.Thread):
         global musicrun
         musicrun = True
         self.musicrun = True
+
+        self.systrayon = systray
+        self.systray = None
 
         self.musicpause = False
         self.musicwait = False
@@ -3096,6 +3103,43 @@ class MusicPlayerC(threading.Thread):
          # SPL: spl (On/Off), wr, reroll, start (""), effect (E--)
     def run(self):
 
+        if self.systrayon:
+            def quitFunc(x):
+                self.Stop()
+            def unp_p(x):
+                self.Switch()
+            def nextm(x):
+                self.Next()
+            def delm(x):
+                self.Del(self.thismusicnumber)
+                self.musicplaying = False
+                if self.musicpause:
+                    self.musicpause = False
+                    self.musicplayer.play()
+            def reroll(x):
+                self.reroll()
+
+            def vol01(x):
+                self.volp(0.1)
+
+            def vol025(x):
+                self.volp(0.25)
+
+            def vol05(x):
+                self.volp(0.5)
+
+            def vol1(x):
+                self.volp(1)
+
+            sub_menu1 = {"0.1": vol01, "0.25": vol025, "0.5": vol05, "1": vol1}
+
+            self.systray = SysTray("data\\Ico\\Radio.ico", "Evecon: MusicPlayer",
+                                   {"Pause/Unpause": unp_p, "Next": nextm,
+                                    "Del": delm, "Reroll": reroll},
+                                   sub_menu1=sub_menu1, sub_menu_name1="Volume", quitFunc=quitFunc)
+            self.systray.start()
+
+
         self.thismusicnumber = random.randint(0, len(self.musiclist) - 1)
         self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
 
@@ -3397,7 +3441,7 @@ def Music():
 
 
 class RadioC:
-    def __init__(self):
+    def __init__(self, systray=True):
         super().__init__()
 
         self.streampause = False
@@ -3410,7 +3454,8 @@ class RadioC:
         self.streamPrintCh = False
         self.streamPrintVol = False
 
-
+        self.systrayon = systray
+        self.systray = None
 
         self.stream_playlists = ["EgoFM", "HR1", "HR3", "Bayern3", "ByteFM"]
         self.stream_playlists_key = ["egofm", "hr1", "hr3", "br3", "bytefm"]
@@ -3462,8 +3507,138 @@ class RadioC:
             self.streamPrintOth = False
             self.streamPrintVol = False
 
+    # noinspection PyStatementEffect
     def start(self):
         self.streamplayer.start(self.stream_playlists_link[self.streamplaying])
+        # pause/unpause , submenu mit allen sendern
+
+        def unp_p(x):
+            self.Switch()
+
+
+        if self.systrayon:
+
+
+            def x0(x):
+                self.Change(self.stream_playlists_key[0])
+            def x1(x):
+                self.Change(self.stream_playlists_key[1])
+            def x2(x):
+                self.Change(self.stream_playlists_key[2])
+            def x3(x):
+                self.Change(self.stream_playlists_key[3])
+            def x4(x):
+                self.Change(self.stream_playlists_key[4])
+            def x5(x):
+                self.Change(self.stream_playlists_key[5])
+            def x6(x):
+                self.Change(self.stream_playlists_key[6])
+            def x7(x):
+                self.Change(self.stream_playlists_key[7])
+            def x8(x):
+                self.Change(self.stream_playlists_key[8])
+            def x9(x):
+                self.Change(self.stream_playlists_key[9])
+            def x10(x):
+                self.Change(self.stream_playlists_key[10])
+            def x11(x):
+                self.Change(self.stream_playlists_key[11])
+            def x12(x):
+                self.Change(self.stream_playlists_key[12])
+            def x13(x):
+                self.Change(self.stream_playlists_key[13])
+            def x14(x):
+                self.Change(self.stream_playlists_key[14])
+            def x15(x):
+                self.Change(self.stream_playlists_key[15])
+
+            if len(self.stream_playlists) == 1:
+                sub_menu1 = {self.stream_playlists[0]: x0}
+            elif len(self.stream_playlists) == 2:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1}
+            elif len(self.stream_playlists) == 3:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2}
+            elif len(self.stream_playlists) == 4:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3}
+            elif len(self.stream_playlists) == 5:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3, self.stream_playlists[4]: x4}
+            elif len(self.stream_playlists) == 6:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3, self.stream_playlists[4]: x4, self.stream_playlists[5]: x5}
+            elif len(self.stream_playlists) == 7:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3, self.stream_playlists[4]: x4, self.stream_playlists[5]: x5,
+                            self.stream_playlists[6]: x6}
+            elif len(self.stream_playlists) == 8:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3, self.stream_playlists[4]: x4, self.stream_playlists[5]: x5,
+                            self.stream_playlists[6]: x6, self.stream_playlists[7]: x7}
+            elif len(self.stream_playlists) == 9:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3, self.stream_playlists[4]: x4, self.stream_playlists[5]: x5,
+                            self.stream_playlists[6]: x6, self.stream_playlists[7]: x7, self.stream_playlists[8]: x8}
+            elif len(self.stream_playlists) == 10:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3, self.stream_playlists[4]: x4, self.stream_playlists[5]: x5,
+                            self.stream_playlists[6]: x6, self.stream_playlists[7]: x7, self.stream_playlists[8]: x8,
+                            self.stream_playlists[9]: x9}
+            elif len(self.stream_playlists) == 11:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3, self.stream_playlists[4]: x4, self.stream_playlists[5]: x5,
+                            self.stream_playlists[6]: x6, self.stream_playlists[7]: x7, self.stream_playlists[8]: x8,
+                            self.stream_playlists[9]: x9, self.stream_playlists[10]: x10}
+            elif len(self.stream_playlists) == 12:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3, self.stream_playlists[4]: x4, self.stream_playlists[5]: x5,
+                            self.stream_playlists[6]: x6, self.stream_playlists[7]: x7, self.stream_playlists[8]: x8,
+                            self.stream_playlists[9]: x9, self.stream_playlists[10]: x10,
+                            self.stream_playlists[11]: x11}
+            elif len(self.stream_playlists) == 13:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3, self.stream_playlists[4]: x4, self.stream_playlists[5]: x5,
+                            self.stream_playlists[6]: x6, self.stream_playlists[7]: x7, self.stream_playlists[8]: x8,
+                            self.stream_playlists[9]: x9, self.stream_playlists[10]: x10,
+                            self.stream_playlists[11]: x11,
+                            self.stream_playlists[12]: x12}
+            elif len(self.stream_playlists) == 14:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3, self.stream_playlists[4]: x4, self.stream_playlists[5]: x5,
+                            self.stream_playlists[6]: x6, self.stream_playlists[7]: x7, self.stream_playlists[8]: x8,
+                            self.stream_playlists[9]: x9, self.stream_playlists[10]: x10,
+                            self.stream_playlists[11]: x11,
+                            self.stream_playlists[12]: x12, self.stream_playlists[13]: x13}
+            elif len(self.stream_playlists) == 15:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3, self.stream_playlists[4]: x4, self.stream_playlists[5]: x5,
+                            self.stream_playlists[6]: x6, self.stream_playlists[7]: x7, self.stream_playlists[8]: x8,
+                            self.stream_playlists[9]: x9, self.stream_playlists[10]: x10,
+                            self.stream_playlists[11]: x11,
+                            self.stream_playlists[12]: x12, self.stream_playlists[13]: x13,
+                            self.stream_playlists[14]: x14}
+            elif len(self.stream_playlists) == 16:
+                sub_menu1 = {self.stream_playlists[0]: x0, self.stream_playlists[1]: x1, self.stream_playlists[2]: x2,
+                            self.stream_playlists[3]: x3, self.stream_playlists[4]: x4, self.stream_playlists[5]: x5,
+                            self.stream_playlists[6]: x6, self.stream_playlists[7]: x7, self.stream_playlists[8]: x8,
+                            self.stream_playlists[9]: x9, self.stream_playlists[10]: x10,
+                            self.stream_playlists[11]: x11,
+                            self.stream_playlists[12]: x12, self.stream_playlists[13]: x13,
+                            self.stream_playlists[14]: x14,
+                            self.stream_playlists[15]: x15}
+            else:
+                def nothing(x):
+                    print("nothing")
+
+                sub_menu1 = {"Nothing": nothing}
+
+            def quitFunc(x):
+                self.Stop()
+
+            self.systray = SysTray("data\\Ico\\Radio.ico", "Evecon: Radio", {"Pause/Unpause": unp_p},
+                                   sub_menu1=sub_menu1, sub_menu_name1="Change Radio", quitFunc=quitFunc)
+            self.systray.start()
+
     def printit(self):
         cls()
         print("Radio:\n\nPlaying:")
@@ -3491,7 +3666,7 @@ def Radio():
     for x1, x2 in zip(radioPlayer.stream_playlists, radioPlayer.stream_playlists_key):
         print(x1 + " (" + x2.upper() + ")")
 
-    print("Change to:\n")
+    print("\nChange to:\n")
 
     user_input = input().lower()
     y = False
@@ -3499,8 +3674,21 @@ def Radio():
         if x == user_input:
             y = True
     if y:
+        class RadioPrinter(threading.Thread):
+            def __init__(self):
+                super().__init__()
+                self.unerror = 0
+
+            def run(self):
+                while radioPlayer.streamrun:
+                    cls()
+                    radioPlayer.printit()
+                    time.sleep(1)
+        RP = RadioPrinter()
+        RP.start()
         radioPlayer.streamplaying = user_input
         radioPlayer.start()
+
 
     while y:
         radioPlayer.input(input())
