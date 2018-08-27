@@ -20,6 +20,7 @@ import win32gui_struct
 import itertools
 import glob
 
+ico = r"C:\Users\Mini-Pc Nutzer\Desktop\Evecon\data\Ico\Radio.ico"
 
 def nircmd(preset="Man", a=None, b=None, c=None, d=None, every=False):
 

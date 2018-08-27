@@ -1,5 +1,4 @@
 import time
-#from cls import *
 import ctypes
 import os
 import sys
@@ -8,9 +7,6 @@ import socket
 import threading
 import subprocess
 import webbrowser
-#from IPython.core.autocall import ExitAutocall
-#import shutil
-
 import EveconExceptions
 import EveconMiniDebug
 import psutil
@@ -44,7 +40,8 @@ def exit_now(killmex = False):
     #sys.exit()
 
 def killme():
-    subprocess.call(["taskkill", "/PID", str(os.getpid())])
+    subprocess.call(["taskkill", "/F", "/PID", str(os.getpid())])
+    os.system("taskkill /PID /F %s" % str(os.getpid()))
 
 
 pausetime = 180
@@ -511,7 +508,8 @@ class MPlayerC:
 
     def unpause(self):
         if self.Paused:
-            self.mplayer = subprocess.Popen([self.path, self.Track])
+            self.mplayer = subprocess.Popen([self.path, self.Track], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
             self.Running = True
             self.Paused = False
 
@@ -2352,7 +2350,7 @@ def games(preset="Man"):
 
 
     def snake():
-        import random, click
+        import click
 
         global nothing, me, food, max_x, max_y, lastthing, Title_run, lockMe, testx, testy, Thingyou, Things, special, direction, sleep
 
@@ -3016,6 +3014,9 @@ class MusicPlayerC(threading.Thread):
         self.musicplaying = False
         self.musicpause = False
         self.musicrunning = False
+        if self.systrayon:
+            time.sleep(1)
+            killme()
     def Next(self):
         self.musicplaying = False
         if self.musicpause:
@@ -3507,8 +3508,11 @@ class RadioC:
     def Stop(self):
         self.streamplaying = None
         self.streampause = False
-        self.streamrun = True
+        self.streamrun = False
         self.streamplayer.stop()
+        if self.systrayon:
+            time.sleep(1)
+            killme()
     def input(self, inpt):
         inpt = inpt.lower()
         if inpt == "play" or inpt == "pau" or inpt == "pause" or inpt == "p":
@@ -4989,7 +4993,6 @@ def Timer():
     Alarmprint(colorCh=True)
 
 def randompw(returnpw = False, length = 150):
-    import random
     listx = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
             "V", "W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",
             "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "!",
