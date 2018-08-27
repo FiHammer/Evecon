@@ -780,13 +780,31 @@ if ProVersion == "PC-Version":
         version_PC = 1
         version_MiniPC = 1
         version_BigPC = 0
+        version_Laptop = 0
         version_MainStick = 0
         version_MiniStick = 0
-    if Computerfind_BigPC == 1:
+    elif Computerfind_BigPC == 1:
         normaltitle()
         version_PC = 1
         version_MiniPC = 0
         version_BigPC = 1
+        version_Laptop = 0
+        version_MainStick = 0
+        version_MiniStick = 0
+    elif Computerfind_Laptop == 1:
+        normaltitle()
+        version_PC = 1
+        version_MiniPC = 0
+        version_BigPC = 0
+        version_Laptop = 1
+        version_MainStick = 0
+        version_MiniStick = 0
+    else:
+        title("Loading")
+        version_PC = 0
+        version_MiniPC = 0
+        version_BigPC = 0
+        version_Laptop = 0
         version_MainStick = 0
         version_MiniStick = 0
 elif ProVersion == "MainStick-Version":
@@ -794,6 +812,7 @@ elif ProVersion == "MainStick-Version":
     version_PC = 0
     version_MiniPC = 0
     version_BigPC = 0
+    version_Laptop = 0
     version_MainStick = 1
     version_MiniStick = 0
 elif ProVersion == "MiniStick-Version":
@@ -801,6 +820,7 @@ elif ProVersion == "MiniStick-Version":
     version_PC = 0
     version_MiniPC = 0
     version_BigPC = 0
+    version_Laptop = 0
     version_MainStick = 0
     version_MiniStick = 1
 else:
@@ -808,6 +828,7 @@ else:
     version_PC = 0
     version_MiniPC = 0
     version_BigPC = 0
+    version_Laptop = 0
     version_MainStick = 0
     version_MiniStick = 0
 
