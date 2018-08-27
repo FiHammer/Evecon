@@ -3333,7 +3333,7 @@ class MusicPlayerC(threading.Thread):
             print("Musicplayer\n\nLoading...")
 
 
-def Music():
+def Music(systrayon=True):
 
     def Play():
         class Printerr(threading.Thread):
@@ -3356,7 +3356,7 @@ def Music():
             muPlayer.input(user_input)
 
 
-    muPlayer = MusicPlayerC()
+    muPlayer = MusicPlayerC(systrayon)
 
     music_playlists_print = ""
     for x, y in zip(muPlayer.music_playlists, muPlayer.music_playlists_key):
@@ -3678,8 +3678,8 @@ class RadioC:
             print("Change to:\n")
 
 
-def Radio():
-    radioPlayer = RadioC()
+def Radio(systrayon=True):
+    radioPlayer = RadioC(systrayon)
     cls()
 
     print("Radios:\n")
@@ -3817,10 +3817,10 @@ def screensaver(preset = None):
             elif user_input.lower() == "snake":
                 games("snake")
             elif user_input.lower() == "music":
-                Music()
+                Music(False)
                 killmem = True
             elif user_input.lower() == "radio":
-                Radio()
+                Radio(False)
             elif user_input.lower() == "main":
                 main()
             else:
