@@ -19,6 +19,10 @@ import win32con
 import win32gui_struct
 import itertools
 import glob
+import comtypes
+import pycaw
+import pycaw.pycaw
+
 
 def cls():
     os.system("cls")
@@ -519,7 +523,7 @@ class MPlayerC:
         else:
             self.pause()
 
-MPlayer = MPlayerC("Programs\\MPlayer")
+#MPlayer = MPlayerC("Programs\\MPlayer")
 
 
 def title_time_now():
@@ -587,6 +591,75 @@ class colorC:
 
 color = colorC()
 
+class VolumeC:
+    def __init__(self):
+        self.devices = pycaw.pycaw.AudioUtilities.GetSpeakers()
+        self.interface = self.devices.Activate(pycaw.pycaw.IAudioEndpointVolume._iid_, comtypes.CLSCTX_ALL, None)
+        self.volume = ctypes.cast(self.interface, ctypes.POINTER(pycaw.pycaw.IAudioEndpointVolume))
+
+        self.volumes = {0: -65.25, 0.01: -56.992191314697266, 0.02: -51.671180725097656, 0.03: -47.73759078979492,
+                        0.04: -44.61552047729492, 0.05: -42.026729583740234, 0.06: -39.81534194946289,
+                        0.07: -37.88519287109375, 0.08: -36.17274856567383, 0.09: -34.63383865356445,
+                        0.1: -33.23651123046875, 0.11: -31.956890106201172, 0.12: -30.77667808532715,
+                        0.13: -29.681535720825195, 0.14: -28.66002082824707, 0.15: -27.70285415649414,
+                        0.16: -26.80240821838379, 0.17: -25.95233154296875, 0.18: -25.147287368774414,
+                        0.19: -24.38274574279785, 0.2: -23.654823303222656, 0.21: -22.960174560546875,
+                        0.22: -22.295886993408203, 0.23: -21.6594181060791, 0.24: -21.048532485961914,
+                        0.25: -20.461252212524414, 0.26: -19.895822525024414, 0.27: -19.350669860839844,
+                        0.28: -18.824398040771484, 0.29: -18.315736770629883, 0.3: -17.82354736328125,
+                        0.31: -17.3467960357666, 0.32: -16.884546279907227, 0.33: -16.435937881469727,
+                        0.34: -16.000192642211914, 0.35: -15.576590538024902, 0.36: -15.164472579956055,
+                        0.37: -14.763236045837402, 0.38: -14.372318267822266, 0.39: -13.991202354431152,
+                        0.4: -13.61940860748291, 0.41: -12.902039527893066, 0.42: -12.902039527893066,
+                        0.43: -12.555663108825684, 0.44: -12.217005729675293, 0.45: -11.88572883605957,
+                        0.46: -11.561516761779785, 0.47: -11.2440767288208, 0.48: -10.933131217956543,
+                        0.49: -10.62841796875, 0.5: -10.329694747924805, 0.51: -10.036728858947754,
+                        0.52: -9.749302864074707, 0.53: -9.46721076965332, 0.54: -9.190258026123047,
+                        0.55: -8.918261528015137, 0.56: -8.651047706604004, 0.57: -8.388449668884277,
+                        0.58: -8.130311965942383, 0.59: -7.876484394073486, 0.6: -7.626824855804443,
+                        0.61: -7.381200790405273, 0.62: -7.1394829750061035, 0.63: -6.901548862457275,
+                        0.64: -6.6672821044921875, 0.65: -6.436570644378662, 0.66: -6.209307670593262,
+                        0.67: -5.98539400100708, 0.68: -5.764730453491211, 0.69: -5.547224998474121,
+                        0.7: -5.33278751373291, 0.71: -5.121333599090576, 0.72: -4.912779808044434,
+                        0.73: -4.707049369812012, 0.74: -4.5040669441223145, 0.75: -4.3037590980529785,
+                        0.76: -4.1060566902160645, 0.77: -3.9108924865722656, 0.78: -3.718202590942383,
+                        0.79: -3.527923583984375, 0.8: -3.339998245239258, 0.81: -3.1543679237365723,
+                        0.82: -2.970977306365967, 0.83: -2.7897727489471436, 0.84: -2.610703229904175,
+                        0.85: -2.4337174892425537, 0.86: -2.2587697505950928, 0.87: -2.08581280708313,
+                        0.88: -1.9148017168045044, 0.89: -1.7456932067871094, 0.9: -1.5784454345703125,
+                        0.91: -1.4130167961120605, 0.92: -1.2493702173233032, 0.93: -1.0874667167663574,
+                        0.94: -0.9272695183753967, 0.95: -0.768743097782135, 0.96: -0.6118528842926025,
+                        0.97: -0.4565645754337311, 0.98: -0.30284759402275085, 0.99: -0.15066957473754883, 1.0: 0.0}
+
+        self.curVol = self.getVolume()
+        self.curVoldirect = self.getVolumedirect()
+    def change(self, vol: float):
+        self.setdirect(self.convertToDirect(vol))
+        self.refresh()
+
+    def setdirect(self, vol: float):
+        self.volume.SetMasterVolumeLevel(vol, None)
+        self.refresh()
+
+    def getVolume(self):
+        return self.convertFromDirect(self.getVolumedirect())
+
+    def getVolumedirect(self):
+        return self.volume.GetMasterVolumeLevel()
+
+    def convertToDirect(self, normal):
+        return self.volumes[round(normal, 2)]
+
+    def convertFromDirect(self, direct):
+        for x in self.volumes:
+            if self.volumes[x] == direct:
+                return x
+
+    def refresh(self):
+        self.curVol = self.getVolume()
+        self.curVoldirect = self.getVolumedirect()
+
+Volume = VolumeC()
 
 title("Loading Title Time")
 
@@ -985,15 +1058,18 @@ class SysTrayIcon(object):
 
     def restart(self, hwnd, msg, wparam, lparam):
         self.refresh_icon()
+
         self.unerrorl.append(hwnd)
         self.unerrorl.append(msg)
         self.unerrorl.append(wparam)
         self.unerrorl.append(lparam)
+
     def destroy(self, hwnd, msg, wparam, lparam):
         if self.on_quit: self.on_quit(self)
         nid = (self.hwnd, 0)
         win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
         win32gui.PostQuitMessage(0)
+
         self.unerrorl.append(hwnd)
         self.unerrorl.append(msg)
         self.unerrorl.append(wparam)
@@ -1003,6 +1079,7 @@ class SysTrayIcon(object):
         self.unerrorl.append(hwnd)
         self.unerrorl.append(msg)
         self.unerrorl.append(wparam)
+
         if lparam == win32con.WM_LBUTTONDBLCLK:
             self.execute_menu_option(self.default_menu_index + self.FIRST_ID)
         elif lparam==win32con.WM_RBUTTONUP:
@@ -2778,7 +2855,7 @@ class MusicPlayerC(threading.Thread):
         self.musicwaitSpl = False
         self.musicback = False
         self.music_time = 0
-        self.musicvolume = 0.5
+        self.musicvolume = Volume.getVolume()
         self.musicvolumep = 1
         self.musicplayer = None
         self.musicplaying = True
@@ -3029,7 +3106,8 @@ class MusicPlayerC(threading.Thread):
         del self.musiclistname[mId]
     def vol(self, vol):
         self.musicvolume = vol
-        nircmd("volume", self.musicvolume)
+        Volume.change(vol)
+        #nircmd("volume", self.musicvolume)
     def volp(self, vol):
         self.musicvolumep = vol
         self.musicplayer.volume = self.musicvolumep
@@ -3077,7 +3155,7 @@ class MusicPlayerC(threading.Thread):
         elif inpt == "vol":
             self.musicwait = True
             self.musicwaitvol = True
-            self.vol(float(input("Volume (Now: %s)\n" % self.musicvolume)))
+            self.vol(float(input("Volume (Now: %s)\n" % Volume.getVolume())))
             self.musicwait = False
             self.musicwaitvol = False
         elif inpt == "volp":
@@ -3254,7 +3332,7 @@ class MusicPlayerC(threading.Thread):
             if not self.musicwait:
                 print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL)")
             elif self.musicwaitvol:
-                print("Volume (Now: %s)\n" % self.musicvolume)
+                print("Volume (Now: %s)\n" % Volume.getVolume())
             elif self.musicwaitvolp:
                 print("Volume Player:")
             elif self.musicwaitseek:
@@ -3468,7 +3546,7 @@ class RadioC:
 
         self.streampause = False
         self.streamrun = True
-        self.streamvolume = 0.5
+        self.streamvolume = Volume.getVolume()
 
         self.streamplayer = MPlayerC("Programs\\MPlayer")
 
@@ -3481,6 +3559,11 @@ class RadioC:
 
         self.stream_playlists = ["EgoFM", "HR1", "HR3", "Bayern3", "ByteFM"]
         self.stream_playlists_key = ["egofm", "hr1", "hr3", "br3", "bytefm"]
+        self.stream_playlists_name = {"egofm" : "EgoFM",
+                                      "hr1" : "HR1",
+                                      "hr3" : "HR3",
+                                      "br3" : "BR3",
+                                      "bytefm" : "ByteFM"}
         self.stream_playlists_link = {"egofm" : "https://egofm-live.cast.addradio.de/egofm/live/mp3/high/stream.mp3",
                                       "hr1" : "http://hr-hr1-live.cast.addradio.de/hr/hr1/live/mp3/128/stream.mp3",
                                       "hr3" : "http://hr-hr3-live.cast.addradio.de/hr/hr3/live/mp3/128/stream.mp3",
@@ -3492,19 +3575,27 @@ class RadioC:
     def Unpause(self):
         self.streamplayer.unpause()
         self.streampause = False
+        title("Radio", self.stream_playlists_name[self.streamplaying], "Now Playing")
     def Pause(self):
         self.streamplayer.pause()
         self.streampause = True
+        title("Radio", self.stream_playlists_name[self.streamplaying], "Paused")
     def Switch(self):
-        self.streamplayer.switch()
-        self.streampause = self.streamplayer.Paused
+        if not self.streampause:
+            self.Pause()
+        else:
+            self.Unpause()
+        #self.streamplayer.switch()
+        #self.streampause = self.streamplayer.Paused
     def Change(self, key):
         self.streamplayer.stop()
         self.streamplaying = key
         self.streamplayer.start(self.stream_playlists_link[key])
+        title("Radio", self.stream_playlists_name[self.streamplaying], "Now Playing")
     def vol(self, vol):
         self.streamvolume = vol
-        nircmd("volume", self.streamvolume)
+        Volume.change(vol)
+        #nircmd("volume", self.streamvolume)
     def Stop(self):
         self.streamplaying = None
         self.streampause = False
@@ -3528,12 +3619,14 @@ class RadioC:
         elif inpt == "vol":
             self.streamPrintOth = True
             self.streamPrintVol = True
-            self.vol(float(input("Volume (Now: %s)\n" % self.streamvolume)))
+            self.vol(float(input("Volume (Now: %s)\n" % Volume.getVolume())))
             self.streamPrintOth = False
             self.streamPrintVol = False
 
     # noinspection PyStatementEffect
     def start(self):
+
+        title("Radio", self.stream_playlists_name[self.streamplaying], "Now Playing")
         self.streamplayer.start(self.stream_playlists_link[self.streamplaying])
         # pause/unpause , submenu mit allen sendern
 
@@ -3666,13 +3759,20 @@ class RadioC:
 
     def printit(self):
         cls()
-        print("Radio:\n\nPlaying:")
+        if not self.streampause:
+            print("Radio:\n\nPlaying:")
+        else:
+            print("Radio:\n\nPaused:")
+
         print(self.streamplaying)
         print("\n")
         if not self.streamPrintOth:
-            print("Pause (PAU), Stop (STOP), Change (CH), Volume (VOL)")
+            if not self.streampause:
+                print("Pause (PAU), Stop (STOP), Change (CH), Volume (VOL)")
+            else:
+                print("Unpause (PAU), Stop (STOP), Change (CH), Volume (VOL)")
         elif self.streamPrintVol:
-            print("Volume (Now: %s)\n" % self.streamvolume)
+            print("Volume (Now: %s)\n" % Volume.getVolume())
 
         elif self.streamPrintCh:
 

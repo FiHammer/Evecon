@@ -19,6 +19,9 @@ import win32con
 import win32gui_struct
 import itertools
 import glob
+import comtypes
+import pycaw
+import pycaw.pycaw
 
 ico = r"C:\Users\Mini-Pc Nutzer\Desktop\Evecon\data\Ico\Radio.ico"
 
