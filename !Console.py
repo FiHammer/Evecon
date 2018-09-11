@@ -34,8 +34,8 @@ def exit_now(killmex = False):
     ttime.deac()
     global exitnow
     exitnow = 1
-    if version_PC != 1:
-        exit()
+    #if version_PC != 1:
+    #    exit()
 
     if killmex:
         time.sleep(0.5)
@@ -83,14 +83,14 @@ def Log(functioni, info, typei = "Normal"):
 
 title_oldstatus = "Loading"
 title_oldstart = "Error"
-title_oldpc = "Error"
+title_oldversionX = "Error"
 title_dead = False
 
-def title(status="OLD", something="OLD", pc="OLD", deac=False):
+def title(status="OLD", something="OLD", versionX="OLD", deac=False):
     global title_dead
     if deac:
         title_dead = True
-    global title_oldstatus, title_oldstart, title_oldpc
+    global title_oldstatus, title_oldstart, title_oldversionX
     if status == "OLD":
         status = title_oldstatus
     else:
@@ -101,29 +101,29 @@ def title(status="OLD", something="OLD", pc="OLD", deac=False):
     else:
         title_oldstart = something
 
-    if pc == "OLD":
-        pc = title_oldpc
+    if versionX == "OLD":
+        versionX = title_oldversionX
     else:
-        title_oldpc = pc
+        title_oldversionX = versionX
 
     nowtime = datetime.datetime.now().strftime("%H:%M:%S")
 
     space_status = (60 - len(status) * 2) * " "
-    space_pc = (64 - len(pc) * 2) * " "
+    space_pc = (64 - len(versionX) * 2) * " "
     space_something = (40 - len(something) * 2) * " "
     space_time = 55 * " "
 
     if musicrun:
         space_status = 7 * " " # old: abs(60 - len(status) * 2 - 30)
         space_pc = 10 * " " # old: abs(64 - len(pc) * 2 - 30)
-        space_something = (175 - (len(status + pc + space_status + space_pc) + round(len(something) * 1.5) + 1)) * " "
+        space_something = (175 - (len(status + versionX + space_status + space_pc) + round(len(something) * 1.5) + 1)) * " "
         if len(space_something) < 20:
-            space_something = (160 - (len(status + pc + space_status + space_pc) + round(len(something) * 1.5) + 1)) * " "
+            space_something = (160 - (len(status + versionX + space_status + space_pc) + round(len(something) * 1.5) + 1)) * " "
         space_time = 1 * " "
 
     if not title_dead:
         ctypes.windll.kernel32.SetConsoleTitleW("EVECON: %s%s%s%s%s%s%sTime: %s" %
-        (status, space_status, pc, space_pc, something, space_something, space_time, nowtime))
+                                                (status, space_status, versionX, space_pc, something, space_something, space_time, nowtime))
 
 
 def turnStr(word: str):
@@ -745,7 +745,9 @@ def computerconfig_minipc():
 
 
 def computerconfig_bigpc():
-    global thisIP
+    global MusicDir, thisIP
+    #TODO herrausfinden
+    MusicDir = "D:\\Musik\\!Fertige Musik"
     thisIP = "192.168.2.101"
 
 
@@ -755,153 +757,84 @@ def computerconfig_aldi():
 
 def computerconfig_laptop():
     global thisIP
-    thisIP = "192.168.2.106" # Lan .104 = WLAN
+    thisIP = "192.168.2.106" # Lan __ .104 = WLAN
 
 
 Computername = socket.gethostname()
 
-if Computername[0] == "P":
-    if os.environ.get("USERNAME") == "NEUHOF":
-        if os.getlogin() == "albingerl":
-            title("OLD", "OLD", "albingerl@SchoolPC")
-            Computerfind_SchoolPC_alb = 1
-            Computerfind_SchoolPC = 1
-            computerconfig_schoolpc()
-        else:
-            Computerfind_SchoolPC_alb = 0
-            Computerfind_SchoolPC = 1
-            computerconfig_schoolpc()
-    else:
-        Computerfind_SchoolPC_alb = 0
-        Computerfind_SchoolPC = 0
-else:
-    Computerfind_SchoolPC_alb = 0
-    Computerfind_SchoolPC = 0
-
 if Computername == "Computer-Testet":
     title("OLD", "OLD", "somebody@Mini-PC")
-    Computerfind_MiniPC = 1
-    Computerfind_BigPC = 0
-    Computerfind_PapaAldi = 0
-    Computerfind_Laptop = 0
+    computer = "MiniPC"
     computerconfig_minipc()
-
     HomePC = True
 
 elif Computername == "Bigger-PC":
     title("OLD", "OLD", "somebody@BigPC")
-    Computerfind_MiniPC = 0
-    Computerfind_BigPC = 1
-    Computerfind_PapaAldi = 0
-    Computerfind_Laptop = 0
+    computer = "BigPC"
     computerconfig_bigpc()
 
     HomePC = True
 
 elif Computername == "Test":
     title("OLD", "OLD", "somebody@Aldi-Laptop")
-    Computerfind_MiniPC = 0
-    Computerfind_BigPC = 0
-    Computerfind_PapaAldi = 1
-    Computerfind_Laptop = 0
+    computer = "AldiPC"
     computerconfig_aldi()
 
 elif Computername == "Luis":
     title("OLD", "OLD", "somebody@Luis-Laptop")
-    Computerfind_MiniPC = 0
-    Computerfind_BigPC = 0
-    Computerfind_PapaAldi = 0
-    Computerfind_Laptop = 1
+    computer = "Laptop"
     computerconfig_laptop()
 
 else:
     title("OLD", "OLD", "No Computer found")
-    Computerfind_MiniPC = 0
-    Computerfind_BigPC = 0
-    Computerfind_PapaAldi = 0
-    Computerfind_Laptop = 0
+    computer = None
 
 
 file_proversion_raw = open("data\\Info\\ProgramVersion", "r")
 ProVersion = file_proversion_raw.readline()
 file_proversion_raw.close()
 
-
+def versionFind():
+    file_version_raw = open("data\\Info\\version", "r")
+    global this_version
+    this_version = []
+    for x in file_version_raw:
+        this_version.append(x.strip())
+    file_version_raw.close()
+    return this_version
 
 def normaltitle():
-    global ss_active
+    #global ss_active
     if ss_active:
         title("Screensaver", "")
-    else:
-        if ProVersion == "PC-Version":
-            title("OLD", "PC-Version")
 
-        elif ProVersion == "MainStick-Version":
-            title("OLD", "Stick-Version")
-        elif ProVersion == "MiniStick-Version":
-            title("OLD", "Stick-Version")
-        else:
-            title("OLD", "OLD")
+    else:
+        title("OLD", "Version: " + str(versionFind()[1]))
 
 normaltitle()
 
 if ProVersion == "PC-Version":
-    if Computerfind_MiniPC == 1:
+    if computer == "MiniPC":
         normaltitle()
-        version_PC = 1
-        version_MiniPC = 1
-        version_BigPC = 0
-        version_Laptop = 0
-        version_MainStick = 0
-        version_MiniStick = 0
-    elif Computerfind_BigPC == 1:
+        version = "MiniPC"
+    elif computer == "BigPC":
         normaltitle()
-        version_PC = 1
-        version_MiniPC = 0
-        version_BigPC = 1
-        version_Laptop = 0
-        version_MainStick = 0
-        version_MiniStick = 0
-    elif Computerfind_Laptop == 1:
+        version = "MiniPC"
+    elif computer == "Laptop":
         normaltitle()
-        version_PC = 1
-        version_MiniPC = 0
-        version_BigPC = 0
-        version_Laptop = 1
-        version_MainStick = 0
-        version_MiniStick = 0
+        version = "MiniPC"
     else:
         title("Loading")
-        version_PC = 0
-        version_MiniPC = 0
-        version_BigPC = 0
-        version_Laptop = 0
-        version_MainStick = 0
-        version_MiniStick = 0
+        version = None
 elif ProVersion == "MainStick-Version":
     normaltitle()
-    version_PC = 0
-    version_MiniPC = 0
-    version_BigPC = 0
-    version_Laptop = 0
-    version_MainStick = 1
-    version_MiniStick = 0
+    version = "MainStick"
 elif ProVersion == "MiniStick-Version":
     normaltitle()
-    version_PC = 0
-    version_MiniPC = 0
-    version_BigPC = 0
-    version_Laptop = 0
-    version_MainStick = 0
-    version_MiniStick = 1
+    version = "MiniStick"
 else:
     title("Loading")
-    version_PC = 0
-    version_MiniPC = 0
-    version_BigPC = 0
-    version_Laptop = 0
-    version_MainStick = 0
-    version_MiniStick = 0
+    version = None
 
 
 class WindowsBalloonTipC:
@@ -2106,305 +2039,7 @@ def np(preset="Man"):
         if np_user_input.lower() == "counter":
             counter()
 
-
-
 title("Loading Arguments")
-
-def Evecons(findversions=0):
-    global Evecons_multi, Evecons_mainstick, Evecons_mainstick_path, Evecons_mainstick_pathkey, Evecons_PC, Evecons_PC_path, Evecons_ministick, Evecons_ministick_path, Evecons_ministick_pathkey
-    global version_PC, version_MiniPC, version_BigPC, version_MainStick, version_MiniStick
-    global mainstickversion, ministickversion, PCversion
-
-    Eveconss = []
-    Evecons_multi = 0
-    Evecons_mainstick = 0
-    Evecons_mainstick_path = 0
-    Evecons_mainstick_pathkey = 0
-    Evecons_PC = 0
-
-    mainstickversion = []
-    ministickversion = []
-    PCversion = []
-
-    if os.path.isfile("C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\data\\Info\\exist"):
-        Evecons_PC_path = "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon"
-    elif os.path.isfile("C:\\Users\\lualb\\Desktop\\Evecon\\data\\Info\\exist"):
-        Evecons_PC_path = ""
-    Evecons_ministick = 0
-    Evecons_ministick_path = 0
-    Evecons_ministick_pathkey = 0
-
-    for Alpha in Alphabet:
-        if os.path.isfile("%s:\\Evecon\\data\\Info\\exist" % Alpha):
-            file_proversionstick_raw = open("data\\Info\\ProgramVersion", "r")
-            proversionunkownstick = file_proversionstick_raw.readline()
-            file_proversionstick_raw.close()
-
-            if proversionunkownstick == "MainStick-Version" and version_MainStick == 0:
-
-                Eveconss.append("MainStick")
-                Evecons_mainstick = 1
-                Evecons_mainstick_pathkey = Alpha
-                Evecons_mainstick_path = ("%s:\\Evecon" % Alpha)
-
-                def mainstick_version():
-                    file_mainstick_version_raw = open("%s:\\Evecon\\data\\Info\\version" % Evecons_mainstick_pathkey, "r")
-
-                    for x in file_mainstick_version_raw:
-                        mainstickversion.append(x.strip())
-                    file_mainstick_version_raw.close()
-
-                if findversions == 1:
-                    mainstick_version()
-
-            elif proversionunkownstick == "MiniStick-Version" and version_MiniStick == 0:
-
-                Eveconss.append("MiniStick")
-                Evecons_ministick = 1
-                Evecons_ministick_pathkey = Alpha
-                Evecons_ministick_path = ("%s:\\Evecon" % Alpha)
-
-                def ministick_version():
-                    file_ministick_version_raw = open("%s:\\Evecon\\data\\Info\\version" % Evecons_ministick_pathkey, "r")
-
-                    for x in file_ministick_version_raw:
-                        ministickversion.append(x.strip())
-                    file_ministick_version_raw.close()
-
-                if findversions == 1:
-                    ministick_version()
-
-    if version_MainStick == 1:
-        if os.path.isfile("C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\data\\Info\\exist"):
-
-            Eveconss.append("PC")
-            Evecons_PC = 1
-
-            def pc_version():
-                file_pc_version_raw = open("C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\data\\Info\\version", "r")
-
-                for x in file_pc_version_raw:
-                    PCversion.append(x.strip())
-                file_pc_version_raw.close()
-
-            if findversions == 1:
-                pc_version()
-
-        elif os.path.isfile("C:\\Users\\lualb\\Desktop\\Evecon\\data\\Info\\exist"):
-
-            Eveconss.append("PC")
-            Evecons_PC = 1
-
-            def pc_version():
-                file_pc_version_raw = open("C:\\Users\\lualb\\Desktop\\Evecon\\data\\Info\\version", "r")
-                for x in file_pc_version_raw:
-                    PCversion.append(x.strip())
-                file_pc_version_raw.close()
-
-            if findversions == 1:
-                pc_version()
-
-    if version_MiniStick == 1:
-        if os.path.isfile("C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\data\\Info\\exist"):
-
-            Eveconss.append("PC")
-            Evecons_PC = 1
-
-            def pc_version():
-                file_pc_version_raw = open("C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\data\\Info\\version", "r")
-                for x in file_pc_version_raw:
-                    PCversion.append(x.strip())
-                file_pc_version_raw.close()
-
-            if findversions == 1:
-                pc_version()
-
-        elif os.path.isfile("C:\\Users\\lualb\\Desktop\\Evecon\\data\\Info\\exist"):
-
-            Eveconss.append("PC")
-            Evecons_PC = 1
-
-            def pc_version():
-                file_pc_version_raw = open("", "r")
-                for x in file_pc_version_raw:
-                    PCversion.append(x.strip())
-                    file_pc_version_raw.close()
-
-            if findversions == 1:
-                pc_version()
-
-
-    if len(Eveconss) >= 2:
-        Evecons_multi = 1
-
-
-def version():
-    file_version_raw = open("data\\Info\\version", "r")
-    global this_version
-    this_version = []
-    for x in file_version_raw:
-        this_version.append(x.strip())
-    file_version_raw.close()
-
-
-def update():
-    version()
-    global this_version
-    Evecons(1)
-    global mainstickversion, ministickversion, PCversion
-    global Evecons_multi, Evecons_mainstick, Evecons_PC, Evecons_ministick
-    if Evecons_multi == 0:
-        if Evecons_PC == 1:
-            if this_version[0] > PCversion[0]:
-                title("Updating another Program")
-                dir_tmp = os.getcwd()
-                os.chdir("Programs\\Evecon\\Updater")
-                subprocess.call(["updater.exe", "-update"])
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
-            elif this_version[0] < PCversion[0]:
-                title("Updating this Program", "Closing")
-                dir_tmp = os.getcwd()
-                os.chdir("Programs\\Evecon\\Updater")
-                subprocess.call(["updater.exe", "-update"])
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
-                exit_now()
-        elif Evecons_mainstick == 1:
-            if this_version[0] > mainstickversion[0]:
-                title("Updating another Program")
-                dir_tmp = os.getcwd()
-                os.chdir("Programs\\Evecon\\Updater")
-                subprocess.call(["updater.exe", "-update"])
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
-            elif this_version[0] < mainstickversion[0]:
-                title("Updating this Program", "Closing")
-                dir_tmp = os.getcwd()
-                os.chdir("Programs\\Evecon\\Updater")
-                subprocess.call(["updater.exe", "-update"])
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
-                exit_now()
-        elif Evecons_ministick == 1:
-            if this_version[0] > ministickversion[0]:
-                title("Updating another Program")
-                dir_tmp = os.getcwd()
-                os.chdir("Programs\\Evecon\\Updater")
-                subprocess.call(["updater.exe", "-update"])
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
-            elif this_version[0] < ministickversion[0]:
-                title("Updating this Program", "Closing")
-                dir_tmp = os.getcwd()
-                os.chdir("Programs\\Evecon\\Updater")
-                subprocess.call(["updater.exe", "-update"])
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
-                exit_now()
-    else:                                   # Wenn mehr als drei Programme gleichzeitig dies umprogrammieren!
-        if version_PC == 1:
-            if mainstickversion[0] > ministickversion[0]:
-                highestversion = mainstickversion[0]
-                mustupdateanother = 1
-            elif mainstickversion[0] < ministickversion[0]:
-                highestversion = ministickversion[0]
-                mustupdateanother = 1
-            else:
-                highestversion = mainstickversion[0]
-                mustupdateanother = 0
-
-            if this_version[0] > highestversion:
-                title("Updating other Programs")
-                dir_tmp = os.getcwd()
-                os.chdir("Programs\\Evecon\\Updater")
-                subprocess.call(["updater.exe", "-update"])
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
-            elif this_version[0] < highestversion:
-                title("Updating this Program", "Closing")
-                dir_tmp = os.getcwd()
-                os.chdir("Programs\\Evecon\\Updater")
-                subprocess.call(["updater.exe", "-update"])
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
-                exit_now()
-            elif this_version[0] == highestversion:
-                if mustupdateanother == 1:
-                    title("Updating another Program")
-                    dir_tmp = os.getcwd()
-                    os.chdir("Programs\\Evecon\\Updater")
-                    subprocess.call(["updater.exe", "-update"])
-                    time.sleep(0.25)
-                    os.chdir(dir_tmp)
-        elif version_MainStick == 1:
-            if PCversion[0] > ministickversion[0]:
-                highestversion = PCversion[0]
-                mustupdateanother = 1
-            elif PCversion[0] < ministickversion[0]:
-                highestversion = ministickversion[0]
-                mustupdateanother = 1
-            else:
-                highestversion = PCversion[0]
-                mustupdateanother = 0
-
-            if this_version[0] > highestversion:
-                title("Updating other Programs")
-                dir_tmp = os.getcwd()
-                os.chdir("Programs\\Evecon\\Updater")
-                subprocess.call(["updater.exe", "-update"])
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
-            elif this_version[0] < highestversion:
-                title("Updating this Program", "Closing")
-                dir_tmp = os.getcwd()
-                os.chdir("Programs\\Evecon\\Updater")
-                subprocess.call(["updater.exe", "-update"])
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
-                exit_now()
-            elif this_version[0] == highestversion:
-                if mustupdateanother == 1:
-                    title("Updating another Program")
-                    dir_tmp = os.getcwd()
-                    os.chdir("Programs\\Evecon\\Updater")
-                    subprocess.call(["updater.exe", "-update"])
-                    time.sleep(0.25)
-                    os.chdir(dir_tmp)
-        elif version_MiniStick == 1:
-            if PCversion[0] > mainstickversion[0]:
-                highestversion = PCversion[0]
-                mustupdateanother = 1
-            elif PCversion[0] < mainstickversion[0]:
-                highestversion = mainstickversion[0]
-                mustupdateanother = 1
-            else:
-                highestversion = PCversion[0]
-                mustupdateanother = 0
-
-            if this_version[0] > highestversion:
-                title("Updating other Programs")
-                dir_tmp = os.getcwd()
-                os.chdir("Programs\\Evecon\\Updater")
-                subprocess.call(["updater.exe", "-update"])
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
-            elif this_version[0] < highestversion:
-                title("Updating this Program", "Closing")
-                dir_tmp = os.getcwd()
-                os.chdir("Programs\\Evecon\\Updater")
-                subprocess.call(["updater.exe", "-update"])
-                time.sleep(0.25)
-                os.chdir(dir_tmp)
-                exit_now()
-            elif this_version[0] == highestversion:
-                if mustupdateanother == 1:
-                    title("Updating another Program")
-                    dir_tmp = os.getcwd()
-                    os.chdir("Programs\\Evecon\\Updater")
-                    subprocess.call(["updater.exe", "-update"])
-                    time.sleep(0.25)
-                    os.chdir(dir_tmp)
 
 def upgrade():
     title("Updating this Program", "")
@@ -2423,410 +2058,6 @@ def debug():
 
 
 
-def games(preset="Man"):
-
-
-    def snake():
-        import click
-
-        global nothing, me, food, max_x, max_y, lastthing, Title_run, lockMe, testx, testy, Thingyou, Things, special, direction, sleep
-
-        nothing = " "
-        me = "X"
-        food = "O"
-        max_x = 120
-        max_y = 30
-        ttime.deac()
-
-        global Titledeac
-
-        Titledeac = False
-
-        for testy in range(1, max_y):
-            for testx in range(1, max_x):
-                exec("global pos%s_%s; pos%s_%s = '%s'" % (testx, testy, testx, testy, nothing))
-
-
-        exec("pos%s_%s = '%s'" % (int(max_x / 2), int(max_y / 2), me))
-        now = {"x": int(max_x / 2), "y": int(max_y / 2)}
-        lastthing = {"x": int(max_x / 2), "y": int(max_y / 2)}
-        direction = "up"
-        sleep = 0.2
-        restart = True
-
-
-        class Titleclass(threading.Thread):
-
-            def run(self):
-                global Title_run, beginn, score, moves, Things
-                Title_run = False
-
-                while True:
-
-                    Title_run = False
-                    nowtime = 0
-                    beginn = time.time()
-                    score = 0
-                    ctypes.windll.kernel32.SetConsoleTitleW("Snake: Time: %s    Score: %s" %
-                                                            (nowtime, score))
-                    while not Title_run:
-                        time.sleep(0.5)
-                    beginn = time.time()
-                    time.sleep(0.25)
-                    while Title_run:
-                        while not paused:
-                            nowtime = int(time.time()) - int(beginn)
-                            score = moves * 50 + (Things - 1) * 1000
-
-                            ctypes.windll.kernel32.SetConsoleTitleW("Snake: Time: %s    Score: %s" %
-                                                                    (nowtime, score))
-                            time.sleep(0.5)
-                        time.sleep(0.5)
-                        beginn += 0.5
-
-
-        if not Titledeac:
-            titles = Titleclass()
-            titles.start()
-
-
-        class Direc(threading.Thread):
-
-            def run(self):
-                while True:
-                    first = click.getchar()
-                    time.sleep(0.01)
-                    second = click.getchar()
-                    global direction
-                    if first == b'\xe0':
-                        if second == b'H':
-                            if direction != "down":
-                                direction = "up"
-                        elif second == b'P':
-                            if direction != "up":
-                                direction = "down"
-                        elif second == b'M':
-                            if direction != "left":
-                                direction = "right"
-                        elif second == b'K':
-                            if direction != "right":
-                                direction = "left"
-                    if first == b'W':
-                        if direction != "down":
-                            direction = "up"
-                    elif first == b'S':
-                        if direction != "up":
-                            direction = "down"
-                    elif first == b'D':
-                        if direction != "left":
-                            direction = "right"
-                    elif first == b'A':
-                        if direction != "right":
-                            direction = "left"
-                    elif first == b' ':
-                        direction = "wait"
-
-
-        direct = Direc()
-        direct.start()
-
-        class Thing:
-            def __init__(self, beforex, beforey, debug = False):
-                global OurThing
-                #	exec("global pos%s_%s; pos%s_%s = '%s'" % (abs(beforex), abs(beforey), abs(beforex), abs(beforey), me))
-                self.lastdirection = "wait"
-                self.beforex = beforex
-                self.beforey = beforey
-                if not debug:
-                    OurThing.append("")
-
-            def move(self, thisdirect):  # braucht mann nowx und nowy?
-                global Thingyou, Things, lastthing
-                # temp = False
-                if self.lastdirection == "wait":
-                    exec("global pos%s_%s; pos%s_%s = '%s'" % (
-                    self.beforex, self.beforey, self.beforex, self.beforey, me))
-                    lastthing['x'] = self.beforex
-                    lastthing['y'] = self.beforey
-                elif self.lastdirection == "up":
-                    self.beforey -= 1
-                    exec("global pos%s_%s; pos%s_%s = '%s'" % (
-                        self.beforex, self.beforey, self.beforex, self.beforey, me))  # hier werte überprüfen
-                    OurThing[Thingyou] = ("pos%s_%s" % (self.beforex, self.beforey))
-                    if Things > Thingyou:
-                        Thingyou += 1
-                        exec("Thing%s.move('up')" % Thingyou)
-                    else:
-                        lastthing['x'] = self.beforex
-                        lastthing['y'] = self.beforey
-
-                elif self.lastdirection == "down":
-                    self.beforey += 1
-                    exec("global pos%s_%s; pos%s_%s = '%s'" % (
-                    self.beforex, self.beforey, self.beforex, self.beforey, me))
-                    OurThing[Thingyou] = ("pos%s_%s" % (self.beforex, self.beforey))
-                    if Things > Thingyou:
-                        Thingyou += 1
-                        exec("Thing%s.move('down')" % Thingyou)
-                    else:
-                        lastthing['x'] = self.beforex
-                        lastthing['y'] = self.beforey
-
-                elif self.lastdirection == "right":
-                    self.beforex += 1
-                    exec("global pos%s_%s; pos%s_%s = '%s'" % (
-                    self.beforex, self.beforey, self.beforex, self.beforey, me))
-                    OurThing[Thingyou] = ("pos%s_%s" % (self.beforex, self.beforey))
-                    if Things > Thingyou:
-                        Thingyou += 1
-                        exec("Thing%s.move('right')" % Thingyou)
-                    else:
-                        lastthing['x'] = self.beforex
-                        lastthing['y'] = self.beforey
-
-                elif self.lastdirection == "left":
-                    self.beforex -= 1
-                    exec("global pos%s_%s; pos%s_%s = '%s'" % (
-                    self.beforex, self.beforey, self.beforex, self.beforey, me))
-                    OurThing[Thingyou] = ("pos%s_%s" % (self.beforex, self.beforey))
-                    if Things > Thingyou:
-                        Thingyou += 1
-                        exec("Thing%s.move('left')" % Thingyou)
-                    else:
-                        lastthing['x'] = self.beforex
-                        lastthing['y'] = self.beforey
-
-                self.lastdirection = thisdirect
-
-        def move():
-            global direction, restart, Things, Thingyou, now, special, paused
-            # temp = False
-            # temp2 = False
-            Thingyou = 1
-
-            for testy in range(1, max_y):
-                for testx in range(1, max_x):
-                    exec("global pos%s_%s" % (testx, testy))
-
-            if direction == "wait":
-                paused = True
-                exec("global pos%s_%s; pos%s_%s = '%s'" % (now["x"], now["y"], now["x"], now["y"], me))
-                time.sleep(sleep)
-                pass
-
-            if direction == "up":
-                paused = False
-
-                for testm in range(1, len(OurThing)):
-                    if ("pos%s_%s" % (now["x"], now["y"] - 1)) == OurThing[testm]:
-                        restart = False
-                if restart:
-                    if now["y"] == 1:
-                        restart = False
-                    else:
-
-                        exec("global pos%s_%s; pos%s_%s = '%s'" % (now["x"], now["y"], now["x"], now["y"], nothing))
-                        now["y"] -= 1
-                        exec("global pos%s_%s; pos%s_%s = '%s'" % (now["x"], now["y"], now["x"], now["y"], me))
-
-                        if Things > Thingyou:
-                            Thingyou += 1
-                            exec("Thing%s.move('up')" % Thingyou)
-                        else:
-                            lastthing['x'] = now['x']
-                            lastthing['y'] = now['y']
-
-                        for test1 in range(len(special)):
-                            if ("pos%s_%s" % (now["x"], now["y"])) == special[test1]:
-                                # temp = True
-                                special[test1] = ("pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)))
-                                Things += 1
-                                exec("Thing%s = Thing(lastthing['x'], lastthing['y'])" % Things)
-
-            if direction == "down":
-                paused = False
-                for testm in range(1, len(OurThing)):
-                    if ("pos%s_%s" % (now["x"], now["y"] + 1)) == OurThing[testm]:
-                        print(now, OurThing)
-                        restart = False
-                if restart:
-                    if now["y"] == max_y - 1:
-                        restart = False
-                    else:
-
-                        exec("global pos%s_%s; pos%s_%s = '%s'" % (now["x"], now["y"], now["x"], now["y"], nothing))
-                        now["y"] += 1
-                        exec("global pos%s_%s; pos%s_%s = '%s'" % (now["x"], now["y"], now["x"], now["y"], me))
-
-                        if Things > Thingyou:
-                            Thingyou += 1
-                            exec("Thing%s.move('down')" % Thingyou)
-                        else:
-                            lastthing['x'] = now['x']
-                            lastthing['y'] = now['y']
-
-                        for test1 in range(len(special)):
-                            if ("pos%s_%s" % (now["x"], now["y"])) == special[test1]:
-                                # temp = True
-                                special[test1] = ("pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)))
-                                Things += 1
-                                exec("Thing%s = Thing(lastthing['x'], lastthing['y'])" % Things)
-
-            if direction == "right":
-                paused = False
-                for testm in range(1, len(OurThing)):
-                    if ("pos%s_%s" % (now["x"] + 1, now["y"])) == OurThing[testm]:
-                        restart = False
-                if restart:
-                    if now["x"] == max_x - 1:
-                        restart = False
-                    else:
-
-                        exec("global pos%s_%s; pos%s_%s = '%s'" % (now["x"], now["y"], now["x"], now["y"], nothing))
-                        now["x"] += 1
-                        exec("global pos%s_%s; pos%s_%s = '%s'" % (now["x"], now["y"], now["x"], now["y"], me))
-
-                        if Things > Thingyou:
-                            Thingyou += 1
-                            exec("Thing%s.move('right')" % Thingyou)
-                        else:
-                            lastthing['x'] = now['x']
-                            lastthing['y'] = now['y']
-
-                        for test1 in range(len(special)):
-                            if ("pos%s_%s" % (now["x"], now["y"])) == special[test1]:
-                                # temp = True
-                                special[test1] = ("pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)))
-                                Things += 1
-                                exec("Thing%s = Thing(lastthing['x'], lastthing['y'])" % Things)
-
-            if direction == "left":
-                paused = False
-
-                for testm in range(1, len(OurThing)):
-                    if ("pos%s_%s" % (now["x"] - 1, now["y"])) == OurThing[testm]:
-                        restart = False
-                if restart:
-                    if now["x"] <= 1:
-                        restart = False
-                    else:
-
-                        exec("global pos%s_%s; pos%s_%s = '%s'" % (now["x"], now["y"], now["x"], now["y"], nothing))
-                        now["x"] -= 1
-                        exec("global pos%s_%s; pos%s_%s = '%s'" % (now["x"], now["y"], now["x"], now["y"], me))
-
-                        if Things > Thingyou:
-                            Thingyou += 1
-                            exec("Thing%s.move('left')" % Thingyou)
-                        else:
-                            lastthing['x'] = now['x']
-                            lastthing['y'] = now['y']
-
-                        for test1 in range(len(special)):
-                            if ("pos%s_%s" % (now["x"], now["y"])) == special[test1]:
-                                # temp = True
-                                special[test1] = ("pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)))
-                                Things += 1
-                                exec("Thing%s = Thing(lastthing['x'], lastthing['y'])" % Things)
-
-        betterdebug = Thing(0, 0, True)
-        print(betterdebug)
-        cls()
-
-        while True:
-            global Title_run, beginn
-            Title_run = False
-            beginn = time.time()
-            for testy in range(1, max_y):
-                for testx in range(1, max_x):
-                    exec("global pos%s_%s" % (testx, testy))
-
-            for testy in range(1, max_y):
-                for testx in range(1, max_x):
-                    exec("pos%s_%s = '%s'" % (testx, testy, nothing))
-
-            now = {"x": int(max_x / 2), "y": int(max_y / 2)}
-            exec("global pos%s_%s; pos%s_%s = '%s'" % (int(max_x / 2), int(max_y / 2), int(max_x / 2), int(max_y / 2), me))
-
-            special = ["pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)),
-                       "pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)),
-                       "pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)),
-                       "pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)),
-                       "pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)),
-                       "pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)),
-                       "pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y)),
-                       "pos%s_%s" % (random.randint(1, max_x), random.randint(1, max_y))]
-            global Things, OurThing, Thingyou, moves
-            direction = "wait"
-            sleep = 0.1
-            restart = True
-            Things = 1
-            OurThing = ["", ""]
-            Thingyou = 0
-            moves = 0
-
-            for test in range(len(special)):
-                exec("%s = '%s'" % (special[test], food))
-
-
-            #class printy(threading.Thread):
-            #    def __init__(self, printx):
-            #        super().__init__()  # was ist das?
-            #        self.printx = printx
-
-            #    def run(self):
-            #        lockMe.acquire()
-            #        for testyp in range(1, max_y):
-            #            exec("sys.stdout.write(pos%s_%s)" % (self.printx, testyp))
-            #        print("")
-            #        lockMe.release()
-
-
-            lockMe = threading.Lock()
-            # for testy in range(1, max_y):
-            #    exec("printer%s = printy(testy)" % testy)
-            # for testy in range(1, max_y):
-            #    exec("printer%s.start()" % testy)
-
-
-            while restart:
-                Title_run = True
-
-                # for testy in range(1, max_y):
-                #    exec("printer%s.join()" % testy)
-
-                for testy in range(1, max_y):
-                    for testx in range(1, max_x):
-                        exec("global pos%s_%s" % (testx, testy))
-
-                for testy in range(1, max_y):
-                    for testx in range(1, max_x):
-                        exec("global pos%s_%s; sys.stdout.write(pos%s_%s)" % (testx, testy, testx, testy))
-                    print("")
-
-                for testy in range(1, max_y):
-                    for testx in range(1, max_x):
-                        exec("global pos%s_%s; pos%s_%s = '%s'" % (testx, testy, testx, testy, nothing))
-
-                for test in range(len(special)):
-                    exec("global %s; %s = '%s'" % (special[test], special[test], food))
-
-                time.sleep(sleep / (Things / 2))
-
-                move()
-                moves += 1
-                cls()
-
-    if preset == "snake":
-        snake()
-
-    if preset == "Man":
-        cls()
-        games_user_input = input("What to do now?\n\n")
-
-        if games_user_input.lower() == "snake":
-            ttime.deac()
-            snake()
 
 
 
@@ -2878,122 +2109,75 @@ class MusicPlayerC(threading.Thread):
         self.splmp = SplatoonC()
 
     def addMusic(self, key, loadMu=True): # key (AN, LIS)
-        if not Computerfind_MiniPC:
+        if computer == "MiniPC":
             cls()
-            print("Loading...")
+            print("Loading... (On Mini-PC)")
+            musicDirLoad = MusicDir
 
-            if key == "us":
-                self.searchMusic("Music\\User", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "lis":
-                self.searchMusic("Music\\Presets\\Life is Strange", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "an":
-                self.searchMusic("Music\\Presets\\Anime", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "phu":
-                self.searchMusic("Music\\Presets\\Phunk", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "cp":
-                self.searchMusic("Music\\Presets\\Caravan Palace", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "es":
-                self.searchMusic("Music\\Presets\\Electro Swing", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "ud":
-                cls()
-                self.searchMusic(input("Your path:\n"), loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "ps":
-                self.searchMusic("Music\\Presets\\Parov Stelar", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "jpop":
-                self.searchMusic("Music\\Presets\\jPOP-etc", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "omfg":
-                self.searchMusic("Music\\Presets\\OMFG", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-
-            else:
-                return False
+        elif computer == "BigPC":
+            cls()
+            print("Loading... (On Big-PC)")
+            musicDirLoad = MusicDir
 
         else:
             cls()
-            print("Loading... (On Mini-PC)")
+            print("Loading...")
+            musicDirLoad = ""
 
-            if key == "us":
-                self.searchMusic("Music\\User", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "lis":
-                self.searchMusic(MusicDir + "\\Games\\Life is Strange", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "an":
-                self.searchMusic(MusicDir + "\\Anime", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "phu":
-                self.searchMusic(MusicDir + "\\Phunk", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "cp":
-                self.searchMusic(MusicDir + "\\Caravan Palace", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "es":
-                self.searchMusic(MusicDir + "\\Electro Swing", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "ud":
-                cls()
-                self.searchMusic(input("Your path:\n"), loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return "ul"
-            elif key == "ps":
-                self.searchMusic(MusicDir + "\\Parov Stelar", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "jpop":
-                self.searchMusic(MusicDir + "\\jPOP-etc", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "omfg":
-                self.searchMusic(MusicDir + "\\OMFG" ,loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            else:
-                return False
+        if key == "us":
+            self.searchMusic("Music\\User", loadMu)
+            self.music_playlists_active.append(key)
+            print("Finished")
+            return True
+        elif key == "lis":
+            self.searchMusic(MusicDir + "\\Games\\Life is Strange", loadMu)
+            self.music_playlists_active.append(key)
+            print("Finished")
+            return True
+        elif key == "an":
+            self.searchMusic(MusicDir + "\\Anime", loadMu)
+            self.music_playlists_active.append(key)
+            print("Finished")
+            return True
+        elif key == "phu":
+            self.searchMusic(MusicDir + "\\Phunk", loadMu)
+            self.music_playlists_active.append(key)
+            print("Finished")
+            return True
+        elif key == "cp":
+            self.searchMusic(MusicDir + "\\Caravan Palace", loadMu)
+            self.music_playlists_active.append(key)
+            print("Finished")
+            return True
+        elif key == "es":
+            self.searchMusic(MusicDir + "\\Electro Swing", loadMu)
+            self.music_playlists_active.append(key)
+            print("Finished")
+            return True
+        elif key == "ud":
+            cls()
+            self.searchMusic(input("Your path:\n"), loadMu)
+            self.music_playlists_active.append(key)
+            print("Finished")
+            return "ul"
+        elif key == "ps":
+            self.searchMusic(MusicDir + "\\Parov Stelar", loadMu)
+            self.music_playlists_active.append(key)
+            print("Finished")
+            return True
+        elif key == "jpop":
+            self.searchMusic(MusicDir + "\\jPOP-etc", loadMu)
+            self.music_playlists_active.append(key)
+            print("Finished")
+            return True
+        elif key == "omfg":
+            self.searchMusic(MusicDir + "\\OMFG", loadMu)
+            self.music_playlists_active.append(key)
+            print("Finished")
+            return True
+        else:
+            return False
+
     def reloadMusic(self, tracknum):
         print(tracknum)
         self.musiclist[tracknum] = pyglet.media.load(self.musiclistpath[tracknum])
@@ -3916,10 +3100,10 @@ def screensaver(preset = None):
                 screensavertime()
             elif user_input.lower() == "debug":
                 debug()
-            elif user_input.lower() == "games":
-                games()
-            elif user_input.lower() == "snake":
-                games("snake")
+            #elif user_input.lower() == "games":
+            #    games()
+            #elif user_input.lower() == "snake":
+            #    games("snake")
             elif user_input.lower() == "music":
                 Music(False)
                 killmem = True
@@ -6308,11 +5492,28 @@ def Splatoon():
         spl.input(user_input)
 
 def main():
-    version()
+    versionFind()
     title("Waiting for Input")
 
     cls()
-    user_input = input("What to do?\nNotepad (NP), Light (L), Upgrade (UG)\n\n")
+
+    print("Evecon")
+    print("PC: " + Computername)
+
+    print("\nMenu:")
+
+    print("\nFuntions:")
+    print("Notepad (NP), Musicplayer (MUSIC), Radio (RADIO)")
+    print("Time (TIME), Timer (TIMER)")
+
+    print("\nSettings:")
+    print("Light (L)")
+
+    print("\nDev:")
+    print("Upgrade (UG), Debug (DEBUG)")
+
+
+    user_input = input("\n\n")
 
     if user_input.lower() == "np":
         np()
@@ -6332,10 +5533,10 @@ def main():
         upgrade()
     elif user_input.lower() == "debug":
         debug()
-    elif user_input.lower() == "games":
-        games()
-    elif user_input.lower() == "snake":
-        games("snake")
+    #elif user_input.lower() == "games":
+    #    games()
+    #elif user_input.lower() == "snake":
+    #    games("snake")
     elif user_input.lower() == "music":
         Music()
     elif user_input.lower() == "time":
@@ -6346,6 +5547,8 @@ def main():
         passwordmanager()
     elif user_input.lower() == "radio":
         Radio()
+    elif user_input.lower() == "timer":
+        Timer()
 
 
 def Arg():
@@ -6407,9 +5610,9 @@ def Arg():
         if sys.argv[x] == "-tt_deac":
             title("Load Argument", "TTime: Deactivate")
             ttime.deac()
-        if sys.argv[x] == "-update":
-            title("Load Argument", "Updater: Updating")
-            update()
+        #if sys.argv[x] == "-update":
+        #    title("Load Argument", "Updater: Updating")
+        #    update()
         if sys.argv[x] == "-upgrade":
             title("Load Argument", "Updater: Upgrading")
             upgrade()
@@ -6462,11 +5665,10 @@ def Arg():
 if sys.argv:
     Arg()
 
-
 if exitnow == 0:
     if __name__ == "__main__":
         title("Search for Updates")
-        update()
+        #update()
         title("Start Enviroment")
         main()
         time.sleep(0)
