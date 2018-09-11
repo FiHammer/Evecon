@@ -22,7 +22,7 @@ import glob
 import comtypes
 import pycaw
 import pycaw.pycaw
-
+import getpass
 
 def cls():
     os.system("cls")
@@ -753,6 +753,7 @@ def computerconfig_bigpc():
 
 def computerconfig_aldi():
     nircmd("setsize", 1000, 520)
+    thisIP = "192.168.2.110"
 
 
 def computerconfig_laptop():
@@ -5491,6 +5492,36 @@ def Splatoon():
         user_input = input()
         spl.input(user_input)
 
+
+
+def Status(printit=True):
+    if printit:
+        cls()
+        print("Status\n")
+
+        print("Time: " + datetime.datetime.now().strftime("%H:%M:%S"))
+        print("Date: " + datetime.datetime.now().strftime("%d.%m.%Y"))
+
+        print("\nEvecon:\n")
+        print("Version: " + versionFind()[1])
+        print("Versionnummber: " + versionFind()[0])
+        print("Evecon Type: " + version)
+        print("PID: " + str(os.getpid()))
+
+        print("\nComputer:\n")
+        print("Computername: " + Computername)
+        print("Username: " + getpass.getuser())
+        print("Computer synonymous: " + computer)
+        if thisIP:
+            print("IP address: " + str(thisIP))
+        print("Homepc: " + str(HomePC))
+
+
+        input()
+
+    return [versionFind()[1], versionFind()[0], version, os.getpid(),Computername, getpass.getuser(), computer, thisIP, HomePC]
+
+
 def main():
     versionFind()
     title("Waiting for Input")
@@ -5510,7 +5541,7 @@ def main():
     print("Light (L)")
 
     print("\nDev:")
-    print("Upgrade (UG), Debug (DEBUG)")
+    print("Upgrade (UG), Debug (DEBUG), Status (STATUS)")
 
 
     user_input = input("\n\n")
@@ -5549,6 +5580,8 @@ def main():
         Radio()
     elif user_input.lower() == "timer":
         Timer()
+    elif user_input.lower() == "status":
+        Status()
 
 
 def Arg():
@@ -5678,4 +5711,4 @@ if exitnow == 0:
 
 
 # Ideas:
-# Status, Time/Timer benutzernutzbar, settings ?, better interface (with version)
+# Status, settings ?
