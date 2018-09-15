@@ -53,6 +53,7 @@ musicrun = False
 ss_active = False
 thisIP = None
 StartupServer = None
+browser = "firefox"
 
 cdir = os.getcwd()
 os.chdir("..")
@@ -738,9 +739,10 @@ def computerconfig_schoolpc():
     color.change("F0")
 
 def computerconfig_minipc():
-    global MusicDir, thisIP
+    global MusicDir, thisIP, browser
     MusicDir = "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Musik\\Musik\\!Fertige Musik"
     thisIP = "192.168.2.102"
+    browser = "vivaldi"
 
 
 
@@ -1773,6 +1775,7 @@ def StartupServerTasks(data_un):
 
 
 def np(preset="Man"):
+    global browser
     title("Loading Notepad")
 
     def shota():
@@ -1786,8 +1789,12 @@ def np(preset="Man"):
             if y == 0:
                 if "firefox.exe" in (p.name() for p in psutil.process_iter()):
                     dir_tmp = os.getcwd()
-                    os.chdir("C:\\Program Files\\Mozilla Firefox")
-                    subprocess.call(["firefox.exe", "-new-window", file_shota[y]])
+                    if browser == "firefox":
+                        os.chdir("C:\\Program Files\\Mozilla Firefox")
+                        subprocess.call(["firefox.exe", "-new-window", file_shota[y]])
+                    elif browser == "vivaldi":
+                        os.chdir("C:\Program Files (x86)\Vivaldi\Application")
+                        subprocess.call(["vivaldi.exe", "-new-window", file_shota[y]])
                     time.sleep(0.25)
                     os.chdir(dir_tmp)
                     continue
@@ -1850,18 +1857,33 @@ def np(preset="Man"):
         file_foxname_raw = open("data\\Notepad\\Notiespez\\NotieFoxinownamelink.txt", "r")
         file_foxname = file_foxname_raw.readline()
         file_foxname_raw.close()
-
+        
+        print("BEGINN")
         if "firefox.exe" in (p.name() for p in psutil.process_iter()):
+            print("FIREFOX")
             dir_tmp = os.getcwd()
             os.chdir("C:\\Program Files\\Mozilla Firefox")
             subprocess.call(["firefox.exe", "-url", file_foxpage, file_foxname])
             time.sleep(0.25)
             os.chdir(dir_tmp)
+        elif "vivaldi.exe" in (p.name() for p in psutil.process_iter()):
+            print("VIVALDI")
+            dir_tmp = os.getcwd()
+            os.chdir("C:\\Program Files\\Mozilla Firefox")
+            os.chdir("C:\Program Files (x86)\Vivaldi\Application")
+            subprocess.call(["vivaldi.exe", "-new-window", file_foxpage])
+            time.sleep(0.6)
+            subprocess.call(["vivaldi.exe", "-url", file_foxname])
+            time.sleep(0.25)
+            os.chdir(dir_tmp)
         else:
+            print("NOTHING")
             webbrowser.open(file_foxpage)
             time.sleep(5)
             webbrowser.open(file_foxname)
-
+        
+        print("END")
+        
     def foxname():
 
         file_foxname_raw = open("data\\Notepad\\Notiespez\\NotieFoxinownamelink.txt", "r")
@@ -1870,8 +1892,12 @@ def np(preset="Man"):
 
         if "firefox.exe" in (p.name() for p in psutil.process_iter()):
             dir_tmp = os.getcwd()
-            os.chdir("C:\\Program Files\\Mozilla Firefox")
-            subprocess.call(["firefox.exe", "-new-window", file_foxname])
+            if browser == "firefox":
+                os.chdir("C:\\Program Files\\Mozilla Firefox")
+                subprocess.call(["firefox.exe", "-new-window", file_foxname])
+            elif browser == "vivaldi":
+                os.chdir("C:\Program Files (x86)\Vivaldi\Application")
+                subprocess.call(["vivaldi.exe", "-new-window", file_foxname])
             time.sleep(0.25)
             os.chdir(dir_tmp)
         else:
@@ -1886,7 +1912,12 @@ def np(preset="Man"):
         if "firefox.exe" in (p.name() for p in psutil.process_iter()):
             dir_tmp = os.getcwd()
             os.chdir("C:\\Program Files\\Mozilla Firefox")
-            subprocess.call(["firefox.exe", "-new-window", file_foxpage])
+            if browser == "firefox":
+                os.chdir("C:\\Program Files\\Mozilla Firefox")
+                subprocess.call(["firefox.exe", "-new-window", file_foxname])
+            elif browser == "vivaldi":
+                os.chdir("C:\Program Files (x86)\Vivaldi\Application")
+                subprocess.call(["vivaldi.exe", "-new-window", file_foxpage])
             time.sleep(0.25)
             os.chdir(dir_tmp)
         else:
@@ -2327,6 +2358,8 @@ class MusicPlayerC(threading.Thread):
         elif inpt == "stop" or inpt == "exit":
             self.Stop()
         elif inpt == "del":
+            if self.thismusicnumber < self.nextmusicnumber:
+                self.nextmusicnumber -= 1
             self.Del(self.thismusicnumber)
             self.musicplaying = False
             if self.musicpause:
@@ -5300,40 +5333,41 @@ def passwordmanager():
 class SplatoonC:
     def __init__(self, roundtime = 180):
         self.weapons = ["Disperser", "Disperser Neo", "Junior-Klechser", "Junior-Klechser Plus", "Fein-Disperser",
-                   "Fein-Disperser Neo", "Airbrush MG", "Airbrush RG", "Klechser", "Tentatek-Klechser",
-                   "Heldenwaffe Replik (Klechser)", "Okto-Klechser Replik", ".52 Gallon", ".52 Gallon Deko", "N-ZAP85",
-                   "N-ZAP89", "Profi-Klechser", "Focus-Profi-Kleckser", ".96 Gallon", ".96 Gallon Deko", "Platscher",
-                   "Platscher SE",
+                        "Fein-Disperser Neo", "Airbrush MG", "Airbrush RG", "Klechser", "Tentatek-Klechser",
+                        "Kensa-Kleckser", "Heldenwaffe Replik (Klechser)", "Okto-Klechser Replik", ".52 Gallon",
+                        ".52 Gallon Deko", "N-ZAP85", "N-ZAP89", "Profi-Klechser", "Focus-Profi-Kleckser",
+                        ".96 Gallon", ".96 Gallon Deko", "Platscher", "Platscher SE",
 
-                   "Luna-Blaster", "Luna-Blaster Neo", "Blaster", "Blaster SE", "Helden-Blaster Replik",
-                   "Fern-Blaster", "Fern-Blaster SE", "Kontra-Blaster", "Kontra-Blaster Neo", "Turbo-Blaster",
-                   "Turbo-Blaster Deko", "Turbo-Blaster Plus", "Turbo-Blaster Plus Deko",
+                        "Luna-Blaster", "Luna-Blaster Neo", "Blaster", "Blaster SE", "Helden-Blaster Replik",
+                        "Fern-Blaster", "Fern-Blaster SE", "Kontra-Blaster", "Kontra-Blaster Neo", "Turbo-Blaster",
+                        "Turbo-Blaster Deko", "Turbo-Blaster Plus", "Turbo-Blaster Plus Deko",
 
-                   "L3 Tintenwerfer", "L3 Tintenwerfer D", "S3 Tintenwerfer", "S3 Tintenwerfer D", "L3 Tintenwerfer",
-                   "Quetscher", "Quetscher Fol",
+                        "L3 Tintenwerfer", "L3 Tintenwerfer D", "S3 Tintenwerfer", "S3 Tintenwerfer D", "Quetscher",
+                        "Quetscher Fol",
 
-                   "Karbonroller", "Karbonroller Deko", "Klecksroller", "Medusa-Klecksroller", "Helden-Roller Replik",
-                   "Dynaroller", "Dynaroller Tesla", "Flex-Roller", "Flex-Roller Fol",
-                   "Quasto", "Quasto Fresco", "Kalligraf", "Kalligraf Fresco", "Helden-Pinsel Replik",
+                        "Karbonroller", "Karbonroller Deko", "Klecksroller", "Medusa-Klecksroller",
+                        "Kensa-Klecksroller", "Helden-Roller Replik", "Dynaroller", "Dynaroller Tesla", "Flex-Roller",
+                        "Flex-Roller Fol", "Quasto", "Quasto Fresco", "Kalligraf", "Kalligraf Fresco",
+                        "Helden-Pinsel Replik",
 
-                   "Sepiator Alpha", "Sepiator Beta", "Klecks-Konzentrator", "Rilax-Klecks-Konzentrator",
-                   "Helden-Konzentrator Replik", "Ziel-Konzentrator", "Rilax-Ziel-Konzentrator", "E-liter 4K",
-                   "E-liter 4K SE", "Ziel-E-liter 4K", "Ziel-E-liter 4K SE", "Klotzer 14-A", "Klotzer 14-B", "T-Tuber",
-                   "T-Tuber SE",
+                        "Sepiator Alpha", "Sepiator Beta", "Klecks-Konzentrator", "Rilax-Klecks-Konzentrator",
+                        "Kensa-Klecks-Konzentrator", "Helden-Konzentrator Replik", "Ziel-Konzentrator",
+                        "Rilax-Ziel-Konzentrator", "Kensa-Ziel-Konzentrator", "E-liter 4K", "E-liter 4K SE",
+                        "Ziel-E-liter 4K", "Ziel-E-liter 4K SE", "Klotzer 14-A", "Klotzer 14-B", "T-Tuber",
+                        "T-Tuber SE",
 
-                   "Schwapper", "Schwapper Deko", "Helden-Schwapper Replik", "3R-Schwapper", "3R-Schwapper Fresco",
-                   "Knall-Schwapper", "Trommel-Schwapper", "Trommel-Schwapper Neo", "Wannen-Schwapper",
+                        "Schwapper", "Schwapper Deko", "Helden-Schwapper Replik", "3R-Schwapper", "3R-Schwapper Fresco",
+                        "Knall-Schwapper", "Trommel-Schwapper", "Trommel-Schwapper Neo", "Wannen-Schwapper",
 
-                   "Klecks-Splatling", "Sagitron-Klecks-Splatling", "Splatling", "Splatling Deko",
-                   "Helden-Splatling Replik", "Hydrant", "Hydrant SE", "Kuli-Splatling", "Nautilus 47",
+                        "Klecks-Splatling", "Sagitron-Klecks-Splatling", "Splatling", "Splatling Deko",
+                        "Helden-Splatling Replik", "Hydrant", "Hydrant SE", "Kuli-Splatling", "Nautilus 47",
 
-                   "Sprenkler", "Sprenkler Fresco", "Klecks-Doppler", "Enperry-Klecks-Doppler", "Helden-Doppler Replik",
-                   "Kelvin 525", "Kelvin 525 Deko", "Dual-Platscher", "Dual-Platscher SE", "Quadhopper Noir",
-                   "Quadhopper Blanc",
+                        "Sprenkler", "Sprenkler Fresco", "Klecks-Doppler", "Enperry-Klecks-Doppler",
+                        "Kensa-Klecks-Doppler", "Helden-Doppler Replik", "Kelvin 525", "Kelvin 525 Deko",
+                        "Dual-Platscher", "Dual-Platscher SE", "Quadhopper Noir", "Quadhopper Blanc",
 
-                   "Parapulviator", "Sorella-Parapulviator", "Helden-Pulviator Replik", "Camp-Pulviator",
-                   "Sorella-Camp-Pulviator",
-                   "UnderCover", "Sorella-UnderCover"]
+                        "Parapulviator", "Sorella-Parapulviator", "Helden-Pulviator Replik", "Camp-Pulviator",
+                        "Sorella-Camp-Pulviator", "UnderCover", "Sorella-UnderCover"]
 
 
         self.RUN = True
