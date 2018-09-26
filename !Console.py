@@ -2826,20 +2826,26 @@ class RadioC:
         inpt = inpt.lower()
         if inpt == "play" or inpt == "pau" or inpt == "pause" or inpt == "p":
             self.Switch()
+            self.printit()
         elif inpt == "change" or inpt == "ch" or inpt == "c":
             self.streamPrintOth = True
             self.streamPrintCh = True
+            self.printit()
             self.Change(input("Change to:"))
             self.streamPrintOth = False
             self.streamPrintCh = False
+            self.printit()
         elif inpt == "stop" or inpt == "exit":
             self.Stop()
+            self.printit()
         elif inpt == "vol":
             self.streamPrintOth = True
             self.streamPrintVol = True
+            self.printit()
             self.vol(float(input("Volume (Now: %s)\n" % Volume.getVolume())))
             self.streamPrintOth = False
             self.streamPrintVol = False
+            self.printit()
 
     # noinspection PyStatementEffect
     def start(self):
@@ -2974,6 +2980,7 @@ class RadioC:
             self.systray = SysTray("data\\Ico\\Radio.ico", "Evecon: Radio", {"Pause/Unpause": unp_p},
                                    sub_menu1=sub_menu1, sub_menu_name1="Change Radio", quitFunc=quitFunc)
             self.systray.start()
+            self.printit()
 
     def printit(self):
         cls()
@@ -3017,20 +3024,9 @@ def Radio(systrayon=True):
         if x == user_input:
             y = True
     if y:
-        class RadioPrinter(threading.Thread):
-            def __init__(self):
-                super().__init__()
-                self.unerror = 0
-
-            def run(self):
-                while radioPlayer.streamrun:
-                    cls()
-                    radioPlayer.printit()
-                    time.sleep(1)
-        RP = RadioPrinter()
-        RP.start()
         radioPlayer.streamplaying = user_input
         radioPlayer.start()
+
 
 
     while y:
@@ -5745,4 +5741,4 @@ if exitnow == 0:
 
 
 # Ideas:
-# Status, settings ?
+# Status, settings ?, in radio der printer aus
