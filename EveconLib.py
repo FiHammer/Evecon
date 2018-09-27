@@ -6,24 +6,232 @@ import datetime
 import socket
 import threading
 import subprocess
-import webbrowser
-import EveconExceptions
-import EveconMiniDebug
-import psutil
-import random
-import win32process
-import pyglet
 import win32api
 import win32gui
 import win32con
 import win32gui_struct
+import win32process
+import EveconExceptions
+import EveconMiniDebug
+import pycaw
+import pycaw.pycaw
+import getpass
 import itertools
 import glob
 import comtypes
-import pycaw
-import pycaw.pycaw
+import psutil
 
-ico = r"C:\Users\Mini-Pc Nutzer\Desktop\Evecon\data\Ico\Radio.ico"
+ss_active = False
+exitnow = 0
+pausetime = 180
+musicrun = False
+thisIP = None
+StartupServer = None
+browser = "firefox"
+MusicDir = None
+
+def cls():
+    os.system("cls")
+
+def exit_now(killmex = False):
+
+    ttime.deac()
+    global exitnow
+    exitnow = 1
+    #if version_PC != 1:
+    #    exit()
+
+    if killmex:
+        time.sleep(0.5)
+        killme()
+
+    #sys.exit()
+
+def killme():
+    subprocess.call(["taskkill", "/F", "/PID", str(os.getpid())])
+    os.system("taskkill /PID /F %s" % str(os.getpid()))
+
+
+Alphabet = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+
+def Log(functioni, info, typei = "Normal"):
+    log_file = open("data\\Log.txt", "a+")
+    part_time = "[" + datetime.datetime.now().strftime("%H:%M:%S") + "]"
+    if typei == "Normal":
+        part_type = "[Info]"
+    elif typei == "Warning":
+        part_type = "[Warning]"
+    elif typei == "Error":
+        part_type = "[Error]"
+    else:
+        part_type = ""
+    part_func = "[" + functioni + "]"
+
+    log_write = part_time + " " + part_type + " " + part_func + ": " + info + "\n"
+
+    log_file.write(log_write)
+    log_file.close()
+
+
+title_oldstatus = "Loading"
+title_oldstart = "Error"
+title_oldversionX = "Error"
+title_dead = False
+
+def title(status="OLD", something="OLD", versionX="OLD", deac=False):
+    global title_dead
+    if deac:
+        title_dead = True
+    global title_oldstatus, title_oldstart, title_oldversionX
+    if status == "OLD":
+        status = title_oldstatus
+    else:
+        title_oldstatus = status
+
+    if something == "OLD":
+        something = title_oldstart
+    else:
+        title_oldstart = something
+
+    if versionX == "OLD":
+        versionX = title_oldversionX
+    else:
+        title_oldversionX = versionX
+
+    nowtime = datetime.datetime.now().strftime("%H:%M:%S")
+
+    space_status = (60 - len(status) * 2) * " "
+    space_pc = (64 - len(versionX) * 2) * " "
+    space_something = (40 - len(something) * 2) * " "
+    space_time = 55 * " "
+
+    if musicrun:
+        space_status = 7 * " " # old: abs(60 - len(status) * 2 - 30)
+        space_pc = 10 * " " # old: abs(64 - len(pc) * 2 - 30)
+        space_something = (175 - (len(status + versionX + space_status + space_pc) + round(len(something) * 1.5) + 1)) * " "
+        if len(space_something) < 20:
+            space_something = (160 - (len(status + versionX + space_status + space_pc) + round(len(something) * 1.5) + 1)) * " "
+        space_time = 1 * " "
+
+    if not title_dead:
+        ctypes.windll.kernel32.SetConsoleTitleW("EVECON: %s%s%s%s%s%s%sTime: %s" %
+                                                (status, space_status, versionX, space_pc, something, space_something, space_time, nowtime))
+
+
+def turnStr(word: str):
+    wordfin = ""
+    for x in range(len(word)):
+        wordfin += word[len(word) - 1 - x]
+    return wordfin
+
+def lsame(fullword: str, partword: str, exact=True):
+    matches = 0
+    if not exact:
+        fullword = fullword.lower()
+        partword = partword.lower()
+    for x, y in zip(fullword, partword):
+        if x == y:
+            matches += 1
+    if matches == len(partword):
+        return True
+    else:
+        return False
+
+
+def rsame(fullword: str, partword: str, exact=True):
+    matches = 0
+    if not exact:
+        fullword = fullword.lower()
+        partword = partword.lower()
+    fullwordX = turnStr(fullword)
+    partwordX = turnStr(partword)
+    for x, y in zip(fullwordX, partwordX):
+        if x == y:
+            matches += 1
+    if matches == len(partword):
+        return True
+    else:
+        return False
+
+
+class TimerC:
+    def __init__(self):
+        self.starttime = 0
+        self.stoptime = 0
+        self.startpausetime = 0
+        self.stoppausetime = 0
+        self.Time = 0
+        self.Pause = 0
+
+        self.Running = False
+        self.Paused = False
+        self.End = False
+
+    def start(self):
+        self.reset()
+        self.Running = True
+        self.starttime = time.time()
+
+    def stop(self):
+        if self.Running:
+            if self.Paused:
+                self.unpause()
+            self.stoptime = time.time()
+            self.reload()
+            self.End = True
+
+    def pause(self):
+        if not self.End:
+            if not self.Paused:
+                self.Paused = True
+                self.startpausetime += time.time()
+
+    def unpause(self):
+        if not self.End:
+            if self.Paused:
+                self.Paused = False
+                self.stoppausetime += time.time()
+                self.reload()
+
+    def reset(self):
+        self.starttime = 0
+        self.stoptime = 0
+        self.startpausetime = 0
+        self.stoppausetime = 0
+        self.Time = 0
+        self.Pause = 0
+
+        self.Running = False
+        self.Paused = False
+        self.End = False
+
+    def switch(self):
+        if not self.Paused:
+            self.pause()
+        else:
+            self.unpause()
+
+    def reload(self):
+        if self.Paused:
+            self.Pause = time.time() - self.startpausetime
+        else:
+            self.Pause = self.stoppausetime - self.startpausetime
+
+        if self.End:
+            self.Time = self.stoptime - self.starttime - self.Pause
+        else:
+            self.Time = time.time() - self.starttime - self.Pause
+
+    def getTime(self):
+        self.reload()
+        return self.Time
+    def getTimeFor(self):
+        self.reload()
+        if (self.Time % 60) < 10:
+            TimeFor = "%s:%s%s" % (round(self.Time) // 60, 0, round(self.Time) % 60)
+        else:
+            TimeFor = "%s:%s" % (round(self.Time) // 60, round(self.Time) % 60)
+        return TimeFor
 
 def nircmd(preset="Man", a=None, b=None, c=None, d=None, every=False):
 
@@ -108,20 +316,24 @@ class szipC:
                 else:
                     command = [self.path, "a", "-t" + archive_type] + list(switches) + [archive] + list(filenames)
 
-                subprocess.call(command)
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+                subP = subprocess.Popen(command, startupinfo=startupinfo, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE)
+                subP.wait()
+                subP.communicate()
 
             else:
                 print("error archive type is not supported")
         else:
             print("error archive type is not the same as the archive name")
 
-    def extract_archive(self, archive, output=None, switches=None, workpath=None):
-        if os.path.exists(archive) or os.path.exists(workpath + "\\" + archive):
+    def extract_archive(self, archive, output=None, switches=None, EveconPath=True):
+        if os.path.exists(archive):
             dir_tmp = os.getcwd()
-            if workpath is None:
+            if EveconPath:
                 archive = dir_tmp + "\\" + archive
-            else:
-                archive = workpath + "\\" +  archive
 
             if switches is None:
                 if output is None:
@@ -134,8 +346,14 @@ class szipC:
                 else:
                     command = [self.path, "x", "-o" + output] + list(switches) + [archive]
 
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
-            subprocess.call(command)
+            subP = subprocess.Popen(command, startupinfo=startupinfo, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+            subP.wait()
+            subP.communicate()
+            #subprocess.call(command)
 
         else:
             print("error archive not found")
@@ -255,6 +473,19 @@ class MegacmdC:
 
 Megacmd = MegacmdC("Programs\\MEGAcmd")
 
+def MusicType(mType, exact=False):
+    if rsame(mType, "mp3"):
+        if exact:
+            return "mp3"
+        else:
+            return True
+    elif rsame(mType, "mp4"):
+        if exact:
+            return "mp4"
+        else:
+            return True
+    else:
+        return False
 
 class MPlayerC:
     def __init__(self, path):
@@ -308,1080 +539,316 @@ class MPlayerC:
         else:
             self.pause()
 
-MPlayer = MPlayerC("Programs\\MPlayer")
+#MPlayer = MPlayerC("Programs\\MPlayer")
 
-class MusicPlayerC(threading.Thread):
+
+def title_time_now():
+    return datetime.datetime.now().strftime("%H:%M:%S")
+
+title("Loading Light")
+
+class colorC:
     def __init__(self):
-        super().__init__()
-
-        self.musiclist = []
-        self.musiclistname = []
-        self.musiclistpath = []
-        self.musiclistdirname = []
-        self.musiclistdirnamefull = []
-
-        global musicrun
-        musicrun = True
-        self.musicrun = True
-
-        self.musicpause = False
-        self.musicwait = False
-        self.musicwaitvol = False
-        self.musicwaitvolp = False
-        self.musicwaitseek = False
-        self.musicwaitSpl = False
-        self.musicback = False
-        self.music_time = 0
-        self.musicvolume = 0.5
-        self.musicvolumep = 1
-        self.musicplayer = None
-        self.musicplaying = True
-        self.musicexitn = False
-        self.musicaddpl = False
-        self.musicrunning = False
-
-        self.musicman_list = []
-        self.music_playlists_used = {}
-
-        self.lastmusicnumber = 0
-        self.thismusicnumber = 0
-        self.nextmusicnumber = 0
-
-        self.music_playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing", "Parov Stelar", "jPOP & etc", "OMFG"]
-        self.music_playlists_key = ["lis", "an", "phu", "cp", "es", "ps", "jpop", "omfg"]
-        self.music_playlists_active = []
-
-        self.spl = False
-        self.splmp = SplatoonC()
-
-    def addMusic(self, key, loadMu=True): # key (AN, LIS)
-        if not Computerfind_MiniPC:
-            cls()
-            print("Loading...")
-
-            if key == "us":
-                self.searchMusic("Music\\User", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "lis":
-                self.searchMusic("Music\\Presets\\Life is Strange", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "an":
-                self.searchMusic("Music\\Presets\\Anime", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "phu":
-                self.searchMusic("Music\\Presets\\Phunk", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "cp":
-                self.searchMusic("Music\\Presets\\Caravan Palace", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "es":
-                self.searchMusic("Music\\Presets\\Electro Swing", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "ud":
-                cls()
-                self.searchMusic(input("Your path:\n"), loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "ps":
-                self.searchMusic("Music\\Presets\\Parov Stelar", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "jpop":
-                self.searchMusic("Music\\Presets\\jPOP-etc", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "omfg":
-                self.searchMusic("Music\\Presets\\OMFG", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-
-            else:
-                return False
-
-        else:
-            cls()
-            print("Loading... (On Mini-PC)")
-
-            if key == "us":
-                self.searchMusic("Music\\User", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "lis":
-                self.searchMusic(MusicDir + "\\Games\\Life is Strange", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "an":
-                self.searchMusic(MusicDir + "\\Anime", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "phu":
-                self.searchMusic(MusicDir + "\\Phunk", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "cp":
-                self.searchMusic(MusicDir + "\\Caravan Palace", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "es":
-                self.searchMusic(MusicDir + "\\Electro Swing", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "ud":
-                cls()
-                self.searchMusic(input("Your path:\n"), loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return "ul"
-            elif key == "ps":
-                self.searchMusic(MusicDir + "\\Parov Stelar", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "jpop":
-                self.searchMusic(MusicDir + "\\jPOP-etc", loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            elif key == "omfg":
-                self.searchMusic(MusicDir + "\\OMFG" ,loadMu)
-                self.music_playlists_active.append(key)
-                print("Finished")
-                return True
-            else:
-                return False
-    def reloadMusic(self, tracknum):
-        print(tracknum)
-        self.musiclist[tracknum] = pyglet.media.load(self.musiclistpath[tracknum])
-
-    def searchMusic(self, mDir, loadMu=True): # sucht nur
-        firstDir = os.getcwd()
-        os.chdir(mDir)
-
-        dirtmp = os.getcwd()
-        os.chdir("..")
-        nowtmp = os.getcwd()
-        os.chdir(dirtmp)
-
-        dirx = dirtmp.lstrip(nowtmp)
-        self.musiclistdirname.append(dirx)
-        self.musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dirx)
-
-        dir1 = os.listdir(os.getcwd())
-        for x1 in range(len(os.listdir(os.getcwd()))):
-            if os.path.isdir(dir1[x1]):
-                self.musiclistdirname.append(dir1[x1])
-                self.musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dir1[x1])
-                os.chdir(dir1[x1])
-                dir2 = os.listdir(os.getcwd())
-                for x2 in range(len(os.listdir(os.getcwd()))):
-                    if os.path.isdir(dir2[x2]):
-                        self.musiclistdirname.append(dir2[x2])
-                        self.musiclistdirnamefull.append(str(os.getcwd()) + "\\" + dir2[x2])
-                        os.chdir(dir2[x2])
-                        dir3 = os.listdir(os.getcwd())
-                        for x3 in range(len(os.listdir(os.getcwd()))):
-                            if os.path.isdir(dir3[x3]):
-                                os.chdir(dir3[x3])
-                                os.chdir("..")
-                            if os.path.isfile(dir3[x3]):
-                                if dir3[x3][len(dir3[x3]) - 3] == "m" and dir3[x3][len(dir3[x3]) - 2] == "p" and \
-                                        dir3[x3][len(dir3[x3]) - 1] == "3":
-                                    if loadMu:
-                                        self.musiclist.append(pyglet.media.load(dir3[x3]))
-                                    self.musiclistname.append(dir3[x3])
-                                    self.musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
-                                elif dir3[x3][len(dir3[x3]) - 3] == "m" and dir3[x3][len(dir3[x3]) - 2] == "p" and \
-                                        dir3[x3][len(dir3[x3]) - 1] == "4":
-                                    if loadMu:
-                                        self.musiclist.append(pyglet.media.load(dir3[x3]))
-                                    self.musiclistname.append(dir3[x3])
-                                    self.musiclistpath.append(str(os.getcwd()) + "\\" + dir3[x3])
-                        os.chdir("..")
-                    if os.path.isfile(dir2[x2]):
-                        if dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][
-                            len(dir2[x2]) - 1] == "3":
-                            if loadMu:
-                                self.musiclist.append(pyglet.media.load(dir2[x2]))
-                            self.musiclistname.append(dir2[x2])
-                            self.musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
-                        elif dir2[x2][len(dir2[x2]) - 3] == "m" and dir2[x2][len(dir2[x2]) - 2] == "p" and dir2[x2][
-                            len(dir2[x2]) - 1] == "4":
-                            if loadMu:
-                                self.musiclist.append(pyglet.media.load(dir2[x2]))
-                            self.musiclistname.append(dir2[x2])
-                            self.musiclistpath.append(str(os.getcwd()) + "\\" + dir2[x2])
-
-                os.chdir("..")
-            if os.path.isfile(dir1[x1]):
-                if dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][
-                    len(dir1[x1]) - 1] == "3":
-                    if loadMu:
-                        self.musiclist.append(pyglet.media.load(dir1[x1]))
-                    self.musiclistname.append(dir1[x1])
-                    self.musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
-                elif dir1[x1][len(dir1[x1]) - 3] == "m" and dir1[x1][len(dir1[x1]) - 2] == "p" and dir1[x1][
-                    len(dir1[x1]) - 1] == "4":
-                    if loadMu:
-                        self.musiclist.append(pyglet.media.load(dir1[x1]))
-                    self.musiclistname.append(dir1[x1])
-                    self.musiclistpath.append(str(os.getcwd()) + "\\" + dir1[x1])
-        os.chdir("..")
-        os.chdir(firstDir)
-
-    def Play(self):
-        self.musicpause = False
-        self.musicplayer.play()
-    def Pause(self):
-        self.musicpause = True
-        self.musicplayer.pause()
-    def Switch(self):
-        if self.musicpause:
-            self.Play()
-        else:
-            self.Pause()
-    def Stop(self):
-        global musicrun
-        musicrun = False
-        self.musicrun = False
-        self.musicplaying = False
-        self.musicpause = False
-        self.musicrunning = False
-    def Next(self):
-        self.musicplaying = False
-        if self.musicpause:
-            self.musicpause = False
-            self.musicplayer.play()
-    def Last(self):
-        pass
-    def Del(self, mId):
-        del self.musiclist[mId]
-        del self.musiclistname[mId]
-    def vol(self, vol):
-        self.musicvolume = vol
-        nircmd("volume", self.musicvolume)
-    def volp(self, vol):
-        self.musicvolumep = vol
-        self.musicplayer.volume = self.musicvolumep
-    def seek(self, ti):
-
-        if ti < self.musiclist[self.thismusicnumber].duration:
-            self.musicplayer.seek(ti)
-            self.music_time = time.time() - ti
-    def reroll(self):
-        self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
-    def input(self, inpt):
-        inpt = inpt.lower()
-        if inpt == "":
-            if not self.spl:
-                self.musicplaying = False
-                if self.musicpause:
-                    self.musicpause = False
-                    self.musicplayer.play()
-            else:
-                if self.spl:
-                    if self.splmp.RoundOver:
-                        self.splmp.RoundOverF()
-                    else:
-                        self.musicplaying = False
-                        if self.musicpause:
-                            self.musicpause = False
-                            self.musicplayer.play()
-        elif inpt == "play" or inpt == "pau" or inpt == "pause" or inpt == "p":
-            self.Switch()
-        elif inpt == "next" or inpt == "n":
-            self.Next()
-        elif inpt == "stop" or inpt == "exit":
-            self.Stop()
-        elif inpt == "del":
-            self.Del(self.thismusicnumber)
-            self.musicplaying = False
-            if self.musicpause:
-                self.musicpause = False
-                self.musicplayer.play()
-        elif inpt == "deln" or inpt == "delnext":
-            nmnold = self.nextmusicnumber
-            self.Del(self.nextmusicnumber)
-            if nmnold < self.thismusicnumber:
-                self.thismusicnumber -= 1
-        elif inpt == "vol":
-            self.musicwait = True
-            self.musicwaitvol = True
-            self.vol(float(input("Volume (Now: %s)\n" % self.musicvolume)))
-            self.musicwait = False
-            self.musicwaitvol = False
-        elif inpt == "volp":
-            self.musicwait = True
-            self.musicwaitvolp = True
-            self.volp(float(input("Volume Player")))
-            self.musicwait = False
-            self.musicwaitvolp = False
-        elif inpt == "jump" or inpt == "j" or inpt == "seek" or inpt == "s":
-            self.musicwait = True
-            self.musicwaitseek = True
-            self.seek(float(input().lower()))
-            self.musicwait = False
-            self.musicwaitseek = False
-        elif inpt == "rm" or inpt == "rem" or inpt == "rerollm":
-            self.reroll()
-        elif inpt == "spl":
-            if not self.spl:
-                self.spl = True
-            else:
-                self.spl = False
-        elif inpt == "exitn":
-            self.musicexitn = True
-        elif inpt == "addpl":
-            self.musicaddpl = True
-        elif self.musicaddpl:
-            if inpt.lower() == "fin":
-                self.musicaddpl = False
-                self.printIt()
-            else:
-                x = self.addMusic(inpt.lower())
-
-                if x:
-                    self.music_playlists_used[inpt.lower()] = "X"
-                elif x == "ul":
-                    self.musicman_list.append("unkown list")
-
-                self.printIt()
-
-        else:
-            if self.spl:
-                self.splmp.input(inpt=inpt)
-
-         # play, next, stop, pause, last, del, deln, vol, volp, mute, mutep, jump (to 0), reroll
-         # SPL: spl (On/Off), wr, reroll, start (""), effect (E--)
-    def run(self):
-
-        self.thismusicnumber = random.randint(0, len(self.musiclist) - 1)
-        self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
-
-        while self.musicrun:
-
-
-            if self.musiclist[self.thismusicnumber].is_queued:
-                self.reloadMusic(self.thismusicnumber)
-
-            self.musicplayer = pyglet.media.Player()
-            self.musicplayer.queue(self.musiclist[self.thismusicnumber])
-            self.musicplayer.play()
-            self.musicplayer.volume = self.musicvolumep
-            self.music_time = time.time()
-            self.musicrunning = True
-            title("OLD", self.musiclistname[self.thismusicnumber], "Now Playing")
-
-            self.musicplaying = True
-
-            while self.musicplaying:
-
-                time.sleep(0.25)
-                for x in range(5):
-                    if self.musicplayer.time == 0:
-                        self.musicplaying = False
-                    elif round(self.musiclist[self.thismusicnumber].duration) == round(time.time() - self.music_time):
-                        self.musicplaying = False
-                    time.sleep(0.05)
-                while self.musicpause:
-                    music_time_wait = time.time()
-
-                    while self.musicpause:
-                        time.sleep(0.25)
-                    title("OLD", "OLD", "Now Playing:")
-                    self.music_time += time.time() - music_time_wait
-
-                    if self.spl:
-                        self.splmp.PlaytimeStart += time.time() - music_time_wait
-                        self.splmp.TimeLeftStart += time.time() - music_time_wait
-
-            self.musicplayer.next()
-            self.lastmusicnumber = self.thismusicnumber
-            self.thismusicnumber = self.nextmusicnumber
-            self.nextmusicnumber = random.randint(0, len(self.musiclist) - 1)
-            self.musicrunning = False
-
-            if self.musicexitn:
-                self.Stop()
-
-
-
-    def printIt(self):
-        if self.musicrunning:
-            cls()
-            print("Musicplayer\n\nNow Playing:")
-            if MusicType(self.musiclistname[self.thismusicnumber], True) == "mp3":
-                print(self.musiclistname[self.thismusicnumber].rstrip(".mp3"))
-            elif MusicType(self.musiclistname[self.thismusicnumber], True) == "mp4":
-                print(self.musiclistname[self.thismusicnumber].rstrip(".mp4"))
-
-            if (round(time.time() - self.music_time) % 60) < 10 and (
-                    round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
-                print(r"%s:%s%s\%s:%s%s" % (
-                    round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
-                    round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
-                    round(self.musiclist[self.thismusicnumber].duration) % 60))
-            elif (round(time.time() - self.music_time) % 60) < 10:
-                print(r"%s:%s%s\%s:%s" % (
-                    round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
-                    round(self.musiclist[self.thismusicnumber].duration) // 60,
-                    round(self.musiclist[self.thismusicnumber].duration) % 60))
-            elif (round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
-                print(r"%s:%s\%s:%s%s" % (
-                    round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
-                    round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
-                    round(self.musiclist[self.thismusicnumber].duration) % 60))
-            else:
-                print(r"%s:%s\%s:%s" % (
-                    round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
-                    round(self.musiclist[self.thismusicnumber].duration) // 60,
-                    round(self.musiclist[self.thismusicnumber].duration) % 60))
-
-            print("\nNext Track:")
-            if MusicType(self.musiclistname[self.thismusicnumber], True) == "mp3":
-                print(self.musiclistname[self.nextmusicnumber].rstrip(".mp3"))
-            elif MusicType(self.musiclistname[self.thismusicnumber], True) == "mp4":
-                print(self.musiclistname[self.nextmusicnumber].rstrip(".mp4"))
-
-            print("\n")
-            if not self.musicwait:
-                print("Pause (PAU), Stop (STOP), Next Track (NEXT), Volume (VOL)")
-            elif self.musicwaitvol:
-                print("Volume (Now: %s)\n" % self.musicvolume)
-            elif self.musicwaitvolp:
-                print("Volume Player:")
-            elif self.musicwaitseek:
-                print("Jump to (in sec) (DO NOT WORK!):")
-            else:
-                print("BUGGI")
-
-            if self.spl:
-                print("\n\n")
-                self.splmp.printIt()
-
-            if self.musicpause:
-                cls()
-                print("Musicplayer\n\nPaused:")
-                if MusicType(self.musiclistname[self.thismusicnumber], True) == "mp3":
-                    print(self.musiclistname[self.thismusicnumber].rstrip(".mp3"))
-                elif MusicType(self.musiclistname[self.thismusicnumber], True) == "mp4":
-                    print(self.musiclistname[self.thismusicnumber].rstrip(".mp4"))
-
-                if (round(time.time() - self.music_time) % 60) < 10:
-                    print(r"%s:%s%s\%s:%s" % (
-                        round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
-                        round(self.musiclist[self.thismusicnumber].duration) // 60,
-                        round(self.musiclist[self.thismusicnumber].duration) % 60))
-                elif (round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
-                    print(r"%s:%s\%s:%s%s" % (
-                        round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
-                        round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
-                        round(self.musiclist[self.thismusicnumber].duration) % 60))
-                elif (round(time.time() - self.music_time) % 60) < 10 and (
-                        round(self.musiclist[self.thismusicnumber].duration) % 60) < 10:
-                    print(r"%s:%s%s\%s:%s%s" % (
-                        round(time.time() - self.music_time) // 60, 0, round(time.time() - self.music_time) % 60,
-                        round(self.musiclist[self.thismusicnumber].duration) // 60, 0,
-                        round(self.musiclist[self.thismusicnumber].duration) % 60))
-                else:
-                    print(r"%s:%s\%s:%s" % (
-                        round(time.time() - self.music_time) // 60, round(time.time() - self.music_time) % 60,
-                        round(self.musiclist[self.thismusicnumber].duration) // 60,
-                        round(self.musiclist[self.thismusicnumber].duration) % 60))
-
-                print("\n\nPlay (PLAY), Stop (STOP)")
-
-                if self.spl:
-                    print("\n\n")
-                    self.splmp.printIt()
-
-            if self.musicaddpl:
-
-                self.musicman_list = []
-                self.music_playlists_used = {}
-
-                for x in self.music_playlists_key:
-                    self.music_playlists_used[x] = " "
-
-                for x in self.music_playlists_active:
-                    self.music_playlists_used[x] = "X"
-
-                #if self.musicaddpl:
-                music_playlists_used_List = []
-                for x in self.music_playlists_key:
-                    music_playlists_used_List.append(self.music_playlists_used[x])
-                cls()
-                print("Playlists:\n")
-                # print(music_playlists_print)
-                # print("User's list (US), User defined (UD)")
-                # print("\nLoaded:")
-                for xl, x2, x3 in zip(music_playlists_used_List, self.music_playlists,
-                                      self.music_playlists_key):
-                    print(" " + xl + " " + x2 + " (" + x3.upper() + ")")
-                for x in self.musicman_list:
-                    print(" X " + x)
-                print("\nFinish (FIN)\n")
-                #self.musicaddpl = False
-        else:
-            cls()
-            print("Musicplayer\n\nLoading...")
-
-
-def Music():
-
-    def Play():
-        class Printerr(threading.Thread):
-            def run(self):
-                while muPlayer.musicrun:
-                    cls()
-                    muPlayer.printIt()
-                    time.sleep(0.75)
-                    if muPlayer.musicpause:
-                        cls()
-                        muPlayer.printIt()
-                    while muPlayer.musicpause:
-                        time.sleep(0.5)
-
-        Printer = Printerr()
-        Printer.start()
-
-        while muPlayer.musicrun:
-            user_input = input()
-            muPlayer.input(user_input)
-
-
-    muPlayer = MusicPlayerC()
-
-    music_playlists_print = ""
-    for x, y in zip(muPlayer.music_playlists, muPlayer.music_playlists_key):
-        music_playlists_print += x + " (" + y.upper() + "), "
-    music_playlists_print = music_playlists_print.rstrip(", ")
-
-    cls()
-    print("Playlists:")
-    print("\nFix Playlists:")
-    print(music_playlists_print)
-    print("\nCustom:")
-    print("User's Playlist (US), User defined (UD), Mix (MIX), Multiple PL (MPL), All (ALL)\n")
-    music_user_input = input()
-
-    if music_user_input.lower() == "mix":
-        muPlayer.addMusic("an")
-        muPlayer.addMusic("phu")
-        muPlayer.addMusic("cp")
-        muPlayer.addMusic("es")
-        muPlayer.addMusic("jpop")
-    elif music_user_input.lower() == "j":
-        muPlayer.addMusic("an")
-        muPlayer.addMusic("jpop")
-    elif music_user_input.lower() == "all":
-        for x in muPlayer.music_playlists_key:
-            muPlayer.addMusic(x)
-
-    elif music_user_input.lower() == "mpl":
-        musicman_search = True
-
-        muPlayer.music_playlists.append("User's List")
-
-        musicman_list = []
-        music_playlists_used = {}
-
-        for x in muPlayer.music_playlists_key:
-            music_playlists_used[x] = " "
-
-        while musicman_search:
-            music_playlists_used_List = []
-            for x in muPlayer.music_playlists_key:
-                music_playlists_used_List.append(music_playlists_used[x])
-            cls()
-            print("Playlists:\n")
-            #print(music_playlists_print)
-            #print("User's list (US), User defined (UD)")
-            #print("\nLoaded:")
-            for xl, x2, x3 in zip(music_playlists_used_List, muPlayer.music_playlists, muPlayer.music_playlists_key):
-                print(" " + xl + " " + x2 + " (" + x3.upper() + ")")
-            for x in musicman_list:
-                print(" X " + x)
-            print("\nFinish (FIN)\n")
-
-            musicman_user_input = input()
-
-
-            if musicman_user_input.lower() == "fin":
-                musicman_search = False
-
-            else:
-                x = muPlayer.addMusic(musicman_user_input.lower())
-
-                if x:
-                    music_playlists_used[musicman_user_input.lower()] = "X"
-                elif x == "ul":
-                    musicman_list.append("unkown list")
-
-    elif music_user_input.lower() == "search":
-        for x in muPlayer.music_playlists_key:
-            muPlayer.addMusic(x, False)
-
+        self.CurColor = "07"
+        self.colors = {"0" : "black", "1" : "blue", "2" : "green", "3" : "cyan", "4" : "red", "5" : "purple",
+                       "6" : "yellow", "7" : "light gray", "8" : "gray", "9" : "light blue", "A" : "light green",
+                       "B" : "light cyan", "C" : "light red", "D" : "light purple", "E" : "light yellow", "F" : "white"}
+        self.colorsinv = {"black" : "0", "blue" : "1", "green" : "2", "cyan": "3", "red": "4", "purple": "5",
+                       "yellow": "6", "light gray": "7", "gray": "8", "light blue" : "9", "light green": "A",
+                       "light cyan": "B", "light red": "C", "light purple": "D", "light yellow": "E", "white": "F"}
+        self.colorKeys = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"]
+
+    def encode(self, code, printit=False):
+        background = self.colors[code[0]]
+        foreground = self.colors[code[1]]
+        if printit:
+            print("Color:\n")
+            print("Background: " + background)
+            print("Foreground: " + foreground)
+        return background, foreground
+
+    def decode(self, background, foreground, printit=False):
+        code = ""
+        code += self.colorsinv[background]
+        code += self.colorsinv[foreground]
+        if printit:
+            print("Code: " + code)
+        return code
+
+    def change(self, code):
+        self.CurColor = code
+        #subprocess.call(["color", code])
+        os.system("color " + code)
+
+    def switch(self):
+        if self.CurColor == "07":
+            self.change("F0")
+        elif self.CurColor == "F0":
+            self.change("07")
+
+    def Man(self):
         cls()
-        print("What do you want to hear?")
+        print("Color change")
+        print("First is background")
+        print("Second is foreground")
+        print("Standard: 07 (White on black)\n")
+        print("    0 = Schwarz     8 = Grau")
+        print("    1 = Blau        9 = Hellblau")
+        print("    2 = Gruen       A = Hellgruen")
+        print("    3 = Tuerkis     B = Helltuerkis")
+        print("    4 = Rot         C = Hellrot")
+        print("    5 = Lila        D = Helllila")
+        print("    6 = Gelb        E = Hellgelb")
+        print("    7 = Hellgrau    F = Weiss")
 
-        user_input_search = input()
+        code = input("\n")
+        self.CurColor = code
+        os.system("color %s" % code)
 
-        searchdir = Search(user_input_search, muPlayer.musiclistdirname)
-        searchtrack = Search(user_input_search, muPlayer.musiclistname)
+color = colorC()
 
-        musiclistpathold = muPlayer.musiclistpath
-        muPlayer.musiclistpath = []
-        musiclistnameold = muPlayer.musiclistname
-        muPlayer.musiclistname = []
+class VolumeC:
+    def __init__(self):
+        self.devices = pycaw.pycaw.AudioUtilities.GetSpeakers()
+        self.interface = self.devices.Activate(pycaw.pycaw.IAudioEndpointVolume._iid_, comtypes.CLSCTX_ALL, None)
+        self.volume = ctypes.cast(self.interface, ctypes.POINTER(pycaw.pycaw.IAudioEndpointVolume))
 
-        for x in searchdir:
-            muPlayer.searchMusic(muPlayer.musiclistdirnamefull[x])
+        self.volumes = {0: -65.25, 0.01: -56.992191314697266, 0.02: -51.671180725097656, 0.03: -47.73759078979492,
+                        0.04: -44.61552047729492, 0.05: -42.026729583740234, 0.06: -39.81534194946289,
+                        0.07: -37.88519287109375, 0.08: -36.17274856567383, 0.09: -34.63383865356445,
+                        0.1: -33.23651123046875, 0.11: -31.956890106201172, 0.12: -30.77667808532715,
+                        0.13: -29.681535720825195, 0.14: -28.66002082824707, 0.15: -27.70285415649414,
+                        0.16: -26.80240821838379, 0.17: -25.95233154296875, 0.18: -25.147287368774414,
+                        0.19: -24.38274574279785, 0.2: -23.654823303222656, 0.21: -22.960174560546875,
+                        0.22: -22.295886993408203, 0.23: -21.6594181060791, 0.24: -21.048532485961914,
+                        0.25: -20.461252212524414, 0.26: -19.895822525024414, 0.27: -19.350669860839844,
+                        0.28: -18.824398040771484, 0.29: -18.315736770629883, 0.3: -17.82354736328125,
+                        0.31: -17.3467960357666, 0.32: -16.884546279907227, 0.33: -16.435937881469727,
+                        0.34: -16.000192642211914, 0.35: -15.576590538024902, 0.36: -15.164472579956055,
+                        0.37: -14.763236045837402, 0.38: -14.372318267822266, 0.39: -13.991202354431152,
+                        0.4: -13.61940860748291, 0.41: -12.902039527893066, 0.42: -12.902039527893066,
+                        0.43: -12.555663108825684, 0.44: -12.217005729675293, 0.45: -11.88572883605957,
+                        0.46: -11.561516761779785, 0.47: -11.2440767288208, 0.48: -10.933131217956543,
+                        0.49: -10.62841796875, 0.5: -10.329694747924805, 0.51: -10.036728858947754,
+                        0.52: -9.749302864074707, 0.53: -9.46721076965332, 0.54: -9.190258026123047,
+                        0.55: -8.918261528015137, 0.56: -8.651047706604004, 0.57: -8.388449668884277,
+                        0.58: -8.130311965942383, 0.59: -7.876484394073486, 0.6: -7.626824855804443,
+                        0.61: -7.381200790405273, 0.62: -7.1394829750061035, 0.63: -6.901548862457275,
+                        0.64: -6.6672821044921875, 0.65: -6.436570644378662, 0.66: -6.209307670593262,
+                        0.67: -5.98539400100708, 0.68: -5.764730453491211, 0.69: -5.547224998474121,
+                        0.7: -5.33278751373291, 0.71: -5.121333599090576, 0.72: -4.912779808044434,
+                        0.73: -4.707049369812012, 0.74: -4.5040669441223145, 0.75: -4.3037590980529785,
+                        0.76: -4.1060566902160645, 0.77: -3.9108924865722656, 0.78: -3.718202590942383,
+                        0.79: -3.527923583984375, 0.8: -3.339998245239258, 0.81: -3.1543679237365723,
+                        0.82: -2.970977306365967, 0.83: -2.7897727489471436, 0.84: -2.610703229904175,
+                        0.85: -2.4337174892425537, 0.86: -2.2587697505950928, 0.87: -2.08581280708313,
+                        0.88: -1.9148017168045044, 0.89: -1.7456932067871094, 0.9: -1.5784454345703125,
+                        0.91: -1.4130167961120605, 0.92: -1.2493702173233032, 0.93: -1.0874667167663574,
+                        0.94: -0.9272695183753967, 0.95: -0.768743097782135, 0.96: -0.6118528842926025,
+                        0.97: -0.4565645754337311, 0.98: -0.30284759402275085, 0.99: -0.15066957473754883, 1.0: 0.0}
 
-        for x in searchtrack:
-            muPlayer.musiclist.append(pyglet.media.load(musiclistpathold[x]))
-            muPlayer.musiclistpath.append(musiclistpathold[x])
-            muPlayer.musiclistname.append(musiclistnameold[x])
+        self.curVol = self.getVolume()
+        self.curVoldirect = self.getVolumedirect()
+    def change(self, vol: float):
+        self.setdirect(self.convertToDirect(vol))
+        self.refresh()
 
-    else:
-        muPlayer.addMusic(music_user_input.lower())
+    def setdirect(self, vol: float):
+        self.volume.SetMasterVolumeLevel(vol, None)
+        self.refresh()
 
-    if muPlayer.musiclist:
-        muPlayer.start()
-        Play()
-    else:
-        print("No track found")
+    def getVolume(self):
+        return self.convertFromDirect(self.getVolumedirect())
 
-    normaltitle()
+    def getVolumedirect(self):
+        return self.volume.GetMasterVolumeLevel()
 
+    def convertToDirect(self, normal):
+        return self.volumes[round(normal, 2)]
+
+    def convertFromDirect(self, direct):
+        for x in self.volumes:
+            if self.volumes[x] == direct:
+                return x
+
+    def refresh(self):
+        self.curVol = self.getVolume()
+        self.curVoldirect = self.getVolumedirect()
+
+Volume = VolumeC()
+
+title("Loading Title Time")
+
+
+class title_time(threading.Thread):
+
+    def __init__(self, freq):
+        threading.Thread.__init__(self)
+        self.stop = 0
+        self.freq = freq
+        # self.stopped = False
+        self.pause = False
+        self.stop = False
+        self.ss = False
+        self.sstime = ""
+        self.normrun = True
+
+    def run(self):
+        global pausetime
+        while not self.stop:
+            while self.normrun:
+                title()
+                time.sleep(self.freq)
+            time.sleep(0.1)
+            while self.ss:
+                first = time.time()
+                while self.ss:
+                    time.sleep(0.25)
+
+                    if (round(time.time() - first) % 60) < 10:
+                        self.sstime = str(round(time.time() + pausetime - first) // 60) + ":0" + str(
+                            round(time.time() + pausetime - first) % 60)
+                    else:
+                        self.sstime = str(round(time.time() + pausetime - first) // 60) + ":" + str(
+                            round(time.time() + pausetime - first) % 60)
+
+                    title("OLD", "OLD", self.sstime)
+
+    def deac(self):
+        self.stop = True
+        self.normrun = False
+        self.ss = False
+
+    def ss_switch(self):
+        if self.ss:
+            self.pause = True
+            self.ss = False
+        else:
+            self.pause = False
+            self.ss = True
+
+ttime = title_time(2.5)
+
+def killConsoleWin():
+    ttime.deac()
+    title(deac=True)
+    hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+    ctypes.windll.user32.ShowWindow(hwnd, 0)
+
+    # Why?
+    ctypes.windll.kernel32.CloseHandle(hwnd)
+    _, pid = win32process.GetWindowThreadProcessId(hwnd)
+    #print(pid)
+    #os.system('taskkill /PID ' + str(pid) + ' /f')
+    #input()
+
+    # tmp:
+    #subprocess.call(["taskkill", "/IM", "conhost.exe", "/f"])
+
+title("Loading: Finding Computers")
+
+
+def computerconfig_schoolpc():
+    color.change("F0")
+
+def computerconfig_minipc():
+    global MusicDir, thisIP, browser
+    MusicDir = "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Musik\\Musik\\!Fertige Musik"
+    thisIP = "192.168.2.102"
+    browser = "vivaldi"
+
+
+def computerconfig_bigpc():
+    global MusicDir, thisIP
+    MusicDir = "D:\\Musik\\!Fertige Musik"
+    thisIP = "192.168.2.101"
+
+
+def computerconfig_aldi():
+    nircmd("setsize", 1000, 520)
+    thisIP = "192.168.2.110"
+
+
+def computerconfig_laptop():
+    global thisIP
+    thisIP = "192.168.2.106" # Lan __ .104 = WLAN
+
+
+Computername = socket.gethostname()
+
+if Computername == "Computer-Testet":
+    title("OLD", "OLD", "somebody@Mini-PC")
+    computer = "MiniPC"
+    computerconfig_minipc()
+    HomePC = True
+
+elif Computername == "Bigger-PC":
+    title("OLD", "OLD", "somebody@BigPC")
+    computer = "BigPC"
+    computerconfig_bigpc()
+
+    HomePC = True
+
+elif Computername == "Test":
+    title("OLD", "OLD", "somebody@Aldi-Laptop")
+    computer = "AldiPC"
+    computerconfig_aldi()
+
+elif Computername == "Luis":
+    title("OLD", "OLD", "somebody@Luis-Laptop")
+    computer = "Laptop"
+    computerconfig_laptop()
+
+else:
+    title("OLD", "OLD", "No Computer found")
+    computer = None
+
+file_proversion_raw = open("data\\Info\\ProgramVersion", "r")
+ProVersion = file_proversion_raw.readline()
+file_proversion_raw.close()
+
+def versionFind():
+    file_version_raw = open("data\\Info\\version", "r")
+    global this_version
+    this_version = []
+    for x in file_version_raw:
+        this_version.append(x.strip())
+    file_version_raw.close()
+    return this_version
 
 def normaltitle():
-    pass
+    #global ss_active
+    if ss_active:
+        title("Screensaver", "")
 
-
-def title(status="OLD", something="OLD", pc="OLD", deac=False):
-    pass
-
-def cls():
-    os.system("cls")
-
-Computerfind_MiniPC = True
-MusicDir = "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Musik\\Musik\\!Fertige Musik"
-thisIP = "192.168.2.102"
-
-class SplatoonC:
-    def __init__(self, roundtime = 180):
-        self.weapons = ["Disperser", "Disperser Neo", "Junior-Klechser", "Junior-Klechser Plus", "Fein-Disperser",
-                   "Fein-Disperser Neo", "Airbrush MG", "Airbrush RG", "Klechser", "Tentatek-Klechser",
-                   "Heldenwaffe Replik (Klechser)", "Okto-Klechser Replik", ".52 Gallon", ".52 Gallon Deko", "N-ZAP85",
-                   "N-ZAP89", "Profi-Klechser", "Focus-Profi-Kleckser", ".96 Gallon", ".96 Gallon Deko", "Platscher",
-                   "Platscher SE",
-
-                   "Luna-Blaster", "Luna-Blaster Neo", "Blaster", "Blaster SE", "Helden-Blaster Replik",
-                   "Fern-Blaster", "Fern-Blaster SE", "Kontra-Blaster", "Kontra-Blaster Neo", "Turbo-Blaster",
-                   "Turbo-Blaster Deko", "Turbo-Blaster Plus", "Turbo-Blaster Plus Deko",
-
-                   "L3 Tintenwerfer", "L3 Tintenwerfer D", "S3 Tintenwerfer", "S3 Tintenwerfer D", "L3 Tintenwerfer",
-                   "Quetscher", "Quetscher Fol",
-
-                   "Karbonroller", "Karbonroller Deko", "Klecksroller", "Medusa-Klecksroller", "Helden-Roller Replik",
-                   "Dynaroller", "Dynaroller Tesla", "Flex-Roller", "Flex-Roller Fol",
-                   "Quasto", "Quasto Fresco", "Kalligraf", "Kalligraf Fresco", "Helden-Pinsel Replik",
-
-                   "Sepiator Alpha", "Sepiator Beta", "Klecks-Konzentrator", "Rilax-Klecks-Konzentrator",
-                   "Helden-Konzentrator Replik", "Ziel-Konzentrator", "Rilax-Ziel-Konzentrator", "E-liter 4K",
-                   "E-liter 4K SE", "Ziel-E-liter 4K", "Ziel-E-liter 4K SE", "Klotzer 14-A", "Klotzer 14-B", "T-Tuber",
-                   "T-Tuber SE",
-
-                   "Schwapper", "Schwapper Deko", "Helden-Schwapper Replik", "3R-Schwapper", "3R-Schwapper Fresco",
-                   "Knall-Schwapper", "Trommel-Schwapper", "Trommel-Schwapper Neo", "Wannen-Schwapper",
-
-                   "Klecks-Splatling", "Sagitron-Klecks-Splatling", "Splatling", "Splatling Deko",
-                   "Helden-Splatling Replik", "Hydrant", "Hydrant SE", "Kuli-Splatling", "Nautilus 47",
-
-                   "Sprenkler", "Sprenkler Fresco", "Klecks-Doppler", "Enperry-Klecks-Doppler", "Helden-Doppler Replik",
-                   "Kelvin 525", "Kelvin 525 Deko", "Dual-Platscher", "Dual-Platscher SE", "Quadhopper Noir",
-                   "Quadhopper Blanc",
-
-                   "Parapulviator", "Sorella-Parapulviator", "Helden-Pulviator Replik", "Camp-Pulviator",
-                   "Sorella-Camp-Pulviator",
-                   "UnderCover", "Sorella-UnderCover"]
-
-
-        self.RUN = True
-        self.Start = False
-        self.TimeLeft = 0
-        self.TimeLeftStart = 0
-        self.TimeLeftC = TimerC()
-        self.Rounds = 0
-        self.Playtime = 0
-        self.PlaytimeStart = 0
-        self.PlaytimeC = TimerC()
-        self.RoundOver = True
-        self.Effect = None
-
-        self.RoundTime = roundtime # Debug! std: 180
-
-        self.WR = False
-        self.WRthis = self.randomWP()
-        self.WRnext = self.randomWP()
-
-    def input(self, inpt):
-        inpt = inpt.lower()
-        if inpt == "wr":
-            self.WRswitch()
-        elif inpt == "exit" or inpt == "stop":
-            self.stop()
-        elif inpt == "reroll" or inpt == "rerol" or inpt == "rero" or inpt == "re" or inpt == "r":
-            self.WRreroll()
-        elif len(inpt) > 1:
-            if inpt[0] == "e":
-                try:
-                    self.ChEffect(int(inpt.lstrip("e")))
-                except ValueError:
-                    self.RoundOverF()
-            else:
-                self.RoundOverF()
-        else:
-            self.RoundOverF()
-
-    def randomWP(self, printweapon=False):
-        number = random.randint(0, len(self.weapons) - 1)
-        if printweapon:
-            print("Your Weapon:\n%s" % self.weapons[number])
-        return self.weapons[number]
-
-    def WRswitch(self):
-        if self.WR:
-            self.WR = False
-        else:
-            self.WR = True
-
-    def stop(self):
-        self.RUN = False
-
-    def WRreroll(self):
-        WRnextTMP = self.WRnext
-        self.WRnext = self.randomWP()
-
-        while self.WRthis == self.WRnext or WRnextTMP == self.WRnext:
-            self.WRnext = self.randomWP()
-
-    def ChEffect(self, eff):
-        self.Effect = eff
-
-    def RoundOverF(self):
-        if self.RoundOver:
-            if not self.Start:
-                self.PlaytimeC.start()
-                self.PlaytimeStart = time.time()
-            self.TimeLeftC.start()
-            self.TimeLeftStart = time.time()
-            self.Rounds += 1
-
-            if self.Effect is not None and self.Effect != 0:
-                self.Effect -= 1
-
-            if self.Start:
-                WRthisTMP = self.WRthis
-                self.WRthis = self.WRnext
-                self.WRnext = self.randomWP()
-
-                while WRthisTMP == self.WRnext or self.WRthis == self.WRnext:
-                    self.WRnext = self.randomWP()
-
-            self.RoundOver = False
-            self.Start = True
-
-    def printIt(self):
-        self.TimeLeft = self.RoundTime - self.TimeLeftC.getTime()
-        self.TimeLeft = self.RoundTime - round(time.time() - self.TimeLeftStart)
-
-        if self.Start:
-            self.Playtime = self.PlaytimeC.getTime()
-            self.Playtime = round(time.time() - self.PlaytimeStart)
-        else:
-            self.Playtime = 0
-
-        if self.RoundOver:
-            TimeLeftFor = "No Round Started"
-        else:
-            if (self.TimeLeft % 60) < 10:
-                TimeLeftFor = "%s:%s%s" % (self.TimeLeft // 60, 0, self.TimeLeft % 60)
-            else:
-                TimeLeftFor = "%s:%s" % (self.TimeLeft // 60, self.TimeLeft % 60)
-
-        if (self.Playtime % 60) < 10:
-            PlaytimeFor = "%s:%s%s" % (self.Playtime // 60, 0, self.Playtime % 60)
-        else:
-            PlaytimeFor = "%s:%s" % (self.Playtime // 60, self.Playtime % 60)
-
-        if self.TimeLeft <= 0:
-            self.RoundOver = True
-
-
-        print("Splatoon 2\n")
-        print("Time:\t\t %s" % TimeLeftFor)
-        print("Round:\t\t %s" % self.Rounds)
-
-        if self.Effect is not None and self.Effect != 0:
-            print("Effect:\t\t %s" % self.Effect)
-        elif self.Effect == 0:
-            print("Effect:\t\t No Effect Active")
-
-        print("Playtime:\t %s" % PlaytimeFor)
-        if self.WR:
-            print("\nWeapon Randomizer:")
-            print("This Round:\t %s" % self.WRthis)
-            print("Next Round:\t %s" % self.WRnext)
-
-        if self.WR:
-            print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon(REROLL)")
-        else:
-            print("\nWeapon Randomizer (WR), Effect ('E'+number)")
-
-        if self.RoundOver:
-            print("\nStart Next Round?")
-
-def Search(searchkeyU, searchlistU, exact=False):
-
-    if len(searchkeyU) == 0:
-        return None
-
-    if not exact:
-        searchkey = searchkeyU.lower()
-        searchlist = []
-        for x in searchlistU:
-            searchlist.append(x.lower())
     else:
-        searchkey = searchkeyU
-        searchlist = []
-        for x in searchlistU:
-            searchlist.append(x)
+        title("OLD", "Version: " + str(versionFind()[1]))
 
-    OutputNum = []
+normaltitle()
 
-    for sListNum in range(len(searchlist)): # wort aus der liste
-        if len(searchkey) > len(searchlist[sListNum]):
-            continue  # suchwort größer als anderes wort
-
-        for letterNum in range(len(searchlist[sListNum])): # buchstabe aus wort
-            if searchlist[sListNum][letterNum] == searchkey[0]: # wahr=
-                test = True
-
-                for keyNum in range(len(searchkey)):
-                    if test:
-                        test = False
-                        if keyNum == len(searchkey) - 1:
-                            OutputNum.append(sListNum)
-                            break
-                        continue
-                    if len(searchlist[sListNum]) - 1 < keyNum + letterNum:
-                        break
-
-                    if searchlist[sListNum][keyNum + letterNum] == searchkey[keyNum]:
-                        if keyNum == len(searchkey) - 1:
-                            OutputNum.append(sListNum)
-                            break
-                    else:
-                        break
-
-                break
-
-    return OutputNum
-
-def SearchStr(searchkeyU: str, searchStrU: str, exact=False):
-
-    if len(searchkeyU) == 0:
-        return None
-
-    if not exact:
-        searchkey = searchkeyU.lower()
-        searchlist = searchStrU.lower()
+if ProVersion == "PC-Version":
+    if computer == "MiniPC":
+        normaltitle()
+        version = "MiniPC"
+    elif computer == "BigPC":
+        normaltitle()
+        version = "BigPC"
+    elif computer == "Laptop":
+        normaltitle()
+        version = "Laptop"
     else:
-        searchkey = searchkeyU
-        searchlist = searchStrU
+        title("Loading")
+        version = None
+elif ProVersion == "MainStick-Version":
+    normaltitle()
+    version = "MainStick"
+elif ProVersion == "MiniStick-Version":
+    normaltitle()
+    version = "MiniStick"
+else:
+    title("Loading")
+    version = None
 
-    OutputNum = []
-
-
-    for letterNum in range(len(searchlist)):
-        if searchlist[letterNum] == searchkey[0]:
-            test = False
-
-            for keyNum in range(len(searchkey)):
-                if test:
-                    test = False
-                    if keyNum == len(searchkey) - 1:
-                        OutputNum.append(keyNum)
-                        break
-                    continue
-                if len(searchlist) - 1 < keyNum + letterNum:
-                    break
-
-                if searchlist[keyNum + letterNum] == searchkey[keyNum]:
-                    if keyNum == len(searchkey) - 1:
-                        OutputNum.append(letterNum)
-                        break
-                else:
-                    break
-
-    return OutputNum
-
-
-def gerPartStr(word: str, begin: int, end: int):
-    part = ""
-    if len(word) <= end or len(word) <= begin or begin >= end:
-        return False
-    end -= 1
-    for x in range(end):
-        if x < begin:
-            continue
-        part += word[x]
-    return part
-
-def gerPartStrToStr(word: str, endkey: str, beginkey="", exact=False):
-    if exact:
-        word = word.lower()
-        endkey = endkey.lower()
-    part = ""
-    x = 0
-    end = False
-    beginskip = False
-    beginover = False
-    while True:
-        if beginkey != "" and not beginover:
-            z = 0
-            for y in range(len(beginkey)):
-                if word[x + y] == beginkey[y]:
-                    z += 1
-                else:
-                    beginskip = True
-                if z == len(beginkey):
-                    beginover = True
-                    x += z
-            if beginskip:
-                beginskip = False
-                x += 1
-                continue
-        z = 0
-        for y in range(len(endkey)):
-            if word[x + y] == endkey[y]:
-                z += 1
-            else:
-                break
-            if z == len(endkey):
-                end = True
-                break
-        if end:
-            break
-        part += word[x]
-        x += 1
-
-    return part
-
-def MusicType(mType, exact=False):
-    if rsame(mType, "mp3"):
-        if exact:
-            return "mp3"
-        else:
-            return True
-    elif rsame(mType, "mp4"):
-        if exact:
-            return "mp4"
-        else:
-            return True
-    else:
-        return False
-
-def MusicEncode(musicname):
-    if MusicType(musicname):
-        name = musicname.rstrip("." + MusicType(musicname, True))
-    else:
-        name = musicname
-
-    title = gerPartStrToStr(name, " by ")
-    interpreter = gerPartStrToStr(name, beginkey=title + " by ", endkey= " (")
-    musictype = turnStr(gerPartStrToStr(turnStr(name), endkey= turnStr(") - ")))
-
-    part = gerPartStrToStr(name, beginkey=title + " by " + interpreter + " (From ", endkey=") - " + musictype)
-
-    x = SearchStr(" S", part, exact = True)
-    animeSeason = True
-    if len(x) > 1:
-        x = x[len(x) - 1] + 1
-    elif len(x) == 0:
-        animeSeason = None
-    else:
-        x = x[0]  + 1
-
-    if animeSeason:
-        try:
-            animeSeason = int(part[x + 1] + part[x + 2])
-        except ValueError:
-            animeSeason = int(part[x + 1])
-        except IndexError:
-            animeSeason = int(part[x + 1])
-
-    y = SearchStr(" OP", part, exact = True)
-    animeTypeNum = True
-    if len(y) > 1:
-        y = y[len(y) - 1] + 2
-        animeType = "OP"
-    elif len(y) == 0:
-        y = SearchStr(" EN", part, exact=True)
-        if len(y) > 1:
-            y = y[len(y) - 1] + 2
-            animeType = "EN"
-        elif len(y) == 0:
-            animeType = None
-            animeTypeNum = None
-        else:
-            y = y[0] + 2
-            animeType = "EN"
-    else:
-        y = y[0] + 2
-        animeType = "OP"
-
-    if animeTypeNum:
-        try:
-            animeTypeNum = int(part[y + 1] + part[y + 2])
-        except ValueError:
-            animeTypeNum = int(part[y + 1])
-        except IndexError:
-            animeTypeNum = int(part[y + 1])
-
-    if animeSeason is not None:
-        #animeName = gerPartStrToStr(part, endkey=" " + part[x] + part[x + 1])
-        animeName = gerPartStr(part, 0, x - 1)
-    elif animeTypeNum is not None:
-        #animeName = gerPartStrToStr(part, endkey=" " + part[y] + part[y + 1])
-        animeName = gerPartStr(part, 0, y - 1)
-    else:
-        animeName = part
-
-    return [title, interpreter, musictype, animeName, animeSeason, animeType, animeTypeNum]
 
 class WindowsBalloonTipC:
     def __init__(self):
@@ -1446,6 +913,7 @@ class SysTrayIcon(object):
                  on_quit=None,
                  default_menu_index=None,
                  window_class_name=None,):
+        self.unerrorl = []
         self.unerror = 0
 
         self.icon = icon
@@ -1537,13 +1005,27 @@ class SysTrayIcon(object):
     def restart(self, hwnd, msg, wparam, lparam):
         self.refresh_icon()
 
+        self.unerrorl.append(hwnd)
+        self.unerrorl.append(msg)
+        self.unerrorl.append(wparam)
+        self.unerrorl.append(lparam)
+
     def destroy(self, hwnd, msg, wparam, lparam):
         if self.on_quit: self.on_quit(self)
         nid = (self.hwnd, 0)
         win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
         win32gui.PostQuitMessage(0)
 
+        self.unerrorl.append(hwnd)
+        self.unerrorl.append(msg)
+        self.unerrorl.append(wparam)
+        self.unerrorl.append(lparam)
+
     def notify(self, hwnd, msg, wparam, lparam):
+        self.unerrorl.append(hwnd)
+        self.unerrorl.append(msg)
+        self.unerrorl.append(wparam)
+
         if lparam == win32con.WM_LBUTTONDBLCLK:
             self.execute_menu_option(self.default_menu_index + self.FIRST_ID)
         elif lparam==win32con.WM_RBUTTONUP:
@@ -1606,6 +1088,9 @@ class SysTrayIcon(object):
     def command(self, hwnd, msg, wparam, lparam):
         idt = win32gui.LOWORD(wparam)
         self.execute_menu_option(idt)
+        self.unerrorl.append(hwnd)
+        self.unerrorl.append(msg)
+        self.unerrorl.append(lparam)
 
     def execute_menu_option(self, idt):
         menu_action = self.menu_actions_by_id[idt]
@@ -1637,7 +1122,10 @@ class SysTray(threading.Thread):
 
         if quitFunc is None:
             def quitFuncT(sysTrayIcon):
-                pass
+                debug = [sysTrayIcon]
+                x = "ss"
+                debug.append(x)
+
             self.quitFunc = quitFuncT
         else:
             self.quitFunc = quitFunc
@@ -1683,118 +1171,30 @@ class SysTray(threading.Thread):
         self.End = True
 
 
+def Status(printit=True):
+    if printit:
+        cls()
+        print("Status\n")
 
-def turnStr(word: str):
-    wordfin = ""
-    for x in range(len(word)):
-        wordfin += word[len(word) - 1 - x]
-    return wordfin
+        print("Time: " + datetime.datetime.now().strftime("%H:%M:%S"))
+        print("Date: " + datetime.datetime.now().strftime("%d.%m.%Y"))
 
-def lsame(fullword: str, partword: str, exact=True):
-    matches = 0
-    if not exact:
-        fullword = fullword.lower()
-        partword = partword.lower()
-    for x, y in zip(fullword, partword):
-        if x == y:
-            matches += 1
-    if matches == len(partword):
-        return True
-    else:
-        return False
+        print("\nEvecon:\n")
+        print("Version: " + versionFind()[1])
+        print("Versionnummber: " + versionFind()[0])
+        print("Evecon Type: " + version)
+        print("PID: " + str(os.getpid()))
 
-
-def rsame(fullword: str, partword: str, exact=True):
-    matches = 0
-    if not exact:
-        fullword = fullword.lower()
-        partword = partword.lower()
-    fullwordX = turnStr(fullword)
-    partwordX = turnStr(partword)
-    for x, y in zip(fullwordX, partwordX):
-        if x == y:
-            matches += 1
-    if matches == len(partword):
-        return True
-    else:
-        return False
+        print("\nComputer:\n")
+        print("Computername: " + Computername)
+        print("Username: " + getpass.getuser())
+        print("Computer synonymous: " + computer)
+        if thisIP:
+            print("IP address: " + str(thisIP))
+        print("Homepc: " + str(HomePC))
 
 
-class TimerC:
-    def __init__(self):
-        self.starttime = 0
-        self.stoptime = 0
-        self.startpausetime = 0
-        self.stoppausetime = 0
-        self.Time = 0
-        self.Pause = 0
+        input()
 
-        self.Running = False
-        self.Paused = False
-        self.End = False
+    return [versionFind()[1], versionFind()[0], version, os.getpid(),Computername, getpass.getuser(), computer, thisIP, HomePC]
 
-    def start(self):
-        self.reset()
-        self.Running = True
-        self.starttime = time.time()
-
-    def stop(self):
-        if self.Running:
-            if self.Paused:
-                self.unpause()
-            self.stoptime = time.time()
-            self.reload()
-            self.End = True
-
-    def pause(self):
-        if not self.End:
-            if not self.Paused:
-                self.Paused = True
-                self.startpausetime += time.time()
-
-    def unpause(self):
-        if not self.End:
-            if self.Paused:
-                self.Paused = False
-                self.stoppausetime += time.time()
-                self.reload()
-
-    def reset(self):
-        self.starttime = 0
-        self.stoptime = 0
-        self.startpausetime = 0
-        self.stoppausetime = 0
-        self.Time = 0
-        self.Pause = 0
-
-        self.Running = False
-        self.Paused = False
-        self.End = False
-
-    def switch(self):
-        if not self.Paused:
-            self.pause()
-        else:
-            self.unpause()
-
-    def reload(self):
-        if self.Paused:
-            self.Pause = time.time() - self.startpausetime
-        else:
-            self.Pause = self.stoppausetime - self.startpausetime
-
-        if self.End:
-            self.Time = self.stoptime - self.starttime - self.Pause
-        else:
-            self.Time = time.time() - self.starttime - self.Pause
-
-    def getTime(self):
-        self.reload()
-        return self.Time
-    def getTimeFor(self):
-        self.reload()
-        if (self.Time % 60) < 10:
-            TimeFor = "%s:%s%s" % (round(self.Time) // 60, 0, round(self.Time) % 60)
-        else:
-            TimeFor = "%s:%s" % (round(self.Time) // 60, round(self.Time) % 60)
-        return TimeFor
