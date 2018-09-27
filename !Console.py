@@ -1572,6 +1572,13 @@ def SearchStr(searchkeyU: str, searchStrU: str, exact=False):
 
     return OutputNum
 
+def unge(zahl):
+    if type(zahl) != int:
+        pass
+    elif zahl/2 == int(zahl/2):
+        return 0
+    else:
+        return 1
 
 def gerPartStr(word: str, begin: int, end: int):
     part = ""
