@@ -3935,19 +3935,20 @@ class SplatoonC:
                         "Fein-Disperser Neo", "Airbrush MG", "Airbrush RG", "Klechser", "Tentatek-Klechser",
                         "Kensa-Kleckser", "Heldenwaffe Replik (Klechser)", "Okto-Klechser Replik", ".52 Gallon",
                         ".52 Gallon Deko", "N-ZAP85", "N-ZAP89", "Profi-Klechser", "Focus-Profi-Kleckser",
-                        ".96 Gallon", ".96 Gallon Deko", "Platscher", "Platscher SE",
+                        "Kensa-Profi-Kleckser", ".96 Gallon", ".96 Gallon Deko", "Platscher", "Platscher SE",
 
-                        "Luna-Blaster", "Luna-Blaster Neo", "Blaster", "Blaster SE", "Helden-Blaster Replik",
-                        "Fern-Blaster", "Fern-Blaster SE", "Kontra-Blaster", "Kontra-Blaster Neo", "Turbo-Blaster",
-                        "Turbo-Blaster Deko", "Turbo-Blaster Plus", "Turbo-Blaster Plus Deko",
+                        "Luna-Blaster", "Luna-Blaster Neo", "Kensa-Luna-Blaster", "Blaster", "Blaster SE",
+                        "Helden-Blaster Replik", "Fern-Blaster", "Fern-Blaster SE", "Kontra-Blaster",
+                        "Kontra-Blaster Neo", "Turbo-Blaster", "Turbo-Blaster Deko", "Turbo-Blaster Plus",
+                        "Turbo-Blaster Plus Deko",
 
                         "L3 Tintenwerfer", "L3 Tintenwerfer D", "S3 Tintenwerfer", "S3 Tintenwerfer D", "Quetscher",
                         "Quetscher Fol",
 
                         "Karbonroller", "Karbonroller Deko", "Klecksroller", "Medusa-Klecksroller",
-                        "Kensa-Klecksroller", "Helden-Roller Replik", "Dynaroller", "Dynaroller Tesla", "Flex-Roller",
-                        "Flex-Roller Fol", "Quasto", "Quasto Fresco", "Kalligraf", "Kalligraf Fresco",
-                        "Helden-Pinsel Replik",
+                        "Kensa-Klecksroller", "Helden-Roller Replik", "Dynaroller", "Dynaroller Tesla",
+                        "Kensa-Dynaroller", "Flex-Roller", "Flex-Roller Fol", "Quasto", "Quasto Fresco", "Kalligraf",
+                        "Kalligraf Fresco", "Helden-Pinsel Replik",
 
                         "Sepiator Alpha", "Sepiator Beta", "Klecks-Konzentrator", "Rilax-Klecks-Konzentrator",
                         "Kensa-Klecks-Konzentrator", "Helden-Konzentrator Replik", "Ziel-Konzentrator",
@@ -3956,7 +3957,8 @@ class SplatoonC:
                         "T-Tuber SE",
 
                         "Schwapper", "Schwapper Deko", "Helden-Schwapper Replik", "3R-Schwapper", "3R-Schwapper Fresco",
-                        "Knall-Schwapper", "Trommel-Schwapper", "Trommel-Schwapper Neo", "Wannen-Schwapper",
+                        "Knall-Schwapper", "Trommel-Schwapper", "Trommel-Schwapper Neo", "Kensa-Trommel-Schapper",
+                        "Wannen-Schwapper",
 
                         "Klecks-Splatling", "Sagitron-Klecks-Splatling", "Splatling", "Splatling Deko",
                         "Helden-Splatling Replik", "Hydrant", "Hydrant SE", "Kuli-Splatling", "Nautilus 47",
@@ -4309,8 +4311,7 @@ if exitnow == 0:
         title("Search for Updates")
         #update()
         title("Start Enviroment")
-        if startmain:
-            main()
+        main()
         time.sleep(0)
 
         exit_now()
