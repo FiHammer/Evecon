@@ -27,6 +27,26 @@ class MegaNotLoggedIn(Exception):
 
 # !Console
 
+class ServerPortUsed(Exception):
+    def __init__(self, port):
+        print("The port: %s is already used, please use another one!" % port)
+
+class ClientWrongIp(Exception):
+    def __init__(self):
+        print("Wrong IP")
+
+class ClientWrongPort(Exception):
+    def __init__(self):
+        print("Wrong Port")
+
+class ClientWrongServer(Exception):
+    def __init__(self):
+        print("Wrong Server")
+
+class ClientConnectionLost(Exception):
+    def __init__(self):
+        print("Disconnected")
+
 class EnergyPlanNotFound(Exception):
     def __init__(self):
         print("This Energy Plan is unkown")

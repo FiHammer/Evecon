@@ -1,5 +1,4 @@
 import webbrowser
-import random
 import pyglet
 import os
 
@@ -9,7 +8,7 @@ os.chdir("..")
 os.chdir("..")
 
 
-
+startmain = False
 exitnow = 0
 pausetime = 180
 thisIP = None
@@ -93,256 +92,25 @@ class ToolsC:
 
 Tools = ToolsC()
 
-class ServerC:
-    def __init__(self, host, port, reac = None, reacSendData = False, mess = False):
-        super().__init__()
-        self.host = host
-        self.port = port
-        self.Running = False
-        self.Connected = False
-        self.End = False
-        self.allDataSend = []
-        self.allDataRec = []
-        self.s = socket.socket()
-        self.conAddress = None
-        self.con = None
-
-        self.mess = mess
-        self.reac = reac
-        self.reacSData = reacSendData
-
-    def start(self):
-        self.run()
-    def stop(self):
-        self.Running = False
-        self.End = True
-        self.Connected = False
-        self.con.close()
-    def send(self, data):
-        if self.Running and self.Connected and not self.End:
-            if type(data) == str:
-                data = data.encode()
-            elif type(data) == int:
-                data = str(data).encode()
-            self.con.send(data)
-            self.allDataSend.append(data)
-    def react(self, curData):
-        if self.reac is not None:
-            if self.reacSData:
-                self.reac(curData)
-            else:
-                self.reac()
-    def run(self):
-        self.Running = True
-        self.bind()
-        while self.Running:
-            self.s.listen(1)
-            self.con, self.conAddress = self.s.accept()
-            self.Connected = True
-            print("Connected with", self.conAddress)
-            self.send("Connected with " + str(self.conAddress[0]))
-            if self.mess:
-                balloon_tip("Coonected", "Connected with " + str(self.conAddress[0]))
-            while self.Connected:
-                try:
-                    data = self.con.recv(1024)
-                except ConnectionResetError:
-                    self.Connected = False
-                    break
-                if not data:
-                    break
-                self.allDataRec.append(data)
-                self.react(data)
-                self.commands(data)
-            print("Disconneted")
-            if self.mess:
-                balloon_tip("Disconneted", "Disconneted from " + str(self.conAddress[0]))
-
-        self.stop()
-
-    def commands(self, data): # direct commdands from client
-        if data == b"COM_close_server" or data == b"stop_server":
-            if self.mess:
-                balloon_tip("Stopping", "Stopping the server")
-            self.send(b"COM_close_client")
-            self.Connected = False
-            self.Running = False
-
-    def bind(self):
-        self.s.bind((self.host, self.port))
-
-class ServerThC(threading.Thread):
-    def __init__(self, host, port, reac = None, reacSendData = False, mess = False):
-        super().__init__()
-        self.host = host
-        self.port = port
-        self.Running = False
-        self.Connected = False
-        self.End = False
-        self.allDataSend = []
-        self.allDataRec = []
-        self.s = socket.socket()
-        self.conAddress = None
-        self.con = None
-
-        self.mess = mess
-        self.reac = reac
-        self.reacSData = reacSendData
-
-    def stop(self):
-        self.Running = False
-        self.End = True
-        self.Connected = False
-        self.con.close()
-
-    def send(self, data):
-        if self.Running and self.Connected and not self.End:
-            if type(data) == str:
-                data = data.encode()
-            elif type(data) == int:
-                data = str(data).encode()
-            self.con.send(data)
-            self.allDataSend.append(data)
-    def react(self, curData):
-        if self.reac is not None:
-            if self.reacSData:
-                self.reac(curData)
-            else:
-                self.reac()
-    def run(self):
-        self.Running = True
-        self.bind()
-        while self.Running:
-            self.s.listen(1)
-            self.con, self.conAddress = self.s.accept()
-            self.Connected = True
-            print("Connected with", self.conAddress)
-            if self.mess:
-                balloon_tip("Coonected", "Connected with " + str(self.conAddress[0]))
-            while self.Connected:
-                try:
-                    data = self.con.recv(1024)
-                except ConnectionResetError:
-                    self.Connected = False
-                    break
-                if not data:
-                    break
-                self.allDataRec.append(data)
-                self.react(data)
-                self.commands(data)
-            print("Disconneted")
-            if self.mess:
-                balloon_tip("Disconneted", "Disconneted from " + str(self.conAddress[0]))
-
-        self.stop()
-
-    def commands(self, data): # direct commdands from client
-        if data == b"COM_close_server" or data == b"stop_server":
-            if self.mess:
-                balloon_tip("Stopping", "Stopping the server")
-            self.send(b"COM_close_client")
-            self.Connected = False
-            self.Running = False
-
-    def bind(self):
-        self.s.bind((self.host, self.port))
-
-
-class ClientC(threading.Thread):
-    def __init__(self, host, port, reac=None, reacSendData=False):
-        super().__init__()
-        self.host = host
-        self.port = port
-        self.Running = False
-        self.Connected = False
-        self.End = False
-        self.allDataSend = []
-        self.allDataRec = []
-        self.s = socket.socket()
-
-        self.reac = reac
-        self.reacSData = reacSendData
-
-    def stop(self):
-        self.Running = False
-        self.End = True
-        self.Connected = False
-        self.s.close()
-
-    def send(self, data):
-        if self.Running and self.Connected and not self.End:
-            if type(data) == str:
-                data = data.encode()
-            elif type(data) == int:
-                data = str(data).encode()
-            self.s.send(data)
-            self.allDataSend.append(data)
-            return True
-        else:
-            return False
-
-    def react(self, curData):
-        if self.reac is not None:
-            if self.reacSData:
-                self.reac(curData)
-            else:
-                self.reac()
-
-    def run(self):
-        self.Running = True
-        self.connect()
-        data = None
-        if self.Connected:
-            while self.Running:
-                try:
-                    data = self.s.recv(1024)
-                except ConnectionResetError:
-                    self.Running = False
-
-                self.allDataRec.append(data)
-                self.react(data)
-                self.commands(data)
-
-        self.stop()
-
-    def commands(self, data): # direct commdands from server
-        if data == b"COM_close_client":
-            self.Running = False
-            self.Connected = False
-
-    def connect(self):
-        try:
-            self.s.connect((self.host, self.port))
-            print("Connected")
-        except TimeoutError:
-            # wrong ip
-            return False
-        except ConnectionRefusedError:
-            # wrong port
-            return False
-
-        self.Connected = True
-        return True
 
 def InteractiveClient(host, port):
     def x(data):
-        if not lsame(data.decode(), "COM"):
-            print("[Server] " + data.decode())
+        print("[Server] " + data)
 
-    cl = ClientC(host, port, x, True)
+    cl = Client(ip=host, port=port, react=x)
     cl.start()
 
     time.sleep(1)
     x = input()
 
-    while x != "q" and not cl.End:
+    while x != "q" and not cl.Status == "Ended":
         cl.send(x)
         #sys.stdout.write("-> ")
         time.sleep(0.2)
-        if not cl.End:
+        if not cl.Status == "Ended":
             x = input()
 
-    cl.stop()
+    cl.exit()
 
 
 def Search(searchkeyU, searchlistU, exact=False):
@@ -561,8 +329,7 @@ def MusicEncode(musicname):
 
 
 
-def StartupServerTasks(data_un):
-    data = data_un.decode("utf-8")
+def StartupServerTasks(data):
     global SST_mp, SST_mp_Ac
 
     if data == "shutdown":
@@ -625,6 +392,8 @@ def StartupServerTasks(data_un):
             StartupServer.send("End: False")
         else:
             StartupServer.send("End: True")
+    elif data == "help":
+        StartupServer.send("shutdown, sleep, ep_energysave, reboot, mp_setup, mp_add_*, mp_start, mp_pause, mp_stop, mp_getsong, mp_status")
 
 def np(preset="Man"):
     title("Loading Notepad")
@@ -3157,24 +2926,7 @@ def Timer():
     Timerprint(hr,mi,sec)
     Alarmprint(colorCh=True)
 
-def randompw(returnpw = False, length = 150):
-    listx = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
-            "V", "W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",
-            "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "!",
-            "§", "$", "%", "&", "/", "(", ")", "=", "?", "ß", "#", "'", "+", "*", "~", "ü", "ö", "ä", "-", "_", ".",
-            ":", ",", ";", "{", "[", "]", "}", ">", "<", "|"]
 
-    pw = ""
-
-    for rx in range(length):
-        pw += listx[random.randint(0, len(listx) - 1)]
-
-    if returnpw:
-        return pw
-    cls()
-    print("Password: (length: %s) \n\n%s" % (length, pw))
-
-    input()
 
 def passwordmanager():
     import simplecrypt
@@ -4438,6 +4190,7 @@ def main():
 
 
 def Arg():
+    global StartupServer
 
     skiparg = []
 
@@ -4523,14 +4276,14 @@ def Arg():
             Tools.Reboot()
             exit_now()
         if sys.argv[x] == "-start_server":
-            global StartupServer
             title("Server", " ", " ")
             ttime.deac()
             serverport = int(sys.argv[x + 1])
             if not sys.argv[x + 2] == "app":
                 killConsoleWin()
-            StartupServer = ServerC(thisIP, serverport, reac=StartupServerTasks, reacSendData=True, mess=True)
+            StartupServer = Server(ip=thisIP, port=serverport, react=StartupServerTasks)
             StartupServer.start()
+            StartupServer.join()
             exit_now()
         if sys.argv[x] == "-inter_client":
             title("Interactive Client", " ", " ")
@@ -4556,7 +4309,8 @@ if exitnow == 0:
         title("Search for Updates")
         #update()
         title("Start Enviroment")
-        main()
+        if startmain:
+            main()
         time.sleep(0)
 
         exit_now()

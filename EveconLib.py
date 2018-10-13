@@ -20,6 +20,13 @@ import itertools
 import glob
 import comtypes
 import psutil
+import random
+import simplecrypt
+
+if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
+    os.chdir("..")
+    os.chdir("..")
+
 
 ss_active = False
 exitnow = 0
@@ -29,6 +36,7 @@ thisIP = None
 StartupServer = None
 browser = "firefox"
 MusicDir = None
+startmain = False
 
 def cls():
     os.system("cls")
@@ -36,8 +44,9 @@ def cls():
 def exit_now(killmex = False):
 
     ttime.deac()
-    global exitnow
+    global exitnow, startmain
     exitnow = 1
+    startmain = False
     #if version_PC != 1:
     #    exit()
 
@@ -225,9 +234,12 @@ class TimerC:
     def getTime(self):
         self.reload()
         return self.Time
+
     def getTimeFor(self):
         self.reload()
-        if (self.Time % 60) < 10:
+        if (round(self.Time) % 60) == 0:
+            TimeFor = "%s:%s%s" % (round(self.Time) // 60, 0, 0)
+        elif (round(self.Time) % 60) < 10:
             TimeFor = "%s:%s%s" % (round(self.Time) // 60, 0, round(self.Time) % 60)
         else:
             TimeFor = "%s:%s" % (round(self.Time) // 60, round(self.Time) % 60)
@@ -676,6 +688,711 @@ class VolumeC:
         self.curVoldirect = self.getVolumedirect()
 
 Volume = VolumeC()
+
+class Client(threading.Thread):
+    def __init__(self, ip: str, port: int, react, buffersize=1024, loginName=None, loginPW=None, Seculevel=0, showLog=False):
+        """
+        port
+        the port where the server schould listen on
+
+        reac
+        the function with will be executed when the client sent data
+
+        ip
+        normaly the ip of your pc
+        ip of your pc
+
+        buffersize
+        normaly 1024
+        byte limit of your get data
+
+        loginName
+        if you want the client should login in the server you should define here the username
+
+        loginPW
+        if you want the client should login in the server you should define here the password
+
+        Seculevel
+        normaly 0 if both uses 0 no secu will be used
+        -2: the encryption will be deactivated, but if the client has enabled Secu, the connection will be refuesd
+        -1: the encryption will be deactivated
+        0:  the client decide if the encryption is enabled
+        1:  you force the client to generate a encryption code, but if the client has deactivated Secu, no Secu will be used
+        2:  you force the client to generate a encryption code, but if the client has deactivated Secu, the connection will be refuesd
+
+        BigServerBuffersize
+        normaly 536870912 (maybe 512MB)
+        if this Buffersize is less then the normal buffersize the BigServer will be deactivated
+        you can set the Buffersize of the Bigserver
+
+        BigServerPort
+        set the Port of the BigServer if it is 0 the port is the normal port+1
+
+        showLog
+        show Log entries
+
+        Keywords:
+        #C! for a command
+        #T! do not use, this will be used to talk to the client directly, like login in
+
+        """
+        super().__init__()
+
+
+        self.port = port
+        self.react = react
+        self.ip = ip
+        self.buffersize = buffersize
+        self.showLog = showLog
+
+
+        if loginName and loginPW:
+            self.login = True
+        else:
+            self.login = False
+        self.loginName = loginName
+        self.loginPW = loginPW
+
+        self.Seculevel = Seculevel
+
+        self.Logsend = []
+        self.Logrece = []
+
+        self.s = socket.socket()
+
+        self.Running = False # between start and end
+        self.Connected = False # while connected
+
+        self.conAddress = None
+        self.conInfo = {}
+
+        self.Info = {"login" : {"status" : self.login, "name" : self.loginName, "password" : self.loginPW},
+                     "secu" : {"level" : self.Seculevel}}
+
+        self.Log = []
+        self.Status = "Starting"
+
+    def run(self):
+        self.Running = True
+
+        self.Status = "Setup"
+        self.writeLog("Status:")
+        self.writeLog("Ip: " + str(self.ip))
+        self.writeLog("Port: " + str(self.port))
+        self.writeLog("Login: " + str(self.login))
+        self.writeLog("LoginName: " + str(self.loginName))
+        self.writeLog("LoginPW: " + str(self.loginPW))
+        self.writeLog("Seculevel: " + str(self.Seculevel))
+
+        self.Status = "Connecting"
+
+        try:
+            self.s.connect((self.ip, self.port))
+
+        except TimeoutError:
+            # wrong ip
+            self.writeLog("Can not find IP, Timeout")
+            raise EveconExceptions.ClientWrongPort
+
+        except ConnectionRefusedError:
+            # wrong port
+            self.writeLog("Can not connect to port, ConnectionRefused")
+            raise EveconExceptions.ClientWrongPort
+
+        self.Connected = True
+        self.Status = "Connected"
+        self.writeLog("Connected with Server")
+
+        try:
+            InfoServer_raw = self.s.recv(1024)
+        except ConnectionResetError:
+            self.writeLog("Server disconnected without warning")
+            raise EveconExceptions.ClientConnectionLost()
+
+        InfoServer = InfoServer_raw.decode("UTF-8").split("!")
+
+        if not InfoServer[0] == "#T":
+            self.writeLog("Server send wrong Infoconnection")
+            raise EveconExceptions.ClientWrongServer()
+
+        elif InfoServer[0] == "#T" and InfoServer[1] == "Test":
+            self.conInfo = {"secu": {"status": -1}, "key": "None"}
+            self.writeLog("== uses the 'Test'-Version")
+
+        else:
+            if InfoServer[1] == "True":
+                InfoServer[1] = True
+            else:
+                InfoServer[1] = False
+            if InfoServer[2] == "True":
+                InfoServer[2] = True
+            else:
+                InfoServer[2] = False
+            self.conInfo = {"login": {"status" : InfoServer[1]},
+                            "bigserver" : {"status" : InfoServer[2], "port" : int(InfoServer[3])},
+                            "secu": {"level" : int(InfoServer[4])}}
+
+        S = int(self.conInfo["secu"]["level"])
+        C = int(self.Seculevel)
+
+        if not -3 < S < 3:
+            self.writeLog("Server send a wrong Seculevel")
+            raise EveconExceptions.ClientWrongServer
+
+        elif S == -2:
+            if C == 2:
+                self.Info["secu"]["status"] = 0
+            else:
+                self.Info["secu"]["status"] = -1
+        elif S == -1:
+            if C == 2:
+                self.Info["secu"]["status"] = 1
+            else:
+                self.Info["secu"]["status"] = -1
+        elif S == 0:
+            if C < 1:
+                self.Info["secu"]["status"] = -1
+            else:
+                self.Info["secu"]["status"] = 1
+        elif S == 1:
+            if C == -2:
+                self.Info["secu"]["status"] = -1
+            else:
+                self.Info["secu"]["status"] = 1
+        elif S == 2:
+            if C == -2:
+                self.Info["secu"]["status"] = 0
+            else:
+                self.Info["secu"]["status"] = 1
+
+        if self.Info["secu"]["status"] == 1:
+            self.Info["secu"]["key"] = randompw(returnpw=True, printpw=False, exclude=["#", "!"])
+        else:
+            self.Info["secu"]["key"] = None
+
+        InfoSend = b'#T!' + str(self.Info["login"]["status"]).encode() + b'!' + \
+                   str(self.Info["login"]["name"]).encode() + b'!' + \
+                   str(self.Info["login"]["password"]).encode() + b'!' + \
+                   str(self.Info["secu"]["status"]).encode() + b'!' + \
+                   str(self.Info["secu"]["level"]).encode() + b'!' + \
+                   str(self.Info["secu"]["key"]).encode()
+
+        self.send(InfoSend, encrypt=False)
+
+        try:
+            conAccept = self.s.recv(self.buffersize).decode("UTF-8")
+        except ConnectionResetError:
+            self.writeLog("Server disconnected without warning")
+            raise EveconExceptions.ClientConnectionLost()
+        #print(conAccept, InfoSend)
+
+        if conAccept:
+
+            if self.Info["secu"]["status"] == 1:
+                self.writeLog("Started Connection with Server. Decryption Key: " + self.Info["secu"]["key"])
+
+                while self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
+                    try:
+                        data_en = self.s.recv(self.buffersize)
+                    except ConnectionResetError:
+                        self.writeLog("Server disconnected without warning")
+                        break
+                    except ConnectionAbortedError:
+                        self.writeLog("Connection aborted")
+                        break
+                    #print(data_en)
+                    data = simplecrypt.decrypt(self.Info["secu"]["key"], data_en)
+
+                    self.receive(data)
+
+            elif self.Info["secu"]["status"] == -1:
+                self.writeLog("Started Connection with Server. No Decryption")
+
+                while self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
+                    try:
+                        data = self.s.recv(self.buffersize)
+                    except ConnectionResetError:
+                        self.writeLog("Server disconnected without warning")
+                        break
+                    except ConnectionAbortedError:
+                        self.writeLog("Connection aborted")
+                        break
+
+                    self.receive(data)
+            else:
+                self.writeLog("Wrong status")
+        else:
+            self.writeLog("Wrong Password")
+
+        self.s.close()
+        self.Running = False
+        self.Connected = False
+        self.Status = "Ended"
+
+
+    def send(self, data, encrypt=None):
+        if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
+            if type(data) == str:
+                data_send = data.encode()
+            elif type(data) == int:
+                data_send = str(data).encode()
+            elif type(data) == bool:
+                data_send = str(data).encode()
+            else:
+                data_send = data
+
+            if encrypt is None:
+                if self.Info["secu"]["status"] == 1:
+                    data_send_de = simplecrypt.encrypt(self.Info["secu"]["key"], data_send)
+                else:
+                    data_send_de = data_send
+            elif encrypt:
+                data_send_de = simplecrypt.encrypt(self.Info["secu"]["key"], data_send)
+            else:
+                data_send_de = data_send
+
+            self.Logsend.append(data)
+            self.s.send(data_send_de)
+
+    def receive(self, data):
+        if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
+            data_form = data.decode("UTF-8")
+            data_form_split = data_form.split("!")
+
+            self.Logrece.append(data)
+            self.writeLog("Receive: " + data_form)
+
+            if data_form_split[0] == "#C" and len(data_form_split) > 1:
+                if data_form_split[1] == "exit":
+                    self.exit()
+            elif data_form_split[0] == "#T" and len(data_form_split) > 1:
+                if data_form_split[1] == "exit":
+                    if data_form_split[1] == "exit":
+                        self.exit(sendM=False)
+                        self.writeLog("Server disconnected")
+
+            else:
+                self.react(data_form)
+
+    def save(self, directory:str):
+        file_log_raw = open("Log.txt", "w")
+        for x in self.Log:
+            file_log_raw.write(x)
+        file_log_raw.close()
+
+        file_logsend_raw = open("LogSend.txt", "w")
+        for x in self.Logsend:
+            file_logsend_raw.write(x)
+        file_logsend_raw.close()
+
+        file_logrece_raw = open("LogReceive.txt", "w")
+        for x in self.Logrece:
+            file_logrece_raw.write(x)
+        file_logrece_raw.close()
+
+    def writeLog(self, data):
+        write = "(" + datetime.datetime.now().strftime("%H:%M:%S:%f") + ") " + "(" + self.Status + ") " + data
+        self.Log.append(write)
+        if self.showLog:
+            print("[Log] " + write)
+
+    def exit(self, sendM=True):
+        if sendM:
+            self.send("#T!exit")
+        self.s.close()
+
+    def getStatus(self):
+        curStatus = {"status" : {"status" : self.Status, "running" : self.Running, "connected" : self.Connected},
+                     "log": self.Log, "info" : self.Info}
+        return curStatus
+
+
+class Server(threading.Thread):
+    def __init__(self, port: int, react, ip=socket.gethostbyname(socket.gethostname()), buffersize=1024,
+                 loginName=None, loginPW=None, maxConnections=1, Seculevel=0, BigServerBuffersize=536870912,
+                 BigServerPort=0, welcomeMessage="Welcome to Evecon Server!", thisBig=False):
+        """
+        ip
+        ip of the server
+
+        port
+        the port where the server listen on
+
+        reac
+        the function with will be executed when the server sent data
+
+        buffersize
+        normaly 1024
+        byte limit of your get data
+
+        loginName
+        if enabled in the server the loginName is defined here
+
+        loginPW
+        if enabled in the server the loginPW is defined here
+
+        Seculevel
+        normaly 0 if both uses 0 no secu will be used
+        -2: the encryption will be deactivated so you can not connect with server with seculevel 2
+        -1: the encryption will be deactivated, but if the client has enabled Secu, Secu will be used
+        0:  the client decide if the encryption is enabled
+        1:  you force the client to generate a encryption code, but if the client has deactivated Secu, no Secu will be used
+        2:  the encryption will be deactivated so you can not connect with server with seculevel -2
+
+        S   C   Y=Encryption N=No Encryption E=No Connection
+        -2  -2  N
+        -2  -1  N
+        -2  0   N
+        -2  1   N
+        -2  2   E
+
+        -1  -2  N
+        -1  -1  N
+        -1  0   N
+        -1  1   N
+        -1  2   Y
+
+        0  -2   N
+        0  -1   N
+        0  0    N
+        0  1    Y
+        0  2    Y
+
+        1  -2   N
+        1  -1   Y
+        1  0    Y
+        1  1    Y
+        1  2    Y
+
+        2  -2   E
+        2  -1   Y
+        2  0    Y
+        2  1    Y
+        2  2    Y
+
+        BigServerBuffersize
+        normaly 536870912 (maybe 512MB)
+        if this Buffersize is less then the normal buffersize the BigServer will be deactivated
+        you can set the Buffersize of the Bigserver
+
+        BigServerPort
+        set the Port of the BigServer if it is 0 the port is the normal port+1
+
+        Keywords:
+        #C! for a command
+        #T! do not use, this will be used to talk to the client directly, like login in
+        #R! for receiving some return infomation
+        #B! for travel through bigserver
+
+        """
+        super().__init__()
+
+        self.version = "1.0.0"
+
+        self.thisBigServer = thisBig
+        self.port = port
+        self.react = react
+        self.ip = ip
+        self.buffersize = buffersize
+        self.maxConnections = maxConnections
+        self.welcomeMessage = welcomeMessage
+
+        if loginName and loginPW:
+            self.login = True
+        else:
+            self.login = False
+        self.loginName = loginName
+        self.loginPW = loginPW
+
+        self.Seculevel = Seculevel
+
+        self.Timer = TimerC()
+
+        self.BigServerBuffersize = BigServerBuffersize
+        if not BigServerPort:
+            self.BigServerPort = port + 1
+
+        if BigServerBuffersize > self.buffersize:
+            self.BigServerEnabled = True
+            self.BigServer = Server(port=BigServerPort, react=self.receive, buffersize=self.BigServerBuffersize,
+                                    loginName=self.loginName, loginPW=self.loginPW, Seculevel=self.Seculevel,
+                                    BigServerBuffersize=0, thisBig=True)
+        else:
+            self.BigServerEnabled = False
+            self.BigServer = None
+
+        self.Logsend = []
+        self.Logrece = []
+
+        self.s = socket.socket()
+        try:
+            self.s.bind((self.ip, self.port))
+        except OSError:
+            raise EveconExceptions.ServerPortUsed(self.port)
+
+        self.Running = False  # between start and end
+        self.Connected = False  # while connected
+
+        self.connects = []
+
+        self.conAddress = None
+        self.con = None
+        self.conInfo = None
+
+        self.Info = {"ip": self.ip, "port": self.port, "buffersize": self.buffersize,
+                     "maxconnections": self.maxConnections, "welcomeMessage": self.welcomeMessage,
+                     "login": {"status": self.login, "name": self.loginName, "password": self.loginPW},
+                     "bigserver": {"status": self.BigServerEnabled, "ip": self.ip, "port": self.BigServerPort},
+                     "secu": {"level": self.Seculevel}}
+
+        self.Log = []
+        self.Status = "Starting"
+
+    def run(self):
+        self.Running = True
+        self.Timer.start()
+
+        self.Status = "Setup"
+        self.writeLog("Status:")
+        self.writeLog("Ip: " + str(self.ip))
+        self.writeLog("Port: " + str(self.port))
+        self.writeLog("Login: " + str(self.login))
+        self.writeLog("LoginName: " + str(self.loginName))
+        self.writeLog("LoginPW: " + str(self.loginPW))
+        self.writeLog("BigServer: " + str(self.BigServerEnabled))
+        self.writeLog("BigServerPort: " + str(self.BigServerPort))
+        self.writeLog("Seculevel: " + str(self.Seculevel))
+
+        while self.Running:
+
+            self.Status = "Listening..."
+            self.writeLog("Listening...")
+
+            self.s.listen(self.maxConnections)
+
+            self.con, self.conAddress = self.s.accept()
+
+            self.writeLog("Found Client with IP: %s, Port: %s" % (self.conAddress[0], self.conAddress[1]))
+
+            self.Connected = True
+            self.Status = "Connected"
+            self.connects.append(self.conAddress)
+
+            InfoSend = b'#T!' + str(self.Info["login"]["status"]).encode() + b'!' + \
+                       str(self.Info["bigserver"]["status"]).encode() + b'!' + \
+                       str(self.Info["bigserver"]["port"]).encode() + b'!' + \
+                       str(self.Info["secu"]["level"]).encode()
+
+            # self.Log.append(InfoSend)
+            self.send(InfoSend, encrypt=False)
+
+            try:
+                InfoClient_raw = self.con.recv(1024)
+            except ConnectionResetError:
+                self.writeLog("Client disconnected while logging in")
+                continue
+
+            InfoClient = InfoClient_raw.decode("UTF-8").split("!")
+
+            if not InfoClient[0] == "#T":
+                self.writeLog("Client send wrong Infoconnection")
+                continue
+
+            elif InfoClient[0] == "#T" and InfoClient[1] == "Test":
+                self.conInfo = {"secu": {"status": -1}, "key": "None"}
+                self.writeLog("Client uses the 'Test'-Version")
+
+            else:
+                if InfoClient[1] == "True":
+                    InfoClient[1] = True
+                else:
+                    InfoClient[1] = False
+
+                self.conInfo = {"login": {"status": InfoClient[1], "name": InfoClient[2], "password": InfoClient[3]},
+                                "secu": {"status": int(InfoClient[4]), "level": int(InfoClient[5]),
+                                         "key": InfoClient[6]}}
+
+            self.writeLog("Client:")
+            self.writeLog("Login: " + str(InfoClient[1]))
+            self.writeLog("LoginName: " + InfoClient[2])
+            self.writeLog("LoginPW: " + InfoClient[3])
+            self.writeLog("Secu: " + str(InfoClient[4]))
+            self.writeLog("Seculevel: " + str(InfoClient[5]))
+            self.writeLog("Secukey: " + self.conInfo["secu"]["key"])
+
+            # print(self.Info, self.conInfo)
+
+            if self.login:
+                if self.conInfo["login"]["status"]:
+                    if self.loginName == self.conInfo["login"]["name"] and self.loginPW == self.conInfo["login"][
+                        "password"]:
+                        conAccept = True
+                    else:
+                        conAccept = False
+                else:
+                    conAccept = False
+            elif self.conInfo["login"]["status"]:
+                conAccept = False
+            else:
+                conAccept = True
+
+            self.send(conAccept, encrypt=False)
+            if not conAccept:
+                self.writeLog("Client sent wrong logindata")
+                continue
+
+            self.send(self.welcomeMessage)
+
+            if self.conInfo["secu"]["status"] == 1:  # yes
+                self.writeLog("Started Connection with Client. Decryption")
+
+                while self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
+                    try:
+                        data_en = self.con.recv(1024)
+                    except ConnectionResetError:
+                        self.writeLog("Client disconnected without warning")
+                        break
+                    except ConnectionAbortedError:
+                        self.writeLog("Connection aborted")
+                        break
+                    except OSError:
+                        break
+
+                    data = simplecrypt.decrypt(self.conInfo["secu"]["key"], data_en)
+
+                    if not data:
+                        self.writeLog("Client disconnected. If this happens the Client send something courious")
+                        break
+
+                    self.receive(data)
+
+            elif self.conInfo["secu"]["status"] == -1:  # no
+                self.writeLog("Started Connection with Client. No Decryption")
+
+                while self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
+                    try:
+                        data = self.con.recv(1024)
+                    except ConnectionResetError:
+                        self.writeLog("Client disconnected without warning")
+                        break
+                    except ConnectionAbortedError:
+                        self.writeLog("Connection aborted")
+                        break
+                    except OSError:
+                        break
+
+                    if not data:
+                        self.writeLog("Client disconnected. If this happens the Client send something courious")
+                        break
+
+                    self.receive(data)
+
+            elif self.conInfo["secu"]["status"] == 0:  # no connection
+                self.writeLog("Can not establish a connection. Seclevels: Server: %s, Client: %s" % (
+                    self.Seculevel, self.conInfo["secu"]["level"]))
+
+            else:
+                self.writeLog("The Client sent: " + str(self.conInfo["secu"]["status"]) + ". Error")
+
+            self.Connected = False
+            self.con.close()
+            # reset
+            self.conAddress = None
+            self.con = None
+            self.conInfo = None
+
+        self.Running = False
+        self.Status = "Ended"
+
+    def send(self, data, encrypt=None):
+        if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected" or not encrypt:
+
+            if type(data) == str:
+                data_send = data.encode()
+            elif type(data) == int:
+                data_send = str(data).encode()
+            elif type(data) == bool:
+                data_send = str(data).encode()
+            else:
+                data_send = data
+
+            if encrypt is None:
+                if self.conInfo["secu"]["status"] == 1:
+                    data_send_de = simplecrypt.encrypt(self.conInfo["secu"]["key"], data_send)
+                else:
+                    data_send_de = data_send
+            elif encrypt:
+                data_send_de = simplecrypt.encrypt(self.conInfo["secu"]["key"], data_send)
+            else:
+                data_send_de = data_send
+
+            # print(encrypt, self.conInfo["secu"]["status"])
+            # print(data, data_send, data_send_de)
+            self.Logsend.append(data)
+            self.writeLog("Sended: " + data_send.decode("UTF-8"))
+            self.con.send(data_send_de)
+
+    def receive(self, data):
+        if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
+            data_form = data.decode("UTF-8")
+            data_form_split = data_form.split("!")
+
+            self.Logrece.append(data)
+            self.writeLog("Receive: " + data_form)
+
+            if data_form_split[0] == "#C" and len(data_form_split) > 1:
+                if data_form_split[1] == "getTimeRaw":
+                    self.send("#R!" + str(self.getRunTime()))
+                elif data_form_split[1] == "getTime":
+                    self.send("#R!" + str(self.getRunTime(False)))
+                elif data_form_split[1] == "exit":
+                    self.exit()
+            elif data_form_split[0] == "#T" and len(data_form_split) > 1:
+                if data_form_split[1] == "exit":
+                    self.exit(sendM=False)
+                    self.writeLog("Client disconnected")
+            elif data_form_split[0] == "#B" and len(data_form_split) > 1:
+                pass
+            else:
+                self.react(data_form)
+
+    def writeLog(self, data):
+        write = "(" + datetime.datetime.now().strftime("%H:%M:%S:%f") + ") " + "(" + self.Status + ") " + data
+        self.Log.append(write)
+        print("[Log] " + write)
+
+    def save(self, directory: str):
+        file_log_raw = open("Log.txt", "w")
+        for x in self.Log:
+            file_log_raw.write(x)
+        file_log_raw.close()
+
+        file_logsend_raw = open("LogSend.txt", "w")
+        for x in self.Logsend:
+            file_logsend_raw.write(x)
+        file_logsend_raw.close()
+
+        file_logrece_raw = open("LogReceive.txt", "w")
+        for x in self.Logrece:
+            file_logrece_raw.write(x)
+        file_logrece_raw.close()
+
+    def exit(self, sendM=True):
+        if sendM:
+            self.send("#T!exit")
+        self.con.close()
+
+    def getStatus(self):
+        curStatus = {"status": {"status": self.Status, "running": self.Running, "connected": self.Connected},
+                     "log": self.Log, "info": self.Info, "connects": self.connects}
+        return curStatus
+
+    def getRunTime(self, raw=True):
+        if raw:
+            return self.Timer.getTime()
+        else:
+            return self.Timer.getTimeFor()
+
 
 title("Loading Title Time")
 
@@ -1198,3 +1915,31 @@ def Status(printit=True):
 
     return [versionFind()[1], versionFind()[0], version, os.getpid(),Computername, getpass.getuser(), computer, thisIP, HomePC]
 
+
+def randompw(returnpw=False, length=150, printpw=True, exclude=None):
+    if exclude is None:
+        exclude = []
+    listx = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
+             "V", "W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",
+             "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "!",
+             "§", "$", "%", "&", "/", "(", ")", "=", "?", "ß", "#", "'", "+", "*", "~", "ü", "ö", "ä", "-", "_", ".",
+             ":", ",", ";", "{", "[", "]", "}", ">", "<", "|"]
+
+    for x in exclude:
+        for y in range(len(listx) - 1):
+            if x == listx[y]:
+                del listx[y]
+
+    pw = ""
+
+    for rx in range(length):
+        pw += listx[random.randint(0, len(listx) - 1)]
+
+    if returnpw:
+        return pw
+
+    if printpw:
+        cls()
+        print("Password: (length: %s) \n\n%s" % (length, pw))
+
+        input()
