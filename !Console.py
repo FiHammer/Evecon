@@ -348,18 +348,20 @@ def Music(systrayon=True):
     def Play():
         class Printerr(threading.Thread):
             def run(self):
-                while muPlayer.musicrun:
-                    cls()
+                while not muPlayer.allowPrint:
+                    time.sleep(0.5)
+                while muPlayer.musicrun and muPlayer.allowPrint:
+                    time.sleep(1)
                     muPlayer.printit()
-                    time.sleep(0.75)
-                    if muPlayer.pause:
-                        cls()
-                        muPlayer.printit()
-                    while muPlayer.pause:
-                        time.sleep(0.5)
+                    while muPlayer.paused:
+                        time.sleep(1)
 
         Printer = Printerr()
         Printer.start()
+
+        #while True:
+        #    print(muPlayer.allowPrint, muPlayer.musicrun, muPlayer.paused)
+        #    time.sleep(0.5)
 
         #while muPlayer.musicrun:
         #    user_input = input()

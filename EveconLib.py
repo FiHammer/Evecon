@@ -731,6 +731,7 @@ class MusicPlayerC(threading.Thread):
         self.running = False
         self.playing = False
         self.exitn = False
+        self.allowPrint = False
 
         self.player = pyglet.media.Player()
         self.timer = TimerC()
@@ -803,6 +804,7 @@ class MusicPlayerC(threading.Thread):
             print("Loading...")
             musicDirLoad = ""
 
+        old_Num = self.music["all_files"]
         key = key.lower()
 
         if key == "us":
@@ -829,9 +831,10 @@ class MusicPlayerC(threading.Thread):
         else:
             return False
 
-
         for numfile in range(1, self.find_music_out["all_files"] + 1):
-            self.music["file" + str(numfile)]["loaded"] = pyglet.media.load(self.find_music_out["file" + str(numfile)]["fullname"])
+            cls()
+            print("Loading (%s/%s)" % (numfile, self.find_music_out["all_files"]))
+            self.music["file" + str(old_Num + numfile)]["loaded"] = pyglet.media.load(self.music["file" + str(old_Num + numfile)]["fullname"])
 
         #self.music_playlists_active.append(key)
         self.music["active"].append(key)
@@ -963,7 +966,9 @@ class MusicPlayerC(threading.Thread):
             self.running = True
             self.playing = True
 
+            self.allowPrint = True
             self.refreshTitle()
+
             self.printit()
             while self.playing:
 
@@ -1106,13 +1111,24 @@ class MusicPlayerC(threading.Thread):
 
         elif self.con_main == "details":
             print("Details:\n")
-            print("Title: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["title"]))
-            print("Interpreter: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["interpreter"]))
-            print("Musictype: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["musictype"]))
-            print("Animename: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeName"]))
-            print("Season: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeSeason"]))
-            print("Type: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeType"]) +
-                  str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeTypeNum"]))
+            if self.music[self.playlist[self.cur_Pos]]["antype"]:
+                print("Title: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["title"]))
+                print("Interpreter: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["interpreter"]))
+                print("Musictype: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["musictype"]))
+                print("Animename: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeName"]))
+                print("Season: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeSeason"]))
+                print("Type: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeType"]) +
+                      str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeTypeNum"]))
+            else:
+                print("Filename: " + self.music[self.playlist[self.cur_Pos]]["name"])
+                print("Album: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.album.decode())
+                print("Author: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.author.decode())
+                print("Comment: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.comment.decode())
+                print("Copyright: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.copyright.decode())
+                print("Genre: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.genre.decode())
+                print("Title: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.title.decode())
+                print("Track: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.track))
+                print("Year: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.year))
 
         elif self.con_main == "spl":
             self.spl.printit(False)
@@ -1124,14 +1140,10 @@ class MusicPlayerC(threading.Thread):
         if self.con_cont == "set":
             print("Commands:\n")
 
-            if not self.paused and self.music[self.playlist[self.cur_Pos]]["antype"]:
+            if not self.paused:
                 print("Pause (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT), Details (DEA)")
-            elif self.paused and self.music[self.playlist[self.cur_Pos]]["antype"]:
-                print("Play (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT), Details (DEA)")
-            elif not self.paused:
-                print("Pause (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT)")
             elif self.paused:
-                print("Play (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT)")
+                print("Play (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT), Details (DEA)")
 
             if self.con_main == "spl":
                 self.spl.printcom()
@@ -1301,7 +1313,7 @@ class MusicPlayerC(threading.Thread):
             self.rerollThis()
         elif i == "exin":
             self.exitn = True
-        elif i == "dea" and self.music[self.playlist[self.cur_Pos]]["antype"]:
+        elif i == "dea":
             self.con_main = "details"
 
         elif i == "spl":
