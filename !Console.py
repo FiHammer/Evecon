@@ -368,7 +368,7 @@ def Music(systrayon=True):
         #    muPlayer.input(user_input)
 
 
-    muPlayer = MusicPlayerC(systrayon)
+    muPlayer = MusicPlayerC(systrayon, random=musicrandom)
 
     music_playlists_print = ""
     for x, y in zip(muPlayer.playlists, muPlayer.playlists_key):

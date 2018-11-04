@@ -45,6 +45,7 @@ Alphabet = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"
 firefox_path = "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
 vivaldi_path = "C:\\Program Files (x86)\\Vivaldi\\Application\\vivaldi.exe"
 console_data = (120, 30)
+musicrandom = True
 
 class ddbug(threading.Thread):
     def __init__(self):
@@ -82,9 +83,9 @@ def readConfig():
     config = configparser.ConfigParser()
     config.read("data\\config.ini")
 
-    global browser
+    global browser, musicrandom
 
-
+    musicrandom = config["Music"]["random"]
     browser = config["Notepad"]["browser"]
 
 
@@ -550,7 +551,7 @@ class Scanner(threading.Thread):
                 self.action(char)
             else:
                 if char == "\x1b":
-                    self.action("esc")
+                    self.action("escape")
                 elif char == "\x00;":
                     self.action("F1")
                 elif char == "\x00<":
@@ -723,7 +724,10 @@ class MusicPlayerC(threading.Thread):
         self.volume = Volume.getVolume()
         self.volumep = 1
 
-        self.random = random
+        self.randomizer = random
+        global musicrun
+        musicrun = True
+
         self.musicrun = True
         self.playlist = []
         self.pershuffel = False
@@ -741,7 +745,8 @@ class MusicPlayerC(threading.Thread):
         self.skip_del = False
         self.paused = False
         self.pause_type = ""
-
+        self.muted = False
+        self.mute_vol = 1
         self.con_main = "pl"
         self.con_cont = "set"
         self.change = ""
@@ -848,6 +853,7 @@ class MusicPlayerC(threading.Thread):
             self.music[tracknum]["loaded"] = pyglet.media.load(self.music[tracknum]["fullname"])
 
     def make_playlist(self):
+        self.playlist = []
         for x in range(1, self.music["all_files"] + 1):
             self.playlist.append("file" + str(x))
 
@@ -874,8 +880,11 @@ class MusicPlayerC(threading.Thread):
         del oldPL[self.cur_Pos]
         self.playlist = oldPL + [self.playlist[self.cur_Pos]]
         if self.cur_Pos == 0:
-            self.skip_del = True
-            self.next()
+            self.next(True)
+
+    def sortPL(self):
+        self.playlist.sort()
+
     #Options
 
     def play(self):
@@ -889,7 +898,22 @@ class MusicPlayerC(threading.Thread):
             self.play()
         else:
             self.pause()
+    def switchmute(self):
+        if self.muted:
+            self.unmute()
+        else:
+            self.mute()
+    def mute(self):
+        self.muted = True
+        self.mute_vol = self.volumep
+        self.volp(0)
+    def unmute(self):
+        self.muted = False
+        self.volp(self.mute_vol)
     def stop(self):
+        global musicrun
+        musicrun = True
+
         self.musicrun = False
         self.playing = False
         self.paused = False
@@ -897,7 +921,9 @@ class MusicPlayerC(threading.Thread):
         if self.systrayon:
             time.sleep(1)
             killme()
-    def next(self):
+    def next(self, skipthis=False):
+        if skipthis:
+            self.skip_del = True
         self.playing = False
         if self.paused:
             self.paused = False
@@ -910,7 +936,6 @@ class MusicPlayerC(threading.Thread):
     def volp(self, vol):
         self.volumep = vol
         self.player.volume = self.volumep
-
 
 
     def run(self):
@@ -947,7 +972,11 @@ class MusicPlayerC(threading.Thread):
             self.systray.start()
 
         self.make_playlist()
-        if self.random:
+        tmp = str(self.randomizer)
+
+        if tmp == "True":
+            print(self.playlist, self.randomizer, musicrandom)
+            print("ALARM")
             self.shufflePL(True)
 
         self.scanner.start()
@@ -955,7 +984,6 @@ class MusicPlayerC(threading.Thread):
 
             if self.music[self.playlist[0]]["loaded"].is_queued:
                 self.reloadMusic(self.playlist[0])
-
             self.player.queue(self.music[self.playlist[0]]["loaded"])
             self.player.play()
 
@@ -1193,6 +1221,11 @@ class MusicPlayerC(threading.Thread):
                     new_Input += self.cur_Input[x]
                 self.cur_Input = new_Input
 
+        elif self.change and inp == "escape":
+            self.cur_Input = ""
+            self.change = ""
+            self.con_cont = "set"
+
 
         elif self.change == "volp":
             if inp == "enter":
@@ -1200,6 +1233,7 @@ class MusicPlayerC(threading.Thread):
                 self.cur_Input = ""
                 self.change = ""
                 self.con_cont = "set"
+
 
         elif self.change == "volw":
             if inp == "enter":
@@ -1222,7 +1256,8 @@ class MusicPlayerC(threading.Thread):
         elif inp == "arrowdown" and self.cur_Pos < len(self.playlist) - 1 and self.con_main == "pl":
             self.cur_Pos += 1
 
-        elif inp == "strg_arrowup" and self.cur_Pos > 0 and self.con_main == "pl":
+        elif inp == "strg_arrowup" and self.cur_Pos > 0 and self.con_main == "pl" or \
+                inp == "num8" and self.cur_Pos > 0 and self.con_main == "pl":
             newPL = []
             skipnext = False
             for x in range(len(self.playlist)):
@@ -1238,12 +1273,12 @@ class MusicPlayerC(threading.Thread):
             self.playlist = newPL.copy()
 
             if self.cur_Pos == 1:
-                self.skip_del = True
-                self.next()
+                self.next(True)
 
             self.cur_Pos -= 1
 
-        elif inp == "strg_arrowdown" and self.cur_Pos < len(self.playlist) - 1 and self.con_main == "pl":
+        elif inp == "strg_arrowdown" and self.cur_Pos < len(self.playlist) - 1 and self.con_main == "pl" or \
+                inp == "num2" and self.cur_Pos < len(self.playlist) - 1 and self.con_main == "pl":
             newPL = []
             skipnext = False
             for x in range(len(self.playlist)):
@@ -1259,23 +1294,20 @@ class MusicPlayerC(threading.Thread):
             self.playlist = newPL.copy()
 
             if self.cur_Pos == 0:
-                self.skip_del = True
-                self.next()
+                self.next(True)
 
             self.cur_Pos += 1
 
         elif inp == "del" and self.con_main == "pl":
             self.Del(self.playlist[self.cur_Pos])
             if self.cur_Pos == 0:
-                self.skip_del = True
-                self.next()
+                self.next(True)
 
         elif inp == "enter" and self.con_main == "pl":
             oldPL = self.playlist.copy()
             del oldPL[self.cur_Pos]
             self.playlist = [self.playlist[self.cur_Pos]] + oldPL
-            self.skip_del = True
-            self.next()
+            self.next(True)
 
 
         self.printit()
@@ -1286,6 +1318,8 @@ class MusicPlayerC(threading.Thread):
             self.switch()
         elif i == "next" or i == "n":
             self.next()
+        elif i == "m":
+            self.switchmute()
         elif i == "stop" or i == "exit":
             self.stop()
         #elif i == "del":
@@ -1297,7 +1331,7 @@ class MusicPlayerC(threading.Thread):
         elif i == "del":
             self.Del(self.playlist[self.cur_Pos])
             if self.cur_Pos == 0:
-                self.skip_del = True
+
                 self.next()
         elif i == "volw":
             self.cur_Input = ""
@@ -1315,6 +1349,9 @@ class MusicPlayerC(threading.Thread):
             self.exitn = True
         elif i == "dea":
             self.con_main = "details"
+        elif i == "sort":
+            self.sortPL()
+            self.next(True)
 
         elif i == "spl":
             if self.con_main == "spl":
