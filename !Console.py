@@ -1,11 +1,11 @@
-import webbrowser
 import pyglet
 import os
+import json
 
-
-cdir = os.getcwd()
-os.chdir("..")
-os.chdir("..")
+if __name__ == "__main__":
+    cdir = os.getcwd()
+    os.chdir("..")
+    os.chdir("..")
 
 
 startmain = False
@@ -113,219 +113,6 @@ def InteractiveClient(host, port):
     cl.exit()
 
 
-def Search(searchkeyU, searchlistU, exact=False):
-
-    if len(searchkeyU) == 0:
-        return None
-
-    if not exact:
-        searchkey = searchkeyU.lower()
-        searchlist = []
-        for x in searchlistU:
-            searchlist.append(x.lower())
-    else:
-        searchkey = searchkeyU
-        searchlist = []
-        for x in searchlistU:
-            searchlist.append(x)
-
-    OutputNum = []
-
-    for sListNum in range(len(searchlist)): # wort aus der liste
-        if len(searchkey) > len(searchlist[sListNum]):
-            continue  # suchwort größer als anderes wort
-
-        for letterNum in range(len(searchlist[sListNum])): # buchstabe aus wort
-            if searchlist[sListNum][letterNum] == searchkey[0]: # wahr=
-                test = True
-
-                for keyNum in range(len(searchkey)):
-                    if test:
-                        test = False
-                        if keyNum == len(searchkey) - 1:
-                            OutputNum.append(sListNum)
-                            break
-                        continue
-                    if len(searchlist[sListNum]) - 1 < keyNum + letterNum:
-                        break
-
-                    if searchlist[sListNum][keyNum + letterNum] == searchkey[keyNum]:
-                        if keyNum == len(searchkey) - 1:
-                            OutputNum.append(sListNum)
-                            break
-                    else:
-                        break
-
-                break
-
-    return OutputNum
-
-def SearchStr(searchkeyU: str, searchStrU: str, exact=False):
-
-    if len(searchkeyU) == 0:
-        return None
-
-    if not exact:
-        searchkey = searchkeyU.lower()
-        searchlist = searchStrU.lower()
-    else:
-        searchkey = searchkeyU
-        searchlist = searchStrU
-
-    OutputNum = []
-
-
-    for letterNum in range(len(searchlist)):
-        if searchlist[letterNum] == searchkey[0]:
-            test = False
-
-            for keyNum in range(len(searchkey)):
-                if test:
-                    test = False
-                    if keyNum == len(searchkey) - 1:
-                        OutputNum.append(keyNum)
-                        break
-                    continue
-                if len(searchlist) - 1 < keyNum + letterNum:
-                    break
-
-                if searchlist[keyNum + letterNum] == searchkey[keyNum]:
-                    if keyNum == len(searchkey) - 1:
-                        OutputNum.append(letterNum)
-                        break
-                else:
-                    break
-
-    return OutputNum
-
-def unge(zahl):
-    if type(zahl) != int:
-        pass
-    elif zahl/2 == int(zahl/2):
-        return 0
-    else:
-        return 1
-
-def gerPartStr(word: str, begin: int, end: int):
-    part = ""
-    if len(word) <= end or len(word) <= begin or begin >= end:
-        return False
-    end -= 1
-    for x in range(end):
-        if x < begin:
-            continue
-        part += word[x]
-    return part
-
-def gerPartStrToStr(word: str, endkey: str, beginkey="", exact=False):
-    if exact:
-        word = word.lower()
-        endkey = endkey.lower()
-    part = ""
-    x = 0
-    end = False
-    beginskip = False
-    beginover = False
-    while True:
-        if beginkey != "" and not beginover:
-            z = 0
-            for y in range(len(beginkey)):
-                if word[x + y] == beginkey[y]:
-                    z += 1
-                else:
-                    beginskip = True
-                if z == len(beginkey):
-                    beginover = True
-                    x += z
-            if beginskip:
-                beginskip = False
-                x += 1
-                continue
-        z = 0
-        for y in range(len(endkey)):
-            if word[x + y] == endkey[y]:
-                z += 1
-            else:
-                break
-            if z == len(endkey):
-                end = True
-                break
-        if end:
-            break
-        part += word[x]
-        x += 1
-
-    return part
-
-
-
-def MusicEncode(musicname):
-    if MusicType(musicname):
-        name = musicname.rstrip("." + MusicType(musicname, True))
-    else:
-        name = musicname
-
-    title = gerPartStrToStr(name, " by ")
-    interpreter = gerPartStrToStr(name, beginkey=title + " by ", endkey= " (")
-    musictype = turnStr(gerPartStrToStr(turnStr(name), endkey= turnStr(") - ")))
-
-    part = gerPartStrToStr(name, beginkey=title + " by " + interpreter + " (From ", endkey=") - " + musictype)
-
-    x = SearchStr(" S", part, exact = True)
-    animeSeason = True
-    if len(x) > 1:
-        x = x[len(x) - 1] + 1
-    elif len(x) == 0:
-        animeSeason = None
-    else:
-        x = x[0]  + 1
-
-    if animeSeason:
-        try:
-            animeSeason = int(part[x + 1] + part[x + 2])
-        except ValueError:
-            animeSeason = int(part[x + 1])
-        except IndexError:
-            animeSeason = int(part[x + 1])
-
-    y = SearchStr(" OP", part, exact = True)
-    animeTypeNum = True
-    if len(y) > 1:
-        y = y[len(y) - 1] + 2
-        animeType = "OP"
-    elif len(y) == 0:
-        y = SearchStr(" EN", part, exact=True)
-        if len(y) > 1:
-            y = y[len(y) - 1] + 2
-            animeType = "EN"
-        elif len(y) == 0:
-            animeType = None
-            animeTypeNum = None
-        else:
-            y = y[0] + 2
-            animeType = "EN"
-    else:
-        y = y[0] + 2
-        animeType = "OP"
-
-    if animeTypeNum:
-        try:
-            animeTypeNum = int(part[y + 1] + part[y + 2])
-        except ValueError:
-            animeTypeNum = int(part[y + 1])
-        except IndexError:
-            animeTypeNum = int(part[y + 1])
-
-    if animeSeason is not None:
-        #animeName = gerPartStrToStr(part, endkey=" " + part[x] + part[x + 1])
-        animeName = gerPartStr(part, 0, x - 1)
-    elif animeTypeNum is not None:
-        #animeName = gerPartStrToStr(part, endkey=" " + part[y] + part[y + 1])
-        animeName = gerPartStr(part, 0, y - 1)
-    else:
-        animeName = part
-
-    return [title, interpreter, musictype, animeName, animeSeason, animeType, animeTypeNum]
 
 
 
@@ -395,301 +182,148 @@ def StartupServerTasks(data):
     elif data == "help":
         StartupServer.send("shutdown, sleep, ep_energysave, reboot, mp_setup, mp_add_*, mp_start, mp_pause, mp_stop, mp_getsong, mp_status")
 
-def np(preset="Man"):
-    title("Loading Notepad")
-
-    def shota():
-        file_shota_raw = open("data\\Notepad\\Notiespez\\NotieFoxishota.txt", "r")
-        file_shota = []
-        for y in file_shota_raw:
-            file_shota.append(y.strip())
-        file_shota_raw.close()
-
-        for y in range(len(file_shota)):  # Open in Browser
-            if y == 0:
-                if "firefox.exe" in (p.name() for p in psutil.process_iter()):
-                    dir_tmp = os.getcwd()
-                    if browser == "firefox":
-                        os.chdir("C:\\Program Files\\Mozilla Firefox")
-                        subprocess.call(["firefox.exe", "-new-window", file_shota[y]])
-                    elif browser == "vivaldi":
-                        os.chdir("C:\Program Files (x86)\Vivaldi\Application")
-                        subprocess.call(["vivaldi.exe", "-new-window", file_shota[y]])
-                    time.sleep(0.25)
-                    os.chdir(dir_tmp)
-                    continue
-                else:
-                    webbrowser.open(file_shota[y])
-            time.sleep(2.5)
-            webbrowser.open(file_shota[y])
-
-    def now():
-        cls()
-        now_name = input("Name:\n\n")
-        cls()
-        now_name_link = input("Name (Link):\n\n")
-        cls()
-        now_page = input("Page:\n\n")
-        cls()
-
-        file_counter_raw = open("data\\Notepad\\Notiespez\\NotieCounter.txt", "r")
-        file_counter_old = file_counter_raw.readline()
-        file_counter_raw.close()
-        file_counter_raw = open("data\\Notepad\\Notiespez\\NotieCounter.txt", "w")
-        file_counter = int(file_counter_old) + 1
-        file_counter_raw.write(str(file_counter))
-        file_counter_raw.close()
-
-        file_oldpage_raw = open("data\\Notepad\\Notiespez\\NotieFoxiNOWpage.txt", "r")
-        file_oldpage = file_oldpage_raw.readline()
-        pagedif = int(file_oldpage) - int(now_page)
-        file_oldpage_raw.close()
-
-        file_counterext_raw = open("data\\Notepad\\Notiespez\\Notiecounterlog.txt", "a+")
-        file_counterext_raw.write(
-            "       %s         %s                   %s                     %s                %s    %s" % (
-            str(file_counter), str(file_oldpage), str(now_page), str(pagedif),
-            datetime.datetime.now().strftime("%d.%m.%Y"), datetime.datetime.now().strftime("%H:%M")))
-        file_counterext_raw.close()
-
-        file_name_raw = open("data\\Notepad\\Notiespez\\NotieFoxiNOWname.txt", "w")
-        file_name_raw.write(now_name)
-        file_name_raw.close()
-
-        file_name_raw = open("data\\Notepad\\Notiespez\\NotieFoxiNOWnamelink.txt", "w")
-        file_name_raw.write(now_name_link)
-        file_name_raw.close()
-
-        file_name_raw = open("data\\Notepad\\Notiespez\\NotieFoxiNOWpage.txt", "w")
-        file_name_raw.write(now_page)
-        file_name_raw.close()
-
-        file_name_raw = open("data\\Notepad\\Notiespez\\NotieFoxiNOWpagelink.txt", "w")
-        file_name_raw.write("https://hentaifox.com/pag/%s/" % now_page)
-        file_name_raw.close()
-
-    def fox():
-
-        file_foxpage_raw = open("data\\Notepad\\Notiespez\\NotieFoxinowpagelink.txt", "r")
-        file_foxpage = file_foxpage_raw.readline()
-        file_foxpage_raw.close()
-
-        file_foxname_raw = open("data\\Notepad\\Notiespez\\NotieFoxinownamelink.txt", "r")
-        file_foxname = file_foxname_raw.readline()
-        file_foxname_raw.close()
-        
-        print("BEGINN")
-        if "firefox.exe" in (p.name() for p in psutil.process_iter()):
-            print("FIREFOX")
-            dir_tmp = os.getcwd()
-            os.chdir("C:\\Program Files\\Mozilla Firefox")
-            subprocess.call(["firefox.exe", "-url", file_foxpage, file_foxname])
-            time.sleep(0.25)
-            os.chdir(dir_tmp)
-        elif "vivaldi.exe" in (p.name() for p in psutil.process_iter()):
-            print("VIVALDI")
-            dir_tmp = os.getcwd()
-            os.chdir("C:\\Program Files\\Mozilla Firefox")
-            os.chdir("C:\Program Files (x86)\Vivaldi\Application")
-            subprocess.call(["vivaldi.exe", "-new-window", file_foxpage])
-            time.sleep(0.6)
-            subprocess.call(["vivaldi.exe", "-url", file_foxname])
-            time.sleep(0.25)
-            os.chdir(dir_tmp)
+class FoxiC:
+    def __init__(self, browser_type=browser):
+        if browser_type == "firefox":
+            self.browser = Firefox()
+        elif browser_type == "vivaldi":
+            self.browser = Vivaldi()
         else:
-            print("NOTHING")
-            webbrowser.open(file_foxpage)
+            self.browser = Firefox()
+
+        with open("data\\Foxi\\data.json") as jsonfile:
+            self.data = json.load(jsonfile)
+
+
+    def readJson(self):
+        with open("data\\Foxi\\data.json") as jsonfile:
+            self.data = json.load(jsonfile)
+
+    def writeJson(self):
+        with open("data\\Foxi\\data.json", "w") as jsonfile:
+            json.dump(self.data, jsonfile, indent=4, sort_keys=True)
+
+
+
+    def open_fox(self):
+        self.browser.refresh()
+        self.browser.open_win(self.data["Last"]["last_name_url"])
+        if self.browser.running:
+            time.sleep(1)
+        else:
             time.sleep(5)
-            webbrowser.open(file_foxname)
-        
-        print("END")
-        
-    def foxname():
+        self.browser.open_tab(self.data["Last"]["last_page_url"])
 
-        file_foxname_raw = open("data\\Notepad\\Notiespez\\NotieFoxinownamelink.txt", "r")
-        file_foxname = file_foxname_raw.readline()
-        file_foxname_raw.close()
+    def open_foxname(self):
+        self.browser.open_win(self.data["Last"]["last_name_url"])
 
-        if "firefox.exe" in (p.name() for p in psutil.process_iter()):
-            dir_tmp = os.getcwd()
-            if browser == "firefox":
-                os.chdir("C:\\Program Files\\Mozilla Firefox")
-                subprocess.call(["firefox.exe", "-new-window", file_foxname])
-            elif browser == "vivaldi":
-                os.chdir("C:\Program Files (x86)\Vivaldi\Application")
-                subprocess.call(["vivaldi.exe", "-new-window", file_foxname])
-            time.sleep(0.25)
-            os.chdir(dir_tmp)
-        else:
-            webbrowser.open(file_foxname)
+    def open_foxpage(self):
+        self.browser.open_win(self.data["Last"]["last_page_url"])
 
-    def foxpage():
-
-        file_foxpage_raw = open("data\\Notepad\\Notiespez\\NotieFoxinowpagelink.txt", "r")
-        file_foxpage = file_foxpage_raw.readline()
-        file_foxpage_raw.close()
-
-        if "firefox.exe" in (p.name() for p in psutil.process_iter()):
-            dir_tmp = os.getcwd()
-            os.chdir("C:\\Program Files\\Mozilla Firefox")
-            if browser == "firefox":
-                os.chdir("C:\\Program Files\\Mozilla Firefox")
-                subprocess.call(["firefox.exe", "-new-window", file_foxname])
-            elif browser == "vivaldi":
-                os.chdir("C:\Program Files (x86)\Vivaldi\Application")
-                subprocess.call(["vivaldi.exe", "-new-window", file_foxpage])
-            time.sleep(0.25)
-            os.chdir(dir_tmp)
-        else:
-            webbrowser.open(file_foxpage)
-
-    def gr():
-        new_name = input("What do you want to add?")
-        file_gr = open("data\\Notepad\\Notiespez\\NotieFoxigoodread.txt", "a+")
-        file_gr.write(new_name)
-        file_gr.close()
-
-    def gnr():
-        new_name = input("What do you want to add?")
-        file_gnr = open("data\\Notepad\\Notiespez\\NotieFoxigoodnotread.txt", "a+")
-        file_gnr.write(new_name)
-        file_gnr.close()
-
-    def lr():
-        new_name = input("What do you want to add?")
-        file_lr = open("data\\Notepad\\Notiespez\\NotieFoxilongread.txt", "a+")
-        file_lr.write(new_name)
-        file_lr.close()
-
-    def lnr():
-        new_name = input("What do you want to add?")
-        file_lnr = open("data\\Notepad\\Notiespez\\NotieFoxilongnotread.txt", "a+")
-        file_lnr.write(new_name)
-        file_lnr.close()
-
-    def counter():
-        file_counter_raw = open("data\\Notepad\\Notiespez\\NotieCounter.txt", "r")
-        file_counter = file_counter_raw.readline()
-        file_counter_raw.close()
+    def fap(self, opentype="fox"):
         cls()
-        print("You have %s flaps! Nice!\n" % file_counter)
-        np_ex = input("Extended?\n")
-        if np_ex.lower() == "y":
+        print("Loading ...")
+        self.readJson()
+        if opentype == "fox":
+            self.open_fox()
+        elif opentype == "foxname":
+            self.open_foxname()
+        elif opentype == "foxpage":
+            self.open_foxpage()
+        else:
+            return False
+
+        thistime_read = 0
+        thistime_time = datetime.datetime.now().strftime("%H:%S:%M")
+        thistime_date = datetime.datetime.now().strftime("%d.%m.%Y")
+
+        idstart = int(self.data["Last"]["last_name_url"].split("/")[-2])
+
+        cls()
+        print("Which is your startpage? (Begin: %s, Search for: %s)" % (self.data["Last"]["last_page"], idstart))
+        pagestart = int(input())
+
+        thistime_timeC = TimerC()
+        thistime_timeC.start()
+
+        fapping = True
+        while fapping:
             cls()
-            file_counterex_raw = open("data\\Notepad\\Notiespez\\Notiecounterlog.txt", "r")
-            file_counterex_list = []
-            for x in file_counterex_raw:
-                file_counterex_list.append(x.strip())
-            file_counterex_raw.close()
-            for x in file_counterex_list:
-                print(x)
-            input()
+            print("Foxi:\n")
+            print("You read: %s" % thistime_read)
+            print("You are fapping: %s\n" % thistime_timeC.getTimeFor())
 
-    def count():
-        file_counter_raw = open("data\\Notepad\\Notiespez\\NotieCounter.txt", "r")
-        file_counter_old = file_counter_raw.readline()
-        file_counter_raw.close()
-        file_counter_raw = open("data\\Notepad\\Notiespez\\NotieCounter.txt", "w")
-        file_counter = int(file_counter_old) + 1
-        file_counter_raw.write(str(file_counter))
-        file_counter_raw.close()
+            print("Everything for next HManga, Finish (FIN)")
 
-        file_counterext_raw = open("data\\Notepad\\Notiespez\\Notiecounterlog.txt", "a+")
-        file_counterext_raw.write(
-            "       %s         %s                   %s                     %s                %s    %s\n" % (
-            str(file_counter), "un", "un", "un", datetime.datetime.now().strftime("%d.%m.%Y"),
-            datetime.datetime.now().strftime("%H:%M")))
-        file_counterext_raw.close()
+            user_input = input()
 
-    if preset == "shota":
-        shota()
-    if preset == "now":
-        now()
-    if preset == "fox":
-        fox()
-    if preset == "foxpage":
-        foxpage()
-    if preset == "foxname":
-        foxname()
-    if preset == "Man":
+            thistime_read += 1
 
-        file_foxname_raw = open("data\\Notepad\\Notiespez\\NotieFoxinowname.txt", "r")
-        file_foxname = file_foxname_raw.readline()
-        file_foxname_raw.close()
+            if user_input.lower() == "fin":
+                break
 
-        file_foxpage_raw = open("data\\Notepad\\Notiespez\\NotieFoxinowpage.txt", "r")
-        file_foxpage = file_foxpage_raw.readline()
-        file_foxpage_raw.close()
-
-        file_gr_raw = open("data\\Notepad\\Notiespez\\NotieFoxigoodread.txt", "r")
-        file_gr_list = []
-        for x in file_gr_raw:
-            file_gr_list.append(x.strip())
-        file_gr_raw.close()
-
-        file_gnr_raw = open("data\\Notepad\\Notiespez\\NotieFoxigoodnotread.txt", "r")
-        file_gnr_list = []
-        for x in file_gnr_raw:
-            file_gnr_list.append(x.strip())
-        file_gnr_raw.close()
-
-        file_lr_raw = open("data\\Notepad\\Notiespez\\NotieFoxilongread.txt", "r")
-        file_lr_list = []
-        for x in file_lr_raw:
-            file_lr_list.append(x.strip())
-        file_lr_raw.close()
-
-        file_lnr_raw = open("data\\Notepad\\Notiespez\\NotieFoxilongnotread.txt", "r")
-        file_lnr_list = []
-        for x in file_lnr_raw:
-            file_lnr_list.append(x.strip())
-        file_lnr_raw.close()
+        thistime_timeC.stop()
 
         cls()
-        print("Notie\n the best Notepad\n")
-        print("Foxi:\n")
-        print("You read: '%s' at the page '%s'\n" % (file_foxname, file_foxpage))
+        print("End HManga: (Name)")
+        hmangaend_name = input()
 
-        print("Too good:\n\n")
-        print("You read: (GR)\n")
-        for x in file_gr_list:
-            print(x)
-        print("\nYou have not read: (GNR)\n")
-        for x in file_gnr_list:
-            print(x)
+        print("End HManga: (URL)")
+        hmangaend_url = input()
 
-        print("\nToo long:\n\n")
-        print("You read: (LNR)\n")
-        for x in file_lr_list:
-            print(x)
-        print("\nYou have not read: (LNR)\n")
-        for x in file_lnr_list:
-            print(x)
+        print("End Page: ")
+        pageend = int(input())
 
-        np_user_input = input("\n\nWhat to do now?\n\n")
+        pageend_url = "https://hentaifox.com/pag/%s/" % pageend
+        pageprogress = pagestart - pageend
 
-        if np_user_input.lower() == "shota":
-            shota()
-        if np_user_input.lower() == "now":
-            now()
-        if np_user_input.lower() == "fox":
-            fox()
-        if np_user_input.lower() == "foxpage":
-            foxpage()
-        if np_user_input.lower() == "foxname":
-            foxname()
-        if np_user_input.lower() == "gr":
-            gr()
-        if np_user_input.lower() == "gnr":
-            gnr()
-        if np_user_input.lower() == "lr":
-            lr()
-        if np_user_input.lower() == "lnr":
-            lnr()
-        if np_user_input.lower() == "count":
-            count()
-        if np_user_input.lower() == "counter":
-            counter()
+
+        idend = int(hmangaend_url.split("/")[-2])
+        idprogress = idend - idstart
+        skipped = idprogress - thistime_read
+        startname = self.data["Last"]["last_name"]
+        starturl = self.data["Last"]["last_name_url"]
+
+        self.data["Stats"] = {"fapped": self.data["Stats"]["fapped"] + 1,
+                              "all_pages": self.data["Stats"]["all_pages"] + pageprogress,
+                              "all_hmangas": self.data["Stats"]["all_hmangas"] + thistime_read}
+
+        self.data["Last"] = {"last_page": pageend, "last_page_url": pageend_url,
+                             "last_name": hmangaend_name, "last_name_url": hmangaend_url}
+
+        self.data[str(self.data["Stats"]["fapped"])] = {"number": self.data["Stats"]["fapped"],
+                                                   "date": thistime_date,
+                                                   "starttime": thistime_time,
+                                                   "time": thistime_timeC.getTimeFor(),
+                                                   "foxi": {"read": thistime_read,
+                                                            "skipped": skipped,
+                                                            "pagestart": pagestart,
+                                                            "pageend": pageend,
+                                                            "pageprogress": pageprogress,
+                                                            "idstart": idstart,
+                                                            "idend": idend,
+                                                            "idprogress": idprogress,
+                                                            "start_HManga": {
+                                                                "page": pagestart,
+                                                                "name": startname,
+                                                                "id": idstart,
+                                                                "url": starturl
+                                                            },
+                                                            "end_HManga": {
+                                                                "page": pageend,
+                                                                "name": hmangaend_name,
+                                                                "id": idend,
+                                                                "url": hmangaend_url
+                                                            }
+                                                            }}
+
+        self.writeJson()
+        print("Finished")
+        time.sleep(0.85)
+
+Foxi = FoxiC()
+
+
 
 title("Loading Arguments")
 
@@ -707,9 +341,6 @@ def debug():
     cls()
     while True:
         exec(input())
-
-
-
 
 
 
@@ -3929,242 +3560,6 @@ def passwordmanager():
 
 
 
-class SplatoonC:
-    def __init__(self, roundtime = 180, weaponlang="Eng"):
-        self.weaponsGer = ["Disperser", "Disperser Neo", "Junior-Klechser", "Junior-Klechser Plus", "Fein-Disperser",
-                           "Fein-Disperser Neo", "Airbrush MG", "Airbrush RG", "Klechser", "Tentatek-Klechser",
-                           "Kensa-Kleckser", "Heldenwaffe Replik (Klechser)", "Okto-Klechser Replik", ".52 Gallon",
-                           ".52 Gallon Deko", "N-ZAP85", "N-ZAP89", "Profi-Klechser", "Focus-Profi-Kleckser",
-                           "Kensa-Profi-Kleckser", ".96 Gallon", ".96 Gallon Deko", "Platscher", "Platscher SE",
-
-                           "Luna-Blaster", "Luna-Blaster Neo", "Kensa-Luna-Blaster", "Blaster", "Blaster SE",
-                           "Helden-Blaster Replik", "Fern-Blaster", "Fern-Blaster SE", "Kontra-Blaster",
-                           "Kontra-Blaster Neo", "Turbo-Blaster", "Turbo-Blaster Deko", "Turbo-Blaster Plus",
-                           "Turbo-Blaster Plus Deko",
-
-                           "L3 Tintenwerfer", "L3 Tintenwerfer D", "S3 Tintenwerfer", "S3 Tintenwerfer D", "Quetscher",
-                           "Quetscher Fol",
-
-                           "Karbonroller", "Karbonroller Deko", "Klecksroller", "Medusa-Klecksroller",
-                           "Kensa-Klecksroller", "Helden-Roller Replik", "Dynaroller", "Dynaroller Tesla",
-                           "Kensa-Dynaroller", "Flex-Roller", "Flex-Roller Fol",
-                           "Quasto", "Quasto Fresco", "Kalligraf", "Kalligraf Fresco", "Helden-Pinsel Replik",
-
-                           "Sepiator Alpha", "Sepiator Beta", "Klecks-Konzentrator", "Rilax-Klecks-Konzentrator",
-                           "Kensa-Klecks-Konzentrator", "Helden-Konzentrator Replik", "Ziel-Konzentrator",
-                           "Rilax-Ziel-Konzentrator", "Kensa-Ziel-Konzentrator", "E-liter 4K", "E-liter 4K SE",
-                           "Ziel-E-liter 4K", "Ziel-E-liter 4K SE", "Klotzer 14-A", "Klotzer 14-B", "T-Tuber",
-                           "T-Tuber SE",
-
-                           "Schwapper", "Schwapper Deko", "Helden-Schwapper Replik", "3R-Schwapper",
-                           "3R-Schwapper Fresco", "Knall-Schwapper", "Trommel-Schwapper", "Trommel-Schwapper Neo",
-                           "Kensa-Trommel-Schapper", "Wannen-Schwapper",
-
-                           "Klecks-Splatling", "Sagitron-Klecks-Splatling", "Splatling", "Splatling Deko",
-                           "Helden-Splatling Replik", "Hydrant", "Hydrant SE", "Kuli-Splatling", "Nautilus 47",
-
-                           "Sprenkler", "Sprenkler Fresco", "Klecks-Doppler", "Enperry-Klecks-Doppler",
-                           "Kensa-Klecks-Doppler", "Helden-Doppler Replik", "Kelvin 525", "Kelvin 525 Deko",
-                           "Dual-Platscher", "Dual-Platscher SE", "Quadhopper Noir", "Quadhopper Blanc",
-
-                           "Parapulviator", "Sorella-Parapulviator", "Helden-Pulviator Replik", "Camp-Pulviator",
-                           "Sorella-Camp-Pulviator", "UnderCover", "Sorella-UnderCover"]
-
-        self.weaponsEng = ["Sploosh-o-matic", "Neo Sploosh-o-matic", "Splattershot Jr.", "Custom Splattershot Jr.",
-                           "Splash-o-matic", "Neo Splash-o-matic", "Aerospray MG", "Aerospray RG", "Splattershot",
-                           "Tentatek Splattershot", "Kensa Splattershot", "Hero Shot Replica", "Octo Shot Replica",
-                           ".52 Gal", ".52 Gal Deco", "N-ZAP '85", "N-ZAP '89", "Splattershot Pro",
-                           "Forge Splattershot Pro", "Kensa Splattershot Pro", ".96 Gal", ".96 Gal Deco",
-                           "Jet Squelcher", "Custom Jet Squelcher",
-
-                           "Luna Blaster", "Luna Blaster Neo", "Kensa Luna Blaster", "Blaster", "Custom Blaster",
-                           "Hero Blaster Replica", "Range Blaster", "Custom Range Blaster", "Clash Blaster",
-                           "Clash Blaster Neo", "Rapid Blaster", "Rapid Blaster Deco", "Rapid Blaster Pro",
-                           "Rapid Blaster Pro Deco",
-
-                           "L-3 Nozzlenose", "L-3 Nozzlenose D", "H-3 Nozzlenose", "H-3 Nozzlenose D", "Squeezer",
-                           "Foil Squeezer",
-
-                           "Carbon Roller", "Carbon Roller Deco", "Splat Roller", "Krak-On Splat Roller",
-                           "Kensa Splat Roller", "Hero Roller Replica", "Dynamo Roller", "Gold Dynamo Roller",
-                           "Kensa Dynamo Roller", "Flingza Roller", "Foil Flingza Roller",
-                           "Inkbrush", "Inkbrush Nouveau", "Octobrush", "Octobrush Nouveau", "Herobrush Replica",
-
-                           "Classic Squiffer", "New Squiffer", "Splat Charger", "Firefin Splat Charger",
-                           "Kensa Charger", "Hero Charger Replica", "Splatterscope", "Firefin Splatterscope",
-                           "Kensa Splatterscope", "E-liter 4K", "Custom E-liter 4K", "E-liter 4K Scope",
-                           "Custom E-liter 4K Scope", "Bamboozler 14 MK I", "Bamboozler 14 MK II", "Goo Tuber",
-                           "Custom Goo Tuber",
-
-                           "Slosher", "Slosher Deco", "Hero Slosher Replica", "Tri-Slosher", "Tri-Slosher Nouverau",
-                           "Sloshing Machine", "Sloshing Machine Neo", "Kensa Sloshing Machine", "Bloblobber",
-                           "Explosher",
-
-                           "Mini Splatling", "Zink Mini Splatling", "Heavy Splatling", "Heavy Splatling Deco",
-                           "Hero Splatling Replica", "Hydra Splatling", "Custom Hydra Splatling", "Ballpoint Splatling",
-                           "Nautilus 47",
-
-                           "Bapple Dualies", "Bapple Dualies Nouveau", "Splat Dualies", "Enperry Splat Dualies",
-                           "Kensa Splat Dualies", "Hero Dualie Replicas", "Glooga Dualies", "Glooga Dualies Deco",
-                           "Dualie Squelchers", "Custom Dualie Squelchers", "Dark Tetra Dualies", "Light Tetra Dualies",
-
-                           "Splat Brella", "Sorella Brella", "Hero Brella Replica", "Tenta Brella",
-                           "Tenta Sorella Brella", "Undercover Brella", "Undercover Sorella Brella"]
-
-        self.lang = weaponlang
-        self.RUN = True
-        self.Start = False
-        self.TimeLeft = 0
-        self.TimeLeftStart = 0
-        self.TimeLeftC = TimerC()
-        self.Rounds = 0
-        self.Playtime = 0
-        self.PlaytimeStart = 0
-        self.PlaytimeC = TimerC()
-        self.RoundOver = True
-        self.Effect = None
-
-        self.RoundTime = roundtime # Debug! std: 180
-
-        self.WR = False
-        self.WRthis = self.randomWP(lang="both")
-        self.WRnext = self.randomWP(lang="both")
-
-    def input(self, inpt):
-        inpt = inpt.lower()
-        if inpt == "wr":
-            self.WRswitch()
-        elif inpt == "exit" or inpt == "stop":
-            self.stop()
-        elif inpt == "reroll" or inpt == "rerol" or inpt == "rero" or inpt == "re" or inpt == "r":
-            self.WRreroll()
-        elif len(inpt) > 1:
-            if inpt[0] == "e":
-                try:
-                    self.ChEffect(int(inpt.lstrip("e")))
-                except ValueError:
-                    self.RoundOverF()
-            else:
-                self.RoundOverF()
-        else:
-            self.RoundOverF()
-
-    def randomWP(self, printweapon=False, lang=None):
-        number = random.randint(0, len(self.weaponsEng) - 1)
-
-        if not lang:
-            if self.lang == "eng":
-                weapon = self.weaponsEng[number]
-            else:  # German
-                weapon = self.weaponsGer[number]
-        else:
-            if lang == "eng":
-                weapon = self.weaponsEng[number]
-            elif lang == "both":
-                weapon = (self.weaponsEng[number], self.weaponsGer[number])
-            else:  # German
-                weapon = self.weaponsGer[number]
-
-        if printweapon:
-            if lang == "both":
-                print("Your Weapon:\n%s (%s)" % (weapon[0], weapon[1]))
-            else:
-                print("Your Weapon:\n%s" % weapon)
-        return weapon
-
-    def WRswitch(self):
-        if self.WR:
-            self.WR = False
-        else:
-            self.WR = True
-
-    def stop(self):
-        self.RUN = False
-
-    def WRreroll(self):
-        WRnextTMP = self.WRnext
-        self.WRnext = self.randomWP(lang="both")
-
-        while self.WRthis == self.WRnext or WRnextTMP == self.WRnext:
-            self.WRnext = self.randomWP(lang="both")
-
-    def ChEffect(self, eff):
-        self.Effect = eff
-
-    def RoundOverF(self):
-        if self.RoundOver:
-            if not self.Start:
-                self.PlaytimeC.start()
-                self.PlaytimeStart = time.time()
-            self.TimeLeftC.start()
-            self.TimeLeftStart = time.time()
-            self.Rounds += 1
-
-            if self.Effect is not None and self.Effect != 0:
-                self.Effect -= 1
-
-            if self.Start:
-                WRthisTMP = self.WRthis
-                self.WRthis = self.WRnext
-                self.WRnext = self.randomWP(lang="both")
-
-                while WRthisTMP == self.WRnext or self.WRthis == self.WRnext:
-                    self.WRnext = self.randomWP(lang="both")
-
-            self.RoundOver = False
-            self.Start = True
-
-    def printIt(self):
-        self.TimeLeft = self.RoundTime - self.TimeLeftC.getTime()
-        self.TimeLeft = self.RoundTime - round(time.time() - self.TimeLeftStart)
-
-        if self.Start:
-            self.Playtime = self.PlaytimeC.getTime()
-            self.Playtime = round(time.time() - self.PlaytimeStart)
-        else:
-            self.Playtime = 0
-
-        if self.RoundOver:
-            TimeLeftFor = "No Round Started"
-        else:
-            if (self.TimeLeft % 60) < 10:
-                TimeLeftFor = "%s:%s%s" % (self.TimeLeft // 60, 0, self.TimeLeft % 60)
-            else:
-                TimeLeftFor = "%s:%s" % (self.TimeLeft // 60, self.TimeLeft % 60)
-
-        if (self.Playtime % 60) < 10:
-            PlaytimeFor = "%s:%s%s" % (self.Playtime // 60, 0, self.Playtime % 60)
-        else:
-            PlaytimeFor = "%s:%s" % (self.Playtime // 60, self.Playtime % 60)
-
-        if self.TimeLeft <= 0:
-            self.RoundOver = True
-
-
-        print("Splatoon 2\n")
-        print("Time:\t\t %s" % TimeLeftFor)
-        print("Round:\t\t %s" % self.Rounds)
-
-        if self.Effect is not None and self.Effect != 0:
-            print("Effect:\t\t %s" % self.Effect)
-        elif self.Effect == 0:
-            print("Effect:\t\t No Effect Active")
-
-        print("Playtime:\t %s" % PlaytimeFor)
-        if self.WR:
-            print("\nWeapon Randomizer:")
-            print("This Round:\t %s (%s)" % self.WRthis)
-            print("Next Round:\t %s (%s)" % self.WRnext)
-
-        if self.WR:
-            print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon(REROLL)")
-        else:
-            print("\nWeapon Randomizer (WR), Effect ('E'+number)")
-
-        if self.RoundOver:
-            print("\nStart Next Round?")
-
-
 
 #MusicPlayerTest = MusicPlayerC()
 
@@ -4199,7 +3594,7 @@ def main():
     print("\nMenu:")
 
     print("\nFuntions:")
-    print("Notepad (NP), Musicplayer (MUSIC), Radio (RADIO)")
+    print("Musicplayer (MUSIC), Radio (RADIO), Foxi (FOX)")
     print("Time (TIME), Timer (TIMER)")
 
     print("\nSettings:")
@@ -4211,18 +3606,12 @@ def main():
 
     user_input = input("\n\n")
 
-    if user_input.lower() == "np":
-        np()
-    elif user_input.lower() == "npnow":
-        np("now")
-    elif user_input.lower() == "npfox":
-        np("fox")
-    elif user_input.lower() == "npfoxpage":
-        np("foxpage")
-    elif user_input.lower() == "npfoxname":
-        np("foxname")
-    elif user_input.lower() == "npshota":
-        np("shota")
+    if user_input.lower() == "fox" or user_input.lower() == "fap" or user_input.lower() == "foxi":
+        Foxi.fap()
+    elif user_input.lower() == "foxpage":
+        Foxi.open_foxpage()
+    elif user_input.lower() == "foxname":
+        Foxi.open_foxname()
     elif user_input.lower() == "l":
         color.Man()
     elif user_input.lower() == "ug":
@@ -4272,33 +3661,20 @@ def Arg():
         if sys.argv[x] == "-l_bright":
             title("Load Argument", "Argument: Bright")
             color.change("F0")
-        if sys.argv[x] == "-np_fox":
-            title("Load Argument", "Notie: FOX")
+        if sys.argv[x] == "-foxi" or sys.argv[x] == "-fap":
+            title("Load Argument", "Foxi")
             ttime.deac()
-            np("fox")
+            Foxi.fap()
             exit_now()
-        if sys.argv[x] == "-np_foxpage":
+        if sys.argv[x] == "-foxi_page":
             title("Load Argument", "Notie: FOXPAGE")
             ttime.deac()
-            np("foxpage")
+            Foxi.open_foxpage()
             exit_now()
-        if sys.argv[x] == "-np_foxname":
+        if sys.argv[x] == "-foxi_name":
             title("Load Argument", "Notie: FOXNAME")
             ttime.deac()
-            np("foxname")
-            exit_now()
-        if sys.argv[x] == "-np_notie":
-            title("Load Argument", "Notie: Notie")
-            np("Man")
-        if sys.argv[x] == "-np_now":
-            title("Load Argument", "Notie: NOW")
-            ttime.deac()
-            np("now")
-            exit_now()
-        if sys.argv[x] == "-np_shota":
-            title("Load Argument", "Notie: SHOTA")
-            ttime.deac()
-            np("shota")
+            Foxi.open_foxname()
             exit_now()
         if sys.argv[x] == "-nc_stdsize":
             title("Load Argument", "Nircmd: Standard size")

@@ -1,20 +1,9 @@
 import shutil
 import os
-import threading
-
-
 
 WORK = True
 
-class ddbug(threading.Thread):
-    def run(self):
-        global WORK
-        import time
-        while WORK:
-            time.sleep(1)
 
-ddbugger = ddbug()
-ddbugger.start()
 
 cdir = os.getcwd()
 if cdir == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
@@ -27,6 +16,8 @@ else:
 
 from EveconLib import *
 
+ddbugger = ddbug()
+ddbugger.start()
 
 def update():
     global this_version
@@ -383,4 +374,4 @@ if exitnow == 0:
         time.sleep(0)
 
         exit_now()
-        WORK = False
+        ddbug.work = False
