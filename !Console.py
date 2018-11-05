@@ -353,6 +353,7 @@ def Music(systrayon=True):
                 while muPlayer.musicrun and muPlayer.allowPrint:
                     time.sleep(1)
                     muPlayer.printit()
+                    muPlayer.refreshTitle()
                     while muPlayer.paused:
                         time.sleep(1)
 

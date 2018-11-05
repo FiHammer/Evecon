@@ -1308,7 +1308,8 @@ class MusicPlayerC(threading.Thread):
             del oldPL[self.cur_Pos]
             self.playlist = [self.playlist[self.cur_Pos]] + oldPL
             self.next(True)
-
+        else:
+            return False
 
         self.printit()
 
