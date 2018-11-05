@@ -46,6 +46,7 @@ firefox_path = "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
 vivaldi_path = "C:\\Program Files (x86)\\Vivaldi\\Application\\vivaldi.exe"
 console_data = (120, 30)
 musicrandom = True
+enable_foxi = True
 
 class ddbug(threading.Thread):
     def __init__(self):
@@ -83,8 +84,9 @@ def readConfig():
     config = configparser.ConfigParser()
     config.read("data\\config.ini")
 
-    global browser, musicrandom
+    global browser, musicrandom, enable_foxi
 
+    enable_foxi = config["Notepad"]["enable_foxi"]
     musicrandom = config["Music"]["random"]
     browser = config["Notepad"]["browser"]
 
@@ -975,8 +977,6 @@ class MusicPlayerC(threading.Thread):
         tmp = str(self.randomizer)
 
         if tmp == "True":
-            print(self.playlist, self.randomizer, musicrandom)
-            print("ALARM")
             self.shufflePL(True)
 
         self.scanner.start()
