@@ -86,8 +86,8 @@ def readConfig():
 
     global browser, musicrandom, enable_foxi
 
-    enable_foxi = config["Notepad"]["enable_foxi"]
-    musicrandom = config["Music"]["random"]
+    enable_foxi = bool(config["Notepad"]["enable_foxi"])
+    musicrandom = bool(config["Music"]["random"])
     browser = config["Notepad"]["browser"]
 
 
