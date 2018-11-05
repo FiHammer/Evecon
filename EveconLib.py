@@ -86,8 +86,18 @@ def readConfig():
 
     global browser, musicrandom, enable_foxi
 
-    enable_foxi = bool(config["Notepad"]["enable_foxi"])
-    musicrandom = bool(config["Music"]["random"])
+    enable_foxi_tmp = config["Notepad"]["enable_foxi"]
+    if enable_foxi_tmp == "True":
+        enable_foxi = True
+    elif enable_foxi_tmp == "False":
+        enable_foxi = False
+
+    musicrandom_tmp = config["Music"]["random"]
+    if musicrandom_tmp == "True":
+        musicrandom = True
+    elif musicrandom_tmp == "False":
+        musicrandom = False
+
     browser = config["Notepad"]["browser"]
 
 
@@ -974,9 +984,9 @@ class MusicPlayerC(threading.Thread):
             self.systray.start()
 
         self.make_playlist()
-        tmp = str(self.randomizer)
 
-        if tmp == "True":
+
+        if self.randomizer:
             self.shufflePL(True)
 
         self.scanner.start()
