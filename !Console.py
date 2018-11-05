@@ -190,8 +190,9 @@ class FoxiC:
         else:
             self.browser = Firefox()
 
-        with open("data\\Foxi\\data.json") as jsonfile:
-            self.data = json.load(jsonfile)
+        if enable_foxi:
+            with open("data\\Foxi\\data.json") as jsonfile:
+                self.data = json.load(jsonfile)
 
 
     def readJson(self):
@@ -205,6 +206,8 @@ class FoxiC:
 
 
     def open_fox(self):
+        if not enable_foxi:
+            self.readJson()
         self.browser.refresh()
         self.browser.open_win(self.data["Last"]["last_name_url"])
         if self.browser.running:
@@ -214,12 +217,18 @@ class FoxiC:
         self.browser.open_tab(self.data["Last"]["last_page_url"])
 
     def open_foxname(self):
+        if not enable_foxi:
+            self.readJson()
         self.browser.open_win(self.data["Last"]["last_name_url"])
 
     def open_foxpage(self):
+        if not enable_foxi:
+            self.readJson()
         self.browser.open_win(self.data["Last"]["last_page_url"])
 
     def fap(self, opentype="fox"):
+        if not enable_foxi:
+            self.readJson()
         cls()
         print("Loading ...")
         self.readJson()
@@ -320,8 +329,8 @@ class FoxiC:
         print("Finished")
         time.sleep(0.85)
 
-if enable_foxi:
-    Foxi = FoxiC()
+
+Foxi = FoxiC()
 
 
 
@@ -3073,16 +3082,10 @@ def main():
     user_input = input("\n\n")
 
     if user_input.lower() == "fox" or user_input.lower() == "fap" or user_input.lower() == "foxi":
-        if not enable_foxi:
-            Foxi = FoxiC()
         Foxi.fap()
     elif user_input.lower() == "foxpage":
-        if not enable_foxi:
-            Foxi = FoxiC()
         Foxi.open_foxpage()
     elif user_input.lower() == "foxname":
-        if not enable_foxi:
-            Foxi = FoxiC()
         Foxi.open_foxname()
     elif user_input.lower() == "l":
         color.Man()
@@ -3136,22 +3139,16 @@ def Arg():
         if sys.argv[x] == "-foxi" or sys.argv[x] == "-fap":
             title("Load Argument", "Foxi")
             ttime.deac()
-            if not enable_foxi:
-                Foxi = FoxiC()
             Foxi.fap()
             exit_now()
         if sys.argv[x] == "-foxi_page":
             title("Load Argument", "Notie: FOXPAGE")
             ttime.deac()
-            if not enable_foxi:
-                Foxi = FoxiC()
             Foxi.open_foxpage()
             exit_now()
         if sys.argv[x] == "-foxi_name":
             title("Load Argument", "Notie: FOXNAME")
             ttime.deac()
-            if not enable_foxi:
-                Foxi = FoxiC()
             Foxi.open_foxname()
             exit_now()
         if sys.argv[x] == "-nc_stdsize":
