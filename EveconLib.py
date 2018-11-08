@@ -26,6 +26,7 @@ import configparser
 import webbrowser
 import pyglet
 import click
+import queue
 
 if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
@@ -44,9 +45,11 @@ startmain = False
 Alphabet = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 firefox_path = "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
 vivaldi_path = "C:\\Program Files (x86)\\Vivaldi\\Application\\vivaldi.exe"
-console_data = (120, 30)
 musicrandom = True
 enable_foxi = True
+cores = 2
+console_data = {"lenx": 120, "leny": 30, "posx": 0, "posy": 0, "pixx": 120, "pixy": 30}
+thisHWND = 0
 
 class ddbug(threading.Thread):
     def __init__(self):
@@ -86,19 +89,23 @@ def readConfig():
 
     global browser, musicrandom, enable_foxi
 
-    enable_foxi_tmp = config["Notepad"]["enable_foxi"]
-    if enable_foxi_tmp == "True":
-        enable_foxi = True
-    elif enable_foxi_tmp == "False":
-        enable_foxi = False
+    try:
+        enable_foxi_tmp = config["Notepad"]["enable_foxi"]
+        if enable_foxi_tmp == "True":
+            enable_foxi = True
+        elif enable_foxi_tmp == "False":
+            enable_foxi = False
 
-    musicrandom_tmp = config["Music"]["random"]
-    if musicrandom_tmp == "True":
-        musicrandom = True
-    elif musicrandom_tmp == "False":
-        musicrandom = False
+        musicrandom_tmp = config["Music"]["random"]
+        if musicrandom_tmp == "True":
+            musicrandom = True
+        elif musicrandom_tmp == "False":
+            musicrandom = False
 
-    browser = config["Notepad"]["browser"]
+        browser = config["Notepad"]["browser"]
+
+    except KeyError:
+        pass
 
 
 readConfig()
@@ -167,11 +174,59 @@ def title(status="OLD", something="OLD", versionX="OLD", deac=False):
                                                 (status, space_status, versionX, space_pc, something, space_something, space_time, nowtime))
 
 
+def gettitle(part="all"):
+    something = title_oldstart
+    status = title_oldstatus
+    versionX = title_oldversionX
+
+    nowtime = datetime.datetime.now().strftime("%H:%M:%S")
+
+    space_status = (60 - len(status) * 2) * " "
+    space_pc = (64 - len(versionX) * 2) * " "
+    space_something = (40 - len(something) * 2) * " "
+    space_time = 55 * " "
+
+    if musicrun:
+        space_status = 7 * " "  # old: abs(60 - len(status) * 2 - 30)
+        space_pc = 10 * " "  # old: abs(64 - len(pc) * 2 - 30)
+        space_something = (175 - (
+                    len(status + versionX + space_status + space_pc) + round(len(something) * 1.5) + 1)) * " "
+        if len(space_something) < 20:
+            space_something = (160 - (
+                        len(status + versionX + space_status + space_pc) + round(len(something) * 1.5) + 1)) * " "
+        space_time = 1 * " "
+    if part == "all":
+        return "EVECON: %s%s%s%s%s%s%sTime: %s" % (status, space_status, versionX, space_pc, something, space_something, space_time, nowtime)
+    elif part == "left":
+        return "EVECON: %s%s" % (status, space_status)
+
+
+def loadHWND(newTitle=None):
+    def findIT(hwnd, extra):
+        rect = win32gui.GetWindowRect(hwnd)
+        global thisHWND, console_data
+        console_data["posx"] = x = rect[0]
+        console_data["posy"] = y = rect[1]
+        console_data["lenx"] = rect[2] - x
+        console_data["leny"] = rect[3] - y
+
+        if newTitle is None and lsame(win32gui.GetWindowText(hwnd), gettitle("left")):
+            thisHWND = win32gui.GetWindowText(hwnd)
+        elif newTitle is not None and win32gui.GetWindowText(hwnd) == newTitle:
+            thisHWND = win32gui.GetWindowText(hwnd)
+
+    win32gui.EnumWindows(findIT, None)
+
+ctypes.windll.kernel32.SetConsoleTitleW("EVECON: Loading HWND")
+loadHWND("EVECON: Loading HWND")
+ctypes.windll.kernel32.SetConsoleTitleW("EVECON: Loading...")
+
 def turnStr(word: str):
     wordfin = ""
     for x in range(len(word)):
         wordfin += word[len(word) - 1 - x]
     return wordfin
+
 
 def lsame(fullword: str, partword: str, exact=True):
     matches = 0
@@ -805,7 +860,7 @@ class MusicPlayerC(threading.Thread):
                 self.find_music_out["file" + str(self.music["all_files"])] = {"name": name, "file": file, "path": path, "fullname": fullname,
                                                                                "antype": antype, "andata": andata}
 
-    def addMusic(self, key):  # key (AN, LIS)
+    def addMusic(self, key, custom=None):  # key (AN, LIS)
         if computer == "MiniPC":
             cls()
             print("Loading... (On Mini-PC)")
@@ -845,13 +900,50 @@ class MusicPlayerC(threading.Thread):
             self.findMusic(musicDirLoad + "\\jPOP-etc")
         elif key == "omfg":
             self.findMusic(musicDirLoad + "\\OMFG")
+        elif key == "cus" and custom: # custom
+            self.findMusic(custom)
         else:
             return False
 
+
+
+        q = queue.Queue()
+        num_workers = cores*2
+
+        def do_work(data):
+            #cls()
+            #print("Loading (%s/%s)" % (data[0], self.find_music_out["all_files"]))
+            self.music["file" + str(data[1] + data[0])]["loaded"] = pyglet.media.load(
+                self.music["file" + str(data[1] + data[0])]["fullname"])
+
+        def worker():
+            while True:
+                data = q.get()
+                if data is None:
+                    break
+                do_work(data)
+                q.task_done()
+
+        threads_used = []
+
+        for i in range(num_workers):
+            t = threading.Thread(target=worker)
+            t.start()
+            threads_used.append(t)
+
         for numfile in range(1, self.find_music_out["all_files"] + 1):
-            cls()
-            print("Loading (%s/%s)" % (numfile, self.find_music_out["all_files"]))
-            self.music["file" + str(old_Num + numfile)]["loaded"] = pyglet.media.load(self.music["file" + str(old_Num + numfile)]["fullname"])
+            q.put((numfile, old_Num))
+
+        for i in range(num_workers):
+            q.put(None)
+
+        for i in threads_used:
+            i.join()
+
+        #for numfile in range(1, self.find_music_out["all_files"] + 1):
+        #    cls()
+        #    print("Loading (%s/%s)" % (numfile, self.find_music_out["all_files"]))
+        #    self.music["file" + str(old_Num + numfile)]["loaded"] = pyglet.media.load(self.music["file" + str(old_Num + numfile)]["fullname"])
 
         #self.music_playlists_active.append(key)
         self.music["active"].append(key)
@@ -1063,7 +1155,7 @@ class MusicPlayerC(threading.Thread):
 
         print("Time: %s\\%s" % (self.timer.getTimeFor(), TimeFor(self.getCur()["loaded"].duration)))
 
-        print("\n" + console_data[0]*"-" + "\n")
+        print("\n" + console_data["pixx"]*"-" + "\n")
         #sys.stdout.write(console_data[0]*"-")
 
         # Main-Container
@@ -1173,7 +1265,7 @@ class MusicPlayerC(threading.Thread):
 
         # Control-Container
 
-        print("\n" + console_data[0]*"-" + "\n")
+        print("\n" + console_data["pixx"]*"-" + "\n")
 
         if self.con_cont == "set":
             print("Commands:\n")
@@ -1447,7 +1539,7 @@ class MPlayerC:
 def title_time_now():
     return datetime.datetime.now().strftime("%H:%M:%S")
 
-title("Loading Light")
+#title("Loading Light")
 
 class colorC:
     def __init__(self):
@@ -2401,24 +2493,24 @@ def killConsoleWin():
     # tmp:
     #subprocess.call(["taskkill", "/IM", "conhost.exe", "/f"])
 
-title("Loading: Finding Computers")
+#title("Loading: Finding Computers")
 
 
 def computerconfig_schoolpc():
     color.change("F0")
 
 def computerconfig_minipc():
-    global MusicDir, thisIP, console_data#, browser
+    global MusicDir, thisIP, cores#, browser
     MusicDir = "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Musik\\Musik\\!Fertige Musik"
     thisIP = "192.168.2.102"
     #browser = "vivaldi"
-    console_data = (120, 30)
+    cores = 2
 
 def computerconfig_bigpc():
-    global MusicDir, thisIP
+    global MusicDir, thisIP, cores
     MusicDir = "D:\\Musik\\!Fertige Musik"
     thisIP = "192.168.2.101"
-
+    cores = 4
 
 def computerconfig_aldi():
     nircmd("setsize", 1000, 520)
@@ -2428,6 +2520,7 @@ def computerconfig_aldi():
 def computerconfig_laptop():
     global thisIP
     thisIP = "192.168.2.106" # Lan __ .104 = WLAN
+    cores = 4
 
 
 Computername = socket.gethostname()

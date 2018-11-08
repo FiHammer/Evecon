@@ -356,6 +356,7 @@ def debug():
 def Music(systrayon=True):
 
     def Play():
+        title("Musicplayer")
         class Printerr(threading.Thread):
             def run(self):
                 while not muPlayer.allowPrint:
