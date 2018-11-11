@@ -308,6 +308,9 @@ def Music(systrayon=True):
         Printer = Printerr()
         Printer.start()
 
+        while muPlayer.musicrun:
+            time.sleep(1)
+
         #while True:
         #    print(muPlayer.allowPrint, muPlayer.musicrun, muPlayer.paused)
         #    time.sleep(0.5)
@@ -1861,9 +1864,9 @@ def Arg():
             # if sys.argv[x] == "-update":
             #    title("Load Argument", "Updater: Updating")
             #    update()
-        if sys.argv[x] == "--upgrade":
-            title("Load Argument", "Updater: Upgrading")
-            upgrade()
+        #if sys.argv[x] == "--upgrade":
+        #    title("Load Argument", "Updater: Upgrading")
+        #    upgrade()
         if sys.argv[x] == "--screensaver":
             title("Load Argument", "Screensaver")
             screensaver()

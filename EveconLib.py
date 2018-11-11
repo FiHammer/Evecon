@@ -716,7 +716,7 @@ class MusicPlayerC(threading.Thread):
 
         if self.con_main == "pl":
             print("Playlist: (%s)\n" % str(len(self.playlist)))
-
+            debug = False
             search_done = False
             for now in range(self.expandRange):
                 if not search_done:
@@ -731,11 +731,15 @@ class MusicPlayerC(threading.Thread):
                                     word_num_str = str(word_num + 1)
 
                                 if self.cur_Pos  == word_num:
-                                    #print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
-                                    print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 0)
+                                    if not debug:
+                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                    else:
+                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 0)
                                 else:
-                                    #print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
-                                    print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 1)
+                                    if not debug:
+                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                    else:
+                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 1)
                         elif 2 * self.expandRange + 1 >= len(self.playlist):
                             for word_num in range(0, 2 * self.expandRange + 1):  # + 1?
                                 if word_num + 1 < 10:
@@ -747,14 +751,18 @@ class MusicPlayerC(threading.Thread):
 
                                 if self.cur_Pos  == word_num:
                                     try:
-                                        #print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
-                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 2)
+                                        if not debug:
+                                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                        else:
+                                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 2)
                                     except IndexError:
                                         pass
                                 else:
                                     try:
-                                        #print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
-                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 3)
+                                        if not debug:
+                                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                        else:
+                                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 3)
                                     except IndexError:
                                         pass
                         else:
@@ -766,11 +774,15 @@ class MusicPlayerC(threading.Thread):
                                 else:
                                     word_num_str = str(word_num + 1)
                                 if self.cur_Pos == word_num:
-                                    #print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
-                                    print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 4)
+                                    if not debug:
+                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                    else:
+                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 4)
                                 else:
-                                    #print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
-                                    print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 5)
+                                    if not debug:
+                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                    else:
+                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 5)
                         search_done = True
                         break
 
@@ -786,11 +798,15 @@ class MusicPlayerC(threading.Thread):
                             else:
                                 word_num_str = str(word_num + 1)
                             if self.cur_Pos == word_num:
-                                #print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
-                                print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 6, word_num, self.cur_Pos, now, self.expandRange)
+                                if not debug:
+                                    print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                else:
+                                    print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 6, word_num, self.cur_Pos, now, self.expandRange)
                             else:
-                                #print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
-                                print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 7, word_num, self.cur_Pos, now, self.expandRange)
+                                if not debug:
+                                    print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                else:
+                                    print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 7, word_num, self.cur_Pos, now, self.expandRange)
                         search_done = True
                         break
 
@@ -803,11 +819,15 @@ class MusicPlayerC(threading.Thread):
                     else:
                         word_num_str = str(word_num + 1)
                     if self.cur_Pos == word_num:
-                        #print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
-                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 10)
+                        if not debug:
+                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                        else:
+                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 10)
                     else:
-                        #print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
-                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 11)
+                        if not debug:
+                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                        else:
+                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 11)
 
         elif self.con_main == "details":
             print("Details:\n")
@@ -2826,3 +2846,18 @@ class ToolsC:
 
 Tools = ToolsC()
 
+
+def exit_now(killmex = False):
+    ttime.deac()
+    # noinspection PyGlobalUndefined
+    global exitnow, startmain
+    exitnow = 1
+    startmain = False
+    #if version_PC != 1:
+    #    exit()
+
+    if killmex:
+        time.sleep(0.5)
+        killme()
+
+    sys.exit()
