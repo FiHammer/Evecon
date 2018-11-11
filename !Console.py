@@ -1914,7 +1914,7 @@ def Arg():
 if sys.argv:
     Arg()
 
-print(exitnow)
+
 if exitnow == 0:
     if __name__ == "__main__":
         title("Search for Updates")

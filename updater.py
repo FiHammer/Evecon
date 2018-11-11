@@ -299,7 +299,7 @@ def upgrade():
 
         dir_tmp = os.getcwd()
         os.chdir("!Evecon\\dev")
-        shutil.rmtree("build\\!Console")
+        #shutil.rmtree("build\\!Console")
         shutil.rmtree("dist\\!Console")
 
         title("Upgrade", "Installing")

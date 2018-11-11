@@ -8,11 +8,11 @@ import ctypes
 import itertools
 import glob
 import datetime
-import os
-import sys
 import subprocess
+import psutil
 
 import EveconMiniDebug
+import EveconExceptions
 from EveconTools import *
 
 title_oldstatus = "Loading"

@@ -1,5 +1,11 @@
-import threading
 import time
+import os
+import sys
+import threading
+
+def cls():
+    if sys.platform == "win32":
+        os.system("cls")
 
 class ddbug(threading.Thread):
     def __init__(self):
@@ -133,3 +139,18 @@ def TimeFor(Time):
     else:
         TimeFor = "%s:%s" % (round(Time) // 60, round(Time) % 60)
     return TimeFor
+
+
+def MusicType(mType, exact=False):
+    if rsame(mType, "mp3"):
+        if exact:
+            return "mp3"
+        else:
+            return True
+    elif rsame(mType, "mp4"):
+        if exact:
+            return "mp4"
+        else:
+            return True
+    else:
+        return False
