@@ -361,6 +361,14 @@ class MusicPlayerC(threading.Thread):
         self.playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing", "Parov Stelar", "jPOP & etc", "OMFG"]
         self.playlists_key = ["lis", "an", "phu", "cp", "es", "ps", "jpop", "omfg"]
 
+        self.musiclist = {}
+        with open("data"+path_seg+"Music.txt") as musicfile:
+            for line in musicfile:
+                if lsame(line, "["):
+                    print(line)
+                    print(getPartStrToStr(line, "]", "[", True))
+                    print(getPartStrToStr(line, "'", " '", True))
+                    self.musiclist[getPartStrToStr(line, "]", "[", True)] = getPartStrToStr(line, "'", " '", True)
 
     def findMusic(self, path, reset=True):
         if reset:
@@ -397,6 +405,7 @@ class MusicPlayerC(threading.Thread):
                                                                                "antype": antype, "andata": andata}
 
     def addMusic(self, key, custom=None):  # key (AN, LIS)
+        self.read_musiclist()
         if computer == "MiniPC":
             cls()
             print("Loading... (On Mini-PC)")
@@ -410,37 +419,29 @@ class MusicPlayerC(threading.Thread):
         else:
             cls()
             print("Loading...")
-            musicDirLoad = ""
+            musicDirLoad = "Music"+path_seg+"Presets"
 
         old_Num = self.music["all_files"]
         key = key.lower()
 
-        if key == "us":
+        if custom:
+            key = "cus"
+
+        done = False
+        for x in self.musiclist:
+            if x == key:
+                self.findMusic(musicDirLoad + path_seg + self.musiclist[key])
+                done = True
+                break
+
+        if done:
+            pass
+        elif key == "us":
             self.findMusic("Music"+path_seg+"User")
-        elif key == "lis":
-            self.findMusic(musicDirLoad + path_seg+"Games"+path_seg+"Life is Strange")
-        elif key == "an":
-            self.findMusic(musicDirLoad + path_seg+"Anime")
-        elif key == "phu":
-            self.findMusic(musicDirLoad + path_seg+"Phunk")
-        elif key == "cp":
-            self.findMusic(musicDirLoad + path_seg+"Caravan Palace")
-        elif key == "es":
-            self.findMusic(musicDirLoad + path_seg+"Electro Swing")
-        elif key == "ud":
-            cls()
-            self.findMusic(input("Your path:\n"))
-        elif key == "ps":
-            self.findMusic(musicDirLoad + path_seg+"Parov Stelar")
-        elif key == "jpop":
-            self.findMusic(musicDirLoad + path_seg+"jPOP-etc")
-        elif key == "omfg":
-            self.findMusic(musicDirLoad + path_seg+"OMFG")
         elif key == "cus" and custom: # custom
             self.findMusic(custom)
         else:
             return False
-
 
 
         q = queue.Queue()
@@ -485,6 +486,12 @@ class MusicPlayerC(threading.Thread):
         self.music["active"].append(key)
         print("Finished")
         return True
+
+    def read_musiclist(self):
+        with open("data"+path_seg+"Music.txt") as musicfile:
+            for line in musicfile:
+                if not lsame(line, "#") and lsame(line, "["):
+                    self.musiclist[getPartStrToStr(line, "]", "[", True)] = getPartStrToStr(line, "'", " '", True)
 
     def reloadMusic(self, tracknum):
         if type(tracknum) == int:

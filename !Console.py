@@ -308,8 +308,7 @@ def Music(systrayon=True):
         Printer = Printerr()
         Printer.start()
 
-        while muPlayer.musicrun:
-            time.sleep(1)
+        muPlayer.join()
 
         #while True:
         #    print(muPlayer.allowPrint, muPlayer.musicrun, muPlayer.paused)
