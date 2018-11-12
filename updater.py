@@ -304,7 +304,8 @@ def upgrade():
 
         title("Upgrade", "Installing")
 
-        os.system("pyinstaller !Console.py")
+        subprocess.call(["pyinstaller.exe", "!Console.py"])
+        #os.system("pyinstaller !Console.py")
         time.sleep(1)
         os.chdir(dir_tmp)
         shutil.rmtree("!Evecon\\!Console")

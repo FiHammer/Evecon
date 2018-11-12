@@ -365,9 +365,6 @@ class MusicPlayerC(threading.Thread):
         with open("data"+path_seg+"Music.txt") as musicfile:
             for line in musicfile:
                 if lsame(line, "["):
-                    print(line)
-                    print(getPartStrToStr(line, "]", "[", True))
-                    print(getPartStrToStr(line, "'", " '", True))
                     self.musiclist[getPartStrToStr(line, "]", "[", True)] = getPartStrToStr(line, "'", " '", True)
 
     def findMusic(self, path, reset=True):
@@ -531,6 +528,86 @@ class MusicPlayerC(threading.Thread):
 
     def sortPL(self):
         self.playlist.sort()
+
+    def sortPL_name(self):
+        pl_names = []
+        for fileX in self.playlist:
+            pl_names.append(self.music[fileX]["name"])
+        pl_names.sort()
+
+        new_playlist = []
+        for name in pl_names:
+            for num_file in range(1, self.music["all_files"] + 1):
+                if name == self.music["file" + str(num_file)]["name"]:
+                    ok = True
+                    for x in new_playlist:
+                        if x == "file" + str(num_file):
+                            ok = False
+                    if ok:
+                        new_playlist.append("file" + str(num_file))
+
+
+        self.playlist = new_playlist.copy()
+
+    def sortPL_an(self):
+        pl_an_file = []
+        pl_nonan_file = []
+
+        for fileX in self.playlist:
+            if self.music[fileX]["antype"]:
+                pl_an_file.append(fileX)
+            else:
+                pl_nonan_file.append(fileX)
+
+        pl_an_file.sort()
+        pl_nonan_file.sort()
+
+        new_playlist = []
+        pl_an_name = []
+
+        for an_file in pl_an_file:
+            ok = True
+            for x in pl_an_name:
+                if x == self.music[an_file]["andata"]["animeName"]:
+                    ok = False
+            if ok:
+                pl_an_name.append(self.music[an_file]["andata"]["animeName"])
+        pl_an_name.sort()
+
+
+        for an_name in pl_an_name:
+            this_an = [] # files unsortiert
+            this_an_name = [] # name unsortiert & sortiert
+            new_pl = [] # files sortiert
+
+            for num_file in range(1, self.music["all_files"] + 1):
+                if self.music["file" + str(num_file)]["antype"] and an_name == self.music["file" + str(num_file)]["andata"]["animeName"]:
+                    this_an.append("file" + str(num_file))
+                    this_an_name.append(self.music["file" + str(num_file)]["name"])
+
+
+            this_an_name.sort()
+            for this_an_name2 in this_an_name:
+                for file in this_an:
+                    if this_an_name2 == self.music[file]["name"]:
+                        new_pl.append(file)
+                        break
+
+            new_playlist += new_pl
+
+
+        pl_nonan_name = []
+        for fileX in pl_nonan_file:
+            pl_nonan_name.append(self.music[fileX]["name"])
+        pl_nonan_name.sort()
+
+        for name in pl_nonan_name:
+            for num_file in range(1, self.music["all_files"] + 1):
+                if name == self.music["file" + str(num_file)]["name"]:
+                    new_playlist.append("file" + str(num_file))
+
+
+        self.playlist = new_playlist.copy()
 
     #Options
 
@@ -723,7 +800,9 @@ class MusicPlayerC(threading.Thread):
 
         if self.con_main == "pl":
             print("Playlist: (%s)\n" % str(len(self.playlist)))
+
             debug = False
+
             search_done = False
             for now in range(self.expandRange):
                 if not search_done:
@@ -741,12 +820,12 @@ class MusicPlayerC(threading.Thread):
                                     if not debug:
                                         print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                                     else:
-                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 0)
+                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 0, self.playlist[word_num])
                                 else:
                                     if not debug:
                                         print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                                     else:
-                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 1)
+                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 1, self.playlist[word_num])
                         elif 2 * self.expandRange + 1 >= len(self.playlist):
                             for word_num in range(0, 2 * self.expandRange + 1):  # + 1?
                                 if word_num + 1 < 10:
@@ -761,7 +840,7 @@ class MusicPlayerC(threading.Thread):
                                         if not debug:
                                             print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                                         else:
-                                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 2)
+                                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 2, self.playlist[word_num])
                                     except IndexError:
                                         pass
                                 else:
@@ -769,7 +848,7 @@ class MusicPlayerC(threading.Thread):
                                         if not debug:
                                             print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                                         else:
-                                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 3)
+                                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 3, self.playlist[word_num])
                                     except IndexError:
                                         pass
                         else:
@@ -784,12 +863,12 @@ class MusicPlayerC(threading.Thread):
                                     if not debug:
                                         print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                                     else:
-                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 4)
+                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 4, self.playlist[word_num])
                                 else:
                                     if not debug:
                                         print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                                     else:
-                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 5)
+                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 5, self.playlist[word_num])
                         search_done = True
                         break
 
@@ -808,12 +887,12 @@ class MusicPlayerC(threading.Thread):
                                 if not debug:
                                     print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                                 else:
-                                    print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 6, word_num, self.cur_Pos, now, self.expandRange)
+                                    print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 6, self.playlist[word_num])
                             else:
                                 if not debug:
                                     print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                                 else:
-                                    print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 7, word_num, self.cur_Pos, now, self.expandRange)
+                                    print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 7, self.playlist[word_num])
                         search_done = True
                         break
 
@@ -829,12 +908,12 @@ class MusicPlayerC(threading.Thread):
                         if not debug:
                             print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                         else:
-                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 10)
+                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 10, self.playlist[word_num])
                     else:
                         if not debug:
                             print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                         else:
-                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 11)
+                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 11, self.playlist[word_num])
 
         elif self.con_main == "details":
             print("Details:\n")
@@ -1047,8 +1126,14 @@ class MusicPlayerC(threading.Thread):
             self.exitn = True
         elif i == "dea":
             self.con_main = "details"
-        elif i == "sort":
+        elif i == "sortfile":
             self.sortPL()
+            self.next(True)
+        elif i == "sortname":
+            self.sortPL_name()
+            self.next(True)
+        elif i == "sortan":
+            self.sortPL_an()
             self.next(True)
 
         elif i == "spl":
