@@ -150,9 +150,9 @@ class FoxiC:
         self.browser.refresh()
         self.browser.open_win(self.data["Last"]["last_name_url"])
         if self.browser.running:
-            time.sleep(1)
+            time.sleep(4)
         else:
-            time.sleep(5)
+            time.sleep(8)
         self.browser.open_tab(self.data["Last"]["last_page_url"])
 
     def open_foxname(self):

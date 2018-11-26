@@ -63,6 +63,9 @@ class TimerC:
         self.stoppausetime = 0
         self.Time = 0
         self.Pause = 0
+        self.curPause = 0
+        self.startcurPause = 0
+        self.startpausetimetmp = 0
 
         self.Running = False
         self.Paused = False
@@ -85,14 +88,18 @@ class TimerC:
         if not self.End:
             if not self.Paused:
                 self.Paused = True
-                self.startpausetime += time.time()
+                self.startcurPause = time.time()
+                self.startpausetimetmp = time.time()
 
     def unpause(self):
         if not self.End:
             if self.Paused:
                 self.Paused = False
+                self.startpausetime += self.startpausetimetmp
                 self.stoppausetime += time.time()
                 self.reload()
+                self.curPause = 0
+                self.startcurPause = 0
 
     def reset(self):
         self.starttime = 0
@@ -101,6 +108,9 @@ class TimerC:
         self.stoppausetime = 0
         self.Time = 0
         self.Pause = 0
+        self.curPause = 0
+        self.startcurPause = 0
+        self.startpausetimetmp = 0
 
         self.Running = False
         self.Paused = False
@@ -113,15 +123,19 @@ class TimerC:
             self.unpause()
 
     def reload(self):
+
         if self.Paused:
-            self.Pause = time.time() - self.startpausetime
+            self.curPause = time.time() - self.startcurPause
         else:
-            self.Pause = self.stoppausetime - self.startpausetime
+            self.curPause = 0
+            self.startcurPause = 0
+
+        self.Pause = self.stoppausetime - self.startpausetime
 
         if self.End:
             self.Time = self.stoptime - self.starttime - self.Pause
         else:
-            self.Time = time.time() - self.starttime - self.Pause
+            self.Time = time.time() - self.starttime - self.Pause - self.curPause
 
     def getTime(self):
         self.reload()

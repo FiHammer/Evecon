@@ -49,6 +49,9 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
+code_version = "0.9.0.4"
+
+
 ss_active = False
 exitnow = 0
 pausetime = 180
@@ -351,6 +354,7 @@ class MusicPlayerC(threading.Thread):
         self.muted = False
         self.mute_vol = 1
         self.con_main = "pl"
+        self.con_main_last = None
         self.con_cont = "set"
         self.change = ""
 
@@ -960,6 +964,10 @@ class MusicPlayerC(threading.Thread):
             print("Confirm\n")
             print("Y/N")
 
+        elif self.con_cont == "cont":
+            print("Continue?\n")
+            print("Press something")
+
         elif self.con_cont == "volp":
             print("Change Volume (Player):\n")
             print("Current: " + str(self.volumep))
@@ -982,7 +990,8 @@ class MusicPlayerC(threading.Thread):
     def react(self, inp):
 
         if self.con_main == "details":
-            self.con_main = "pl"
+            self.con_main = self.con_main_last
+            self.con_cont = "set"
 
         elif inp == " ":
             self.switch()
@@ -1024,7 +1033,7 @@ class MusicPlayerC(threading.Thread):
 
         elif self.change == "spe":
             if inp == "enter":
-                self.spl.ChEffect(self.cur_Input)
+                self.spl.ChEffect(int(self.cur_Input))
                 self.cur_Input = ""
                 self.change = ""
                 self.con_cont = "set"
@@ -1125,7 +1134,9 @@ class MusicPlayerC(threading.Thread):
         elif i == "exin":
             self.exitn = True
         elif i == "dea":
+            self.con_main_last = self.con_main
             self.con_main = "details"
+            self.con_cont = "cont"
         elif i == "sortfile":
             self.sortPL()
             self.next(True)
@@ -2367,6 +2378,7 @@ file_proversion_raw = open("data"+path_seg+"Info"+path_seg+"ProgramVersion", "r"
 ProVersion = file_proversion_raw.readline()
 file_proversion_raw.close()
 
+
 def versionFind():
     file_version_raw = open("data"+path_seg+"Info"+path_seg+"version", "r")
     global this_version
@@ -2374,6 +2386,7 @@ def versionFind():
     for x in file_version_raw:
         this_version.append(x.strip())
     file_version_raw.close()
+    this_version.append(code_version)
     return this_version
 
 def normaltitle():
@@ -2382,7 +2395,7 @@ def normaltitle():
         title("Screensaver", "")
 
     else:
-        title("OLD", "Version: " + str(versionFind()[1]))
+        title("OLD", "Version: " + str(versionFind()[2]))
 
 normaltitle()
 
@@ -2421,6 +2434,7 @@ def Status(printit=True):
 
         print("\nEvecon:\n")
         print("Version: " + versionFind()[1])
+        print("Code-Version: " + versionFind()[2])
         print("Versionnummber: " + versionFind()[0])
         print("Evecon Type: " + version)
         print("PID: " + str(os.getpid()))
@@ -2436,7 +2450,12 @@ def Status(printit=True):
 
         input()
 
-    return [versionFind()[1], versionFind()[0], version, os.getpid(),Computername, getpass.getuser(), computer, thisIP, HomePC]
+    status = {
+        "version": {"version": versionFind()[1], "codeversion": versionFind()[2], "versionnumber": versionFind()[0]},
+        "evecontype": version, "pid": os.getpid(), "computername": Computername, "username": getpass.getuser(),
+        "computersyn": computer, "ip": thisIP, "homepc": HomePC}
+
+    return status #[versionFind()[1], versionFind()[2], versionFind()[0], version, os.getpid(),Computername, getpass.getuser(), computer, thisIP, HomePC]
 
 
 def randompw(returnpw=False, length=150, printpw=True, exclude=None):
@@ -2705,7 +2724,7 @@ class SplatoonC:
             print("Next Round:\t %s (%s)" % self.WRnext)
         if printcom:
             if self.WR:
-                print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon(REROLL)")
+                print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon (REROLL)")
             else:
                 print("\nWeapon Randomizer (WR), Effect ('E'+number)")
 
@@ -2714,7 +2733,7 @@ class SplatoonC:
 
     def printcom(self):
         if self.WR:
-            print("Weapon Randomizer (spWR), Effect (spE), Next Round (spN), Reroll Next Weapon(spR)")
+            print("Weapon Randomizer (spWR), Effect (spE), Next Round (spN), Reroll Next Weapon (spR)")
         else:
             print("Weapon Randomizer (spWR), Effect (spE), Next Round (spN)")
 
