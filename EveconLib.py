@@ -316,7 +316,7 @@ def MusicEncode(musicname):
 
 # noinspection PyTypeChecker
 class MusicPlayerC(threading.Thread):
-    def __init__(self, systray=True, random=True, expandRange=2):
+    def __init__(self, systray=True, random=True, expandRange=2, stop_del=True):
         super().__init__()
 
 
@@ -329,6 +329,8 @@ class MusicPlayerC(threading.Thread):
         self.volume = Volume.getVolume()
         self.volumep = 1
 
+        # stop the musicplayer while hovering over file 1 and pressing 'del'-button
+        self.stop_del = stop_del
         self.randomizer = random
         # noinspection PyGlobalUndefined
         global musicrun
@@ -358,6 +360,9 @@ class MusicPlayerC(threading.Thread):
         self.con_cont = "set"
         self.change = ""
 
+        self.last_print = 0
+        self.last_print_auto = 0
+
         self.cur_Input = ""
         self.cur_Pos = 0
         self.expandRange = expandRange
@@ -374,6 +379,7 @@ class MusicPlayerC(threading.Thread):
     def findMusic(self, path, reset=True):
         if reset:
             self.find_music_out = {"all_files": 0, "all_dirs": 0}
+        content = []
 
         for file in os.listdir(path):
             fullname = path + path_seg + file
@@ -382,9 +388,16 @@ class MusicPlayerC(threading.Thread):
                 self.music["dir" + str(self.music["all_dirs"])] = {"file": file, "path": path, "fullname": fullname}
 
                 self.find_music_out["all_dirs"] += 1
-                self.find_music_out["dir" + str(self.find_music_out["all_dirs"])] = {"file": file, "path": path, "fullname": fullname}
+                self.find_music_out["dir" + str(self.find_music_out["all_dirs"])] = {"file": file, "path": path,
+                                                                                     "fullname": fullname}
 
-                self.findMusic(fullname, False)
+                dir_content = self.findMusic(fullname, False)
+
+                self.music["dir" + str(self.music["all_dirs"])]["content"] = dir_content
+                self.find_music_out["dir" + str(self.find_music_out["all_dirs"])]["content"] = dir_content
+
+                content.append("dir" + str(self.find_music_out["all_dirs"]))  # ID of DIR
+
             elif os.path.isfile(fullname) and MusicType(file):
                 name = file.rstrip(MusicType(file, True)).rstrip(".")
 
@@ -399,11 +412,17 @@ class MusicPlayerC(threading.Thread):
                     antype = False
                     andata = None
 
-                self.music["file" + str(self.music["all_files"])] = {"name": name, "file": file, "path": path, "fullname": fullname,
-                                                                       "antype": antype, "andata": andata}
+                self.music["file" + str(self.music["all_files"])] = {"name": name, "file": file, "path": path,
+                                                                     "fullname": fullname,
+                                                                     "antype": antype, "andata": andata}
 
-                self.find_music_out["file" + str(self.music["all_files"])] = {"name": name, "file": file, "path": path, "fullname": fullname,
-                                                                               "antype": antype, "andata": andata}
+                self.find_music_out["file" + str(self.music["all_files"])] = {"name": name, "file": file, "path": path,
+                                                                              "fullname": fullname,
+                                                                              "antype": antype, "andata": andata}
+
+                content.append("file" + str(self.music["all_files"]))  # ID of FILE
+
+        return content
 
     def addMusic(self, key, custom=None):  # key (AN, LIS)
         self.read_musiclist()
@@ -429,11 +448,21 @@ class MusicPlayerC(threading.Thread):
             key = "cus"
 
         done = False
-        for x in self.musiclist:
-            if x == key:
-                self.findMusic(musicDirLoad + path_seg + self.musiclist[key])
-                done = True
-                break
+        if type(key) == str:
+            for x in self.musiclist:
+                if x == key:
+                    self.findMusic(musicDirLoad + path_seg + self.musiclist[key])
+                    done = True
+                    break
+        elif type(key) == list:
+            for x in self.musiclist:
+                for y in key:
+                    if x == y:
+                        self.addMusic(x)
+                        break
+            return True
+
+
 
         if done:
             pass
@@ -441,6 +470,10 @@ class MusicPlayerC(threading.Thread):
             self.findMusic("Music"+path_seg+"User")
         elif key == "cus" and custom: # custom
             self.findMusic(custom)
+        elif key == "all":
+            for x in self.musiclist:
+                self.addMusic(x)
+            return True
         else:
             return False
 
@@ -659,7 +692,7 @@ class MusicPlayerC(threading.Thread):
             self.player.play()
     def Del(self, plfile):
         num = Search(plfile, self.playlist)[0]
-        if num == 0:
+        if num == 0 and self.stop_del:
             self.stop()
 
         if self.cur_Pos >= len(self.playlist) - 1:
@@ -675,7 +708,10 @@ class MusicPlayerC(threading.Thread):
     def volp(self, vol):
         self.volumep = vol
         self.player.volume = self.volumep
-
+    def queue(self, pos):
+        oldPL = self.playlist.copy()
+        del oldPL[pos]
+        self.playlist = [self.playlist[0]] + [self.playlist[pos]] + oldPL
 
     def run(self):
         if self.systrayon and sys.platform == "win32":
@@ -710,7 +746,8 @@ class MusicPlayerC(threading.Thread):
                                    sub_menu1=sub_menu1, sub_menu_name1="Volume", quitFunc=quitFunc)
             self.systray.start()
 
-        self.make_playlist()
+        if not self.playlist:
+            self.make_playlist()
 
 
         if self.randomizer:
@@ -735,6 +772,7 @@ class MusicPlayerC(threading.Thread):
             self.refreshTitle()
 
             self.printit()
+            self.last_print_auto = time.time()
             while self.playing:
 
                 time.sleep(0.15)
@@ -777,6 +815,7 @@ class MusicPlayerC(threading.Thread):
                 self.stop()
 
     def printit(self):
+        self.last_print = time.time()
         cls()
 
         # Info-Container
@@ -951,9 +990,9 @@ class MusicPlayerC(threading.Thread):
             print("Commands:\n")
 
             if not self.paused:
-                print("Pause (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT), Details (DEA)")
+                print("Pause (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT), Queue this (QU), Details (DEA)")
             elif self.paused:
-                print("Play (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT), Details (DEA)")
+                print("Play (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT), Queue this (QU), Details (DEA)")
 
             if self.con_main == "spl":
                 self.spl.printcom()
@@ -1097,6 +1136,7 @@ class MusicPlayerC(threading.Thread):
             return False
 
         self.printit()
+        self.last_print_auto = time.time()
 
     def input(self, i):
         i = i.lower()
@@ -1146,6 +1186,8 @@ class MusicPlayerC(threading.Thread):
         elif i == "sortan":
             self.sortPL_an()
             self.next(True)
+        elif i == "qu":
+            self.queue(self.cur_Pos)
 
         elif i == "spl":
             if self.con_main == "spl":

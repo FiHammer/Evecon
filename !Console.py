@@ -291,15 +291,18 @@ def Music(systrayon=True):
     def Play():
         title("Musicplayer")
         class Printerr(threading.Thread):
-            def __init__(self):
+            def __init__(self, refreshtime=1):
                 super().__init__()
                 self.started = False
+                self.refreshTime = refreshtime
             def run(self):
                 self.started = True
                 while not muPlayer.allowPrint:
                     time.sleep(0.5)
                 while muPlayer.musicrun and muPlayer.allowPrint:
-                    time.sleep(1)
+                    time.sleep(self.refreshTime)
+                    if muPlayer.last_print_auto + self.refreshTime > time.time():
+                        continue
                     muPlayer.printit()
                     muPlayer.refreshTitle()
                     while muPlayer.paused:
@@ -411,6 +414,54 @@ def Music(systrayon=True):
     #        muPlayer.musiclist.append(pyglet.media.load(musiclistpathold[x]))
     #        muPlayer.musiclistpath.append(musiclistpathold[x])
     #        muPlayer.musiclistname.append(musiclistnameold[x])
+
+    elif music_user_input.lower() == "search":
+        muPlayer.addMusic("all")
+
+        cls()
+        print("What do you want to hear?")
+
+        user_input_search = input().lower()
+
+        all_music = []
+        all_dir = []
+
+        for x in range(1, muPlayer.music["all_files"] + 1):
+            all_music.append(muPlayer.music["file" + str(x)]["name"])
+        for x in range(1, muPlayer.music["all_dirs"] + 1):
+            all_dir.append(muPlayer.music["dir" + str(x)]["file"])
+
+        found_music = Search(user_input_search, all_music)
+        found_dir = Search(user_input_search, all_dir)
+
+        for x in found_music:
+            muPlayer.playlist.append("file" + str(x + 1))
+
+        def funcx(dirID):
+            for x in muPlayer.music["dir" + str(dirID)]["content"]:
+                if lsame(x, "dir"):
+                    funcx(x)
+                else:
+                    muPlayer.playlist.append(x)
+
+        for x in found_dir:
+            funcx(x)
+
+        # ist etwas doppeltes in der PL ?
+
+        oldPL1 = muPlayer.playlist.copy()
+        oldPL2 = muPlayer.playlist.copy()
+
+        for x in range(len(oldPL1)):
+            for y in oldPL2:
+                found = 0
+                if oldPL1[x] == y and found == 0:
+                    found += 1
+                elif oldPL1[x] == y and found > 0:
+                    del oldPL2[x]
+
+        muPlayer.playlist = oldPL2.copy()
+
 
     else:
         muPlayer.addMusic(music_user_input.lower())
