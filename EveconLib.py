@@ -49,7 +49,7 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
-code_version = "0.9.0.5"
+code_version = "0.9.0.6"
 
 
 ss_active = False
@@ -394,8 +394,8 @@ class MusicPlayerC(threading.Thread):
                                                                                      "fullname": fullname}
                 dir_content = self.findMusic(fullname, False)
 
-                self.music["dir" + str(self.music["all_dirs"])]["content"] = dir_content
-                self.find_music_out["dir" + str(self.find_music_out["all_dirs"])]["content"] = dir_content
+                self.music["dir" + str(thisDirID)]["content"] = dir_content
+                self.find_music_out["dir" + str(thisDirID)]["content"] = dir_content
 
                 content.append("dir" + str(thisDirID))  # ID of DIR
 
