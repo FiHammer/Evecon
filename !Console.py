@@ -439,7 +439,7 @@ def Music(systrayon=True):
             muPlayer.playlist.append("file" + str(x + 1))
 
         def funcx(dirID):
-            for x in muPlayer.music["dir" + str(dirID + 1)]["content"]:
+            for x in muPlayer.music["dir" + str(dirID)]["content"]:
                 if lsame(x, "dir"):
                     funcx(int(x.lstrip("dir"))) # weitergabe: XX
                 else:
