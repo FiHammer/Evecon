@@ -336,6 +336,7 @@ class MusicPlayerC(threading.Thread):
         global musicrun
         musicrun = True
 
+        self.starttime = 0
         self.musicrun = True
         self.playlist = []
         self.pershuffel = False
@@ -753,7 +754,7 @@ class MusicPlayerC(threading.Thread):
 
         if self.randomizer:
             self.shufflePL(True)
-
+        self.starttime = time.time()
         self.scanner.start()
         while self.musicrun:
 
@@ -1028,6 +1029,8 @@ class MusicPlayerC(threading.Thread):
             print("\n" + self.cur_Input)
 
     def react(self, inp):
+        while self.starttime + 1.5 >= time.time():
+            time.sleep(0.25)
 
         if self.con_main == "details":
             self.con_main = self.con_main_last
