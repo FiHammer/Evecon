@@ -415,8 +415,9 @@ def Music(systrayon=True):
     #        muPlayer.musiclistpath.append(musiclistpathold[x])
     #        muPlayer.musiclistname.append(musiclistnameold[x])
 
+
     elif music_user_input.lower() == "search":
-        muPlayer.addMusic("all")
+        muPlayer.addMusic("an")
 
         cls()
         print("What do you want to hear?")
@@ -438,14 +439,14 @@ def Music(systrayon=True):
             muPlayer.playlist.append("file" + str(x + 1))
 
         def funcx(dirID):
-            for x in muPlayer.music["dir" + str(dirID)]["content"]:
+            for x in muPlayer.music["dir" + str(dirID + 1)]["content"]:
                 if lsame(x, "dir"):
-                    funcx(x)
+                    funcx(int(x.lstrip("dir"))) # weitergabe: XX
                 else:
                     muPlayer.playlist.append(x)
 
         for x in found_dir:
-            funcx(x)
+            funcx(x + 1)  # weitergabe: int XX + 1
 
         # ist etwas doppeltes in der PL ?
 
@@ -1967,12 +1968,15 @@ def Arg():
 if sys.argv:
     Arg()
 
+def debug():
+    pass
 
 if exitnow == 0:
     if __name__ == "__main__":
         title("Search for Updates")
         #update()
         title("Start Enviroment")
+        debug()
         main()
         time.sleep(0)
 

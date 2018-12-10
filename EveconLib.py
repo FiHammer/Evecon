@@ -49,7 +49,7 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
-code_version = "0.9.0.4"
+code_version = "0.9.0.5"
 
 
 ss_active = False
@@ -387,16 +387,17 @@ class MusicPlayerC(threading.Thread):
                 self.music["all_dirs"] += 1
                 self.music["dir" + str(self.music["all_dirs"])] = {"file": file, "path": path, "fullname": fullname}
 
+                thisDirID = self.music["all_dirs"]
+
                 self.find_music_out["all_dirs"] += 1
                 self.find_music_out["dir" + str(self.find_music_out["all_dirs"])] = {"file": file, "path": path,
                                                                                      "fullname": fullname}
-
                 dir_content = self.findMusic(fullname, False)
 
                 self.music["dir" + str(self.music["all_dirs"])]["content"] = dir_content
                 self.find_music_out["dir" + str(self.find_music_out["all_dirs"])]["content"] = dir_content
 
-                content.append("dir" + str(self.find_music_out["all_dirs"]))  # ID of DIR
+                content.append("dir" + str(thisDirID))  # ID of DIR
 
             elif os.path.isfile(fullname) and MusicType(file):
                 name = file.rstrip(MusicType(file, True)).rstrip(".")
@@ -2802,21 +2803,25 @@ def Search(searchkeyU, searchlistU, exact=False):
 
     for sListNum in range(len(searchlist)): # wort aus der liste
         if len(searchkey) > len(searchlist[sListNum]):
-            continue  # suchwort größer als anderes wort
+            continue  # suchwort größer als anderes wort (jetzt in der Liste)
 
-        for letterNum in range(len(searchlist[sListNum])): # buchstabe aus wort
-            if searchlist[sListNum][letterNum] == searchkey[0]: # wahr=
+        for letterNum in range(len(searchlist[sListNum])): # buchstabe aus wort aus der gesamt liste
+            if searchlist[sListNum][letterNum] == searchkey[0]: # ist ein Buchstabe (aus der for-Schleife) auch in dem Suchwort[0] vorhanden?
                 test = True
 
                 for keyNum in range(len(searchkey)):
                     if test:
                         test = False
-                        if keyNum == len(searchkey) - 1:
+                        if keyNum == len(searchkey) - 1: # Fall: Wenn das Suchwort nur ein Buchstabe groß ist!
                             OutputNum.append(sListNum)
                             break
                         continue
+
+                    # was macht das ?: wenn es der letzte buchstabe vom String ist ende
                     if len(searchlist[sListNum]) - 1 < keyNum + letterNum:
                         break
+                    #if len(searchlist[sListNum]) - 1 < keyNum + letterNum:
+                    #    print(OutputNum, sListNum, searchlist[sListNum], letterNum, searchlist[sListNum][letterNum], keyNum)
 
                     if searchlist[sListNum][keyNum + letterNum] == searchkey[keyNum]:
                         if keyNum == len(searchkey) - 1:
@@ -2825,7 +2830,7 @@ def Search(searchkeyU, searchlistU, exact=False):
                     else:
                         break
 
-                break
+
 
     return OutputNum
 
