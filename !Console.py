@@ -187,6 +187,7 @@ class FoxiC:
         idstart = int(self.data["Last"]["last_name_url"].split("/")[-2])
 
         cls()
+        print("Do not forget to add 'www.googletagmanager.com' in Pi-Hole or disable it!")
         print("Which is your startpage? (Begin: %s, Search for: %s)" % (self.data["Last"]["last_page"], idstart))
         pagestart = int(input())
 
@@ -305,8 +306,9 @@ def Music(systrayon=True):
                         continue
                     muPlayer.printit()
                     muPlayer.refreshTitle()
-                    while muPlayer.paused:
+                    while muPlayer.paused or muPlayer.autorefresh:
                         time.sleep(1)
+
 
         Printer = Printerr()
         Printer.start()
@@ -417,7 +419,7 @@ def Music(systrayon=True):
 
 
     elif music_user_input.lower() == "search":
-        muPlayer.addMusic("an")
+        muPlayer.addMusic("all")
 
         cls()
         print("What do you want to hear?")

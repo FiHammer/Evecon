@@ -152,87 +152,88 @@ class Scanner(threading.Thread):
     def run(self):
         while self.running:
             char = click.getchar()
-            if self.raw:
-                self.action(char)
-            else:
-                if char == "\x1b":
-                    self.action("escape")
-                elif char == "\x00;":
-                    self.action("F1")
-                elif char == "\x00<":
-                    self.action("F2")
-                elif char == "\x00=":
-                    self.action("F3")
-                elif char == "\x00>":
-                    self.action("F4")
-                elif char == "\x00?":
-                    self.action("F5")
-                elif char == "\x00@":
-                    self.action("F6")
-                elif char == "\x00A":
-                    self.action("F7")
-                elif char == "\x00B":
-                    self.action("F8")
-                elif char == "\x00C":
-                    self.action("F9")
-                elif char == "\x00D":
-                    self.action("F10")
-                elif char == 'à\x85':
-                    self.action("F11")
-                elif char == 'à\x86':
-                    self.action("F12")
-                elif char == "\x08":
-                    self.action("backspace")
-                elif char == "àR":
-                    self.action("insert")
-                elif char == "àG":
-                    self.action("home") #pos1
-                elif char == "àI":
-                    self.action("pageup")
-                elif char == "àS":
-                    self.action("del")
-                elif char == "àO":
-                    self.action("end")
-                elif char == "àQ":
-                    self.action("pagedown")
-                elif char == "àH":
-                    self.action("arrowup")
-                elif char == "àK":
-                    self.action("arrowleft")
-                elif char == "àP":
-                    self.action("arrowdown")
-                elif char == "àM":
-                    self.action("arrowright")
-                elif char.encode() == b'\xc3\xa0\xc2\x8d':
-                    self.action("strg_arrowup")
-                elif char == "às":
-                    self.action("strg_arrowleft")
-                elif char.encode() == b'\xc3\xa0\xc2\x91':
-                    self.action("strg_arrowdown")
-                elif char == "àt":
-                    self.action("strg_arrowright")
-                elif char == "\x00R":
-                    self.action("num0")
-                elif char == "\x00O":
-                    self.action("num1")
-                elif char == "\x00P":
-                    self.action("num2")
-                elif char == "\x00Q":
-                    self.action("num3")
-                elif char == "\x00K":
-                    self.action("num4")
-                elif char == "\x00M":
-                    self.action("num6")
-                elif char == "\x00G":
-                    self.action("num7")
-                elif char == "\x00H":
-                    self.action("num8")
-                elif char == "\x00I":
-                    self.action("num9")
-                elif char == "\r":
-                    self.action("enter")
-                else:
+            if self.running:
+                if self.raw:
                     self.action(char)
+                else:
+                    if char == "\x1b":
+                        self.action("escape")
+                    elif char == "\x00;":
+                        self.action("F1")
+                    elif char == "\x00<":
+                        self.action("F2")
+                    elif char == "\x00=":
+                        self.action("F3")
+                    elif char == "\x00>":
+                        self.action("F4")
+                    elif char == "\x00?":
+                        self.action("F5")
+                    elif char == "\x00@":
+                        self.action("F6")
+                    elif char == "\x00A":
+                        self.action("F7")
+                    elif char == "\x00B":
+                        self.action("F8")
+                    elif char == "\x00C":
+                        self.action("F9")
+                    elif char == "\x00D":
+                        self.action("F10")
+                    elif char == 'à\x85':
+                        self.action("F11")
+                    elif char == 'à\x86':
+                        self.action("F12")
+                    elif char == "\x08":
+                        self.action("backspace")
+                    elif char == "àR":
+                        self.action("insert")
+                    elif char == "àG":
+                        self.action("home") #pos1
+                    elif char == "àI":
+                        self.action("pageup")
+                    elif char == "àS":
+                        self.action("del")
+                    elif char == "àO":
+                        self.action("end")
+                    elif char == "àQ":
+                        self.action("pagedown")
+                    elif char == "àH":
+                        self.action("arrowup")
+                    elif char == "àK":
+                        self.action("arrowleft")
+                    elif char == "àP":
+                        self.action("arrowdown")
+                    elif char == "àM":
+                        self.action("arrowright")
+                    elif char.encode() == b'\xc3\xa0\xc2\x8d':
+                        self.action("strg_arrowup")
+                    elif char == "às":
+                        self.action("strg_arrowleft")
+                    elif char.encode() == b'\xc3\xa0\xc2\x91':
+                        self.action("strg_arrowdown")
+                    elif char == "àt":
+                        self.action("strg_arrowright")
+                    elif char == "\x00R":
+                        self.action("num0")
+                    elif char == "\x00O":
+                        self.action("num1")
+                    elif char == "\x00P":
+                        self.action("num2")
+                    elif char == "\x00Q":
+                        self.action("num3")
+                    elif char == "\x00K":
+                        self.action("num4")
+                    elif char == "\x00M":
+                        self.action("num6")
+                    elif char == "\x00G":
+                        self.action("num7")
+                    elif char == "\x00H":
+                        self.action("num8")
+                    elif char == "\x00I":
+                        self.action("num9")
+                    elif char == "\r":
+                        self.action("enter")
+                    else:
+                        self.action(char)
 
 
 def MusicEncode(musicname):
@@ -316,9 +317,10 @@ def MusicEncode(musicname):
 
 # noinspection PyTypeChecker
 class MusicPlayerC(threading.Thread):
-    def __init__(self, systray=True, random=True, expandRange=2, stop_del=True):
+    def __init__(self, systray=True, random=True, expandRange=2, stop_del=True, scanner_active=True):
         super().__init__()
 
+        self.debug = False
 
         self.music = {"all_files": 0, "all_dirs": 0, "active": []}
         self.find_music_out = {}
@@ -332,11 +334,13 @@ class MusicPlayerC(threading.Thread):
         # stop the musicplayer while hovering over file 1 and pressing 'del'-button
         self.stop_del = stop_del
         self.randomizer = random
+        self.scanner_active = scanner_active
         # noinspection PyGlobalUndefined
         global musicrun
         musicrun = True
 
         self.starttime = 0
+        self.hardworktime = 0
         self.musicrun = True
         self.playlist = []
         self.pershuffel = False
@@ -345,6 +349,7 @@ class MusicPlayerC(threading.Thread):
         self.playing = False
         self.exitn = False
         self.allowPrint = False
+        self.autorefresh = False
 
         self.player = pyglet.media.Player()
         self.timer = TimerC()
@@ -480,6 +485,7 @@ class MusicPlayerC(threading.Thread):
             return False
 
 
+
         q = queue.Queue()
         num_workers = cores*2
 
@@ -549,6 +555,8 @@ class MusicPlayerC(threading.Thread):
             random.shuffle(oldPL)
             self.playlist = [self.playlist[0]] + oldPL
 
+        self.hardworktime = time.time() + 0.1
+
     def refreshTitle(self):
         if self.getCur()["antype"]:
             title("OLD", self.getCur()["andata"]["title"], "Now Playing")
@@ -567,6 +575,7 @@ class MusicPlayerC(threading.Thread):
 
     def sortPL(self):
         self.playlist.sort()
+        self.hardworktime = time.time() + 0.2
 
     def sortPL_name(self):
         pl_names = []
@@ -587,6 +596,7 @@ class MusicPlayerC(threading.Thread):
 
 
         self.playlist = new_playlist.copy()
+        self.hardworktime = time.time()
 
     def sortPL_an(self):
         pl_an_file = []
@@ -647,15 +657,18 @@ class MusicPlayerC(threading.Thread):
 
 
         self.playlist = new_playlist.copy()
+        self.hardworktime = time.time()
 
     #Options
 
     def play(self):
         self.paused = False
         self.player.play()
+        self.hardworktime = time.time() + 0.2
     def pause(self):
         self.paused = True
         self.player.pause()
+        self.hardworktime = time.time() + 0.2
     def switch(self):
         if self.paused:
             self.play()
@@ -682,6 +695,7 @@ class MusicPlayerC(threading.Thread):
         self.playing = False
         self.paused = False
         self.running = False
+        self.scanner.running = False
         if self.systrayon:
             time.sleep(1)
             killme()
@@ -692,10 +706,11 @@ class MusicPlayerC(threading.Thread):
         if self.paused:
             self.paused = False
             self.player.play()
+        self.hardworktime = time.time() + 0.2
     def Del(self, plfile):
         num = Search(plfile, self.playlist)[0]
-        if num == 0 and self.stop_del:
-            self.stop()
+        #if num == 0 and self.stop_del:
+            #self.stop()
 
         if self.cur_Pos >= len(self.playlist) - 1:
             self.cur_Pos -= 1
@@ -713,7 +728,9 @@ class MusicPlayerC(threading.Thread):
     def queue(self, pos):
         oldPL = self.playlist.copy()
         del oldPL[pos]
+        del oldPL[0]
         self.playlist = [self.playlist[0]] + [self.playlist[pos]] + oldPL
+        self.hardworktime = time.time()
 
     def run(self):
         if self.systrayon and sys.platform == "win32":
@@ -755,7 +772,9 @@ class MusicPlayerC(threading.Thread):
         if self.randomizer:
             self.shufflePL(True)
         self.starttime = time.time()
-        self.scanner.start()
+        self.hardworktime = time.time()
+        if self.scanner_active:
+            self.scanner.start()
         while self.musicrun:
 
             if self.music[self.playlist[0]]["loaded"].is_queued:
@@ -846,7 +865,6 @@ class MusicPlayerC(threading.Thread):
         if self.con_main == "pl":
             print("Playlist: (%s)\n" % str(len(self.playlist)))
 
-            debug = False
 
             search_done = False
             for now in range(self.expandRange):
@@ -862,13 +880,19 @@ class MusicPlayerC(threading.Thread):
                                     word_num_str = str(word_num + 1)
 
                                 if self.cur_Pos  == word_num:
-                                    if not debug:
-                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                    if not self.debug:
+                                        if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                            print(" " + word_num_str + " * " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                        else:
+                                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                                     else:
                                         print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 0, self.playlist[word_num])
                                 else:
-                                    if not debug:
-                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                    if not self.debug:
+                                        if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                            print(" " + word_num_str + "   " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                        else:
+                                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                                     else:
                                         print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 1, self.playlist[word_num])
                         elif 2 * self.expandRange + 1 >= len(self.playlist):
@@ -882,16 +906,22 @@ class MusicPlayerC(threading.Thread):
 
                                 if self.cur_Pos  == word_num:
                                     try:
-                                        if not debug:
-                                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                        if not self.debug:
+                                            if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                                print(" " + word_num_str + " * " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                            else:
+                                                print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                                         else:
                                             print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 2, self.playlist[word_num])
                                     except IndexError:
                                         pass
                                 else:
                                     try:
-                                        if not debug:
-                                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                        if not self.debug:
+                                            if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                                print(" " + word_num_str + "   " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                            else:
+                                                print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                                         else:
                                             print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 3, self.playlist[word_num])
                                     except IndexError:
@@ -905,13 +935,19 @@ class MusicPlayerC(threading.Thread):
                                 else:
                                     word_num_str = str(word_num + 1)
                                 if self.cur_Pos == word_num:
-                                    if not debug:
-                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                    if not self.debug:
+                                        if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                            print(" " + word_num_str + " * " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                        else:
+                                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                                     else:
                                         print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 4, self.playlist[word_num])
                                 else:
-                                    if not debug:
-                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                    if not self.debug:
+                                        if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                            print(" " + word_num_str + "   " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                        else:
+                                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                                     else:
                                         print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 5, self.playlist[word_num])
                         search_done = True
@@ -929,13 +965,19 @@ class MusicPlayerC(threading.Thread):
                             else:
                                 word_num_str = str(word_num + 1)
                             if self.cur_Pos == word_num:
-                                if not debug:
-                                    print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                if not self.debug:
+                                    if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                        print(" " + word_num_str + " * " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                    else:
+                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                                 else:
                                     print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 6, self.playlist[word_num])
                             else:
-                                if not debug:
-                                    print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                if not self.debug:
+                                    if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                        print(" " + word_num_str + "   " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                    else:
+                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                                 else:
                                     print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 7, self.playlist[word_num])
                         search_done = True
@@ -950,13 +992,20 @@ class MusicPlayerC(threading.Thread):
                     else:
                         word_num_str = str(word_num + 1)
                     if self.cur_Pos == word_num:
-                        if not debug:
-                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                        if not self.debug:
+                            if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                print(
+                                    " " + word_num_str + " * " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                            else:
+                                print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                         else:
                             print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 10, self.playlist[word_num])
                     else:
-                        if not debug:
-                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                        if not self.debug:
+                            if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                print(" " + word_num_str + "   " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                            else:
+                                print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                         else:
                             print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 11, self.playlist[word_num])
 
@@ -980,6 +1029,32 @@ class MusicPlayerC(threading.Thread):
                 print("Title: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.title.decode())
                 print("Track: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.track))
                 print("Year: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.year))
+
+            if self.debug:
+                print("\nDebugging Details:\n")
+
+                print("Cur-Pos: " + str(self.cur_Pos))
+                print("Autorefresh: " + str(self.autorefresh))
+
+                print("File:\n")
+                print("Filename: " + self.music[self.playlist[self.cur_Pos]]["file"])
+                print("Path: " + self.music[self.playlist[self.cur_Pos]]["path"])
+
+                print("\nPlayer:\n")
+
+                print("Vol: " + str(Volume.getVolume()))
+                print("Volplayer: " + str(self.volumep))
+                print("Muted: " + str(self.muted))
+                print("Playing: " + str(self.playing))
+                print("Paused: " + str(self.paused))
+                print("Loaded-Key: " + str(self.music["active"]))
+
+                print("\nOther:\n")
+
+                print("Scanner-Status: " + str(self.scanner.is_alive()))
+                print("Timer direct: " + str(self.timer.getTime()))
+                print("Last print: " + str(self.last_print))
+
 
         elif self.con_main == "spl":
             self.spl.printit(False)
@@ -1029,7 +1104,7 @@ class MusicPlayerC(threading.Thread):
             print("\n" + self.cur_Input)
 
     def react(self, inp):
-        while self.starttime + 1.5 >= time.time():
+        while self.starttime + 1.5 >= time.time() and self.hardworktime + 0.65 >= time.time():
             time.sleep(0.25)
 
         if self.con_main == "details":
@@ -1192,6 +1267,22 @@ class MusicPlayerC(threading.Thread):
             self.next(True)
         elif i == "qu":
             self.queue(self.cur_Pos)
+        elif i == "debug":
+            if self.debug:
+                self.debug = False
+            else:
+                self.debug = True
+        elif i == "refresh":
+            self.refreshTitle()
+            self.printit()
+
+        elif i == "autorefresh" and self.debug:
+            if self.autorefresh:
+                self.autorefresh = False
+            else:
+                self.autorefresh = True
+
+
 
         elif i == "spl":
             if self.con_main == "spl":
@@ -2828,7 +2919,16 @@ def Search(searchkeyU, searchlistU, exact=False):
 
                     if searchlist[sListNum][keyNum + letterNum] == searchkey[keyNum]:
                         if keyNum == len(searchkey) - 1:
-                            OutputNum.append(sListNum)
+
+                            # if the keyword is two times in the fullword: this is a protect of duplication
+                            doit = True
+                            for NumOldList in OutputNum:
+                                if NumOldList == sListNum:
+                                    doit = False
+                                    break
+
+                            if doit:
+                                OutputNum.append(sListNum)
                             break
                     else:
                         break
