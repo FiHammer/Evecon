@@ -1994,4 +1994,4 @@ if exitnow == 0:
 
 
 # Ideas:
-# Status, settings ?
+# settings ?
