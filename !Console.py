@@ -282,6 +282,7 @@ title("Loading Arguments")
 
 def debug():
     cls()
+    print("DEBUGGING")
     while True:
         exec(input())
 
@@ -1977,15 +1978,15 @@ def Arg():
 if sys.argv:
     Arg()
 
-def debug():
-    pass
+def debug_startup():
+    InteractiveClient("192.168.2.107", 1007)
 
 if exitnow == 0:
     if __name__ == "__main__":
         title("Search for Updates")
         #update()
         title("Start Enviroment")
-        debug()
+        debug_startup()
         main()
         time.sleep(0)
 

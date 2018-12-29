@@ -49,7 +49,7 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
-code_version = "0.9.0.6"
+code_version = "0.9.0.7"
 
 
 ss_active = False
@@ -1818,7 +1818,6 @@ class Client(threading.Thread):
             raise EveconExceptions.ClientConnectionLost()
 
         InfoServer = InfoServer_raw.decode("UTF-8").split("!")
-
         if not InfoServer[0] == "#T":
             self.writeLog("Server send wrong Infoconnection")
             raise EveconExceptions.ClientWrongServer()
@@ -1994,12 +1993,22 @@ class Client(threading.Thread):
 
         file_logsend_raw = open("LogSend.txt", "w")
         for x in self.Logsend:
-            file_logsend_raw.write(x)
+            if type(x) == str:
+                file_logsend_raw.write(x)
+            elif type(x) == bytes:
+                file_logsend_raw.write(x.decode("UTF-8"))
+            elif type(x) == bool:
+                file_logsend_raw.write(str(x))
         file_logsend_raw.close()
 
         file_logrece_raw = open("LogReceive.txt", "w")
         for x in self.Logrece:
-            file_logrece_raw.write(x)
+            if type(x) == str:
+                file_logrece_raw.write(x)
+            elif type(x) == bytes:
+                file_logrece_raw.write(x.decode("UTF-8"))
+            elif type(x) == bool:
+                file_logrece_raw.write(str(x))
         file_logrece_raw.close()
 
     def writeLog(self, data):
@@ -2012,6 +2021,8 @@ class Client(threading.Thread):
         if sendM:
             self.send("#T!exit")
         self.s.close()
+        self.Connected = False
+        self.Status = "Lost Connection"
 
     def getStatus(self):
         curStatus = {"status" : {"status" : self.Status, "running" : self.Running, "connected" : self.Connected},
@@ -2255,7 +2266,8 @@ class Server(threading.Thread):
                 self.writeLog("Client sent wrong logindata")
                 continue
 
-            self.send(self.welcomeMessage)
+            if self.welcomeMessage:
+                self.send(self.welcomeMessage)
 
             if self.conInfo["secu"]["status"] == 1:  # yes
                 self.writeLog("Started Connection with Client. Decryption")
@@ -2383,12 +2395,22 @@ class Server(threading.Thread):
 
         file_logsend_raw = open("LogSend.txt", "w")
         for x in self.Logsend:
-            file_logsend_raw.write(x)
+            if type(x) == str:
+                file_logsend_raw.write(x)
+            elif type(x) == bytes:
+                file_logsend_raw.write(x.decode("UTF-8"))
+            elif type(x) == bool:
+                file_logsend_raw.write(str(x))
         file_logsend_raw.close()
 
         file_logrece_raw = open("LogReceive.txt", "w")
         for x in self.Logrece:
-            file_logrece_raw.write(x)
+            if type(x) == str:
+                file_logrece_raw.write(x)
+            elif type(x) == bytes:
+                file_logrece_raw.write(x.decode("UTF-8"))
+            elif type(x) == bool:
+                file_logrece_raw.write(str(x))
         file_logrece_raw.close()
 
     def exit(self, sendM=True):
