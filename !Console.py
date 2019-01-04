@@ -347,9 +347,9 @@ def Music(systrayon=True):
     print(music_playlists_print)
     print("\nCustom:")
     print("User's Playlist (US), User defined (UD), Multiple PL (MPL), All (ALL)\n")
-    print("\nMultiPL:")
+    print("MultiPL:")
     print(music_multiplaylists_print)
-    music_user_input = input()
+    music_user_input = input("\n")
 
     """
     if music_user_input.lower() == "mix":
@@ -2004,7 +2004,14 @@ if sys.argv:
     Arg()
 
 def debug_startup():
-    #InteractiveClient("192.168.2.107", 1007)
+    """
+    def x(x):
+        print(x.encode())
+
+    s = Scanner(x, True)
+    s.start()
+    s.join()
+    """
     pass
 
 if exitnow == 0:
