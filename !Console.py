@@ -1,5 +1,4 @@
 import os
-import json
 
 if __name__ == "__main__":
     cdir = os.getcwd()
@@ -329,27 +328,46 @@ def Music(systrayon=True):
 
     music_playlists_print = ""
     for x, y in zip(muPlayer.playlists, muPlayer.playlists_key):
-        music_playlists_print += x + " (" + y.upper() + "), "
+        music_playlists_print += x.title() + " (" + y.upper() + "), "
     music_playlists_print = music_playlists_print.rstrip(", ")
+
+    mpl_keys = []
+    for x in muPlayer.multiplaylists:
+        mpl_keys.append(x)
+
+    music_multiplaylists_print = ""
+    for x in mpl_keys:
+        music_multiplaylists_print += x + " (" + x.upper() + "), "
+    music_multiplaylists_print = music_multiplaylists_print.rstrip(", ")
+
 
     cls()
     print("Playlists:")
     print("\nFix Playlists:")
     print(music_playlists_print)
     print("\nCustom:")
-    print("User's Playlist (US), User defined (UD), Mix (MIX), Multiple PL (MPL), All (ALL)\n")
+    print("User's Playlist (US), User defined (UD), Multiple PL (MPL), All (ALL)\n")
+    print("\nMultiPL:")
+    print(music_multiplaylists_print)
     music_user_input = input()
 
+    """
     if music_user_input.lower() == "mix":
         muPlayer.addMusic("an")
         muPlayer.addMusic("phu")
         muPlayer.addMusic("cp")
         muPlayer.addMusic("es")
         muPlayer.addMusic("jpop")
+        muPlayer.addMusic("mixx")
+        muPlayer.addMusic("und")
+        muPlayer.addMusic("del")
+
     elif music_user_input.lower() == "j":
         muPlayer.addMusic("an")
         muPlayer.addMusic("jpop")
-    elif music_user_input.lower() == "all":
+    """
+
+    if music_user_input.lower() == "all":
         for x in muPlayer.playlists_key:
             muPlayer.addMusic(x)
 
@@ -1974,12 +1992,20 @@ def Arg():
             title("Load Argument", "Radio")
             Radio()
             exit_now()
+        if sys.argv[x] == "--Klakum_switch_light":
+            title("Load Argument", "Switch Light", "Klakum")
+            Klakum.connect()
+            Klakum.relays[4].switch()
+            Klakum.disconnect()
+            exit_now()
+
 
 if sys.argv:
     Arg()
 
 def debug_startup():
-    InteractiveClient("192.168.2.107", 1007)
+    #InteractiveClient("192.168.2.107", 1007)
+    pass
 
 if exitnow == 0:
     if __name__ == "__main__":

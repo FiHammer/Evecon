@@ -12,6 +12,7 @@ import webbrowser
 import pyglet
 import click
 import queue
+import json
 
 import win32api
 import win32gui
@@ -38,7 +39,7 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
-code_version = "0.9.0.7"
+code_version = "0.9.1.0"
 
 
 ss_active = False
@@ -1121,14 +1122,60 @@ class MusicPlayerC(threading.Thread):
         self.cur_Pos = 0
         self.expandRange = expandRange
 
-        self.playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing", "Parov Stelar", "jPOP & etc", "OMFG"]
-        self.playlists_key = ["lis", "an", "phu", "cp", "es", "ps", "jpop", "omfg"]
+        with open("data" + path_seg + "Music.json") as jsonfile:
+            data = json.load(jsonfile)
 
-        self.musiclist = {}
-        with open("data"+path_seg+"Music.txt") as musicfile:
-            for line in musicfile:
-                if lsame(line, "["):
-                    self.musiclist[getPartStrToStr(line, "]", "[", True)] = getPartStrToStr(line, "'", " '", True)
+        if data["pc"] == computer:
+            pass
+        else:
+            with open("data" + path_seg + "Backup" + path_seg + "Music_backup.json") as jsonfile:
+                data = json.load(jsonfile)
+
+        #dirs
+
+        musiclist = {}
+        musiclist_ids = []
+        multiplaylists = {}
+        multiplaylist_ids = []
+
+        for mpl_id in data["multiplaylists"]:
+            if mpl_id == data["multiplaylists"][mpl_id]["id"]:
+                multiplaylist_ids.append(mpl_id)
+
+        for ml_id in data["directories"]:
+            if ml_id == data["directories"][ml_id]["id"] and not Search(ml_id, multiplaylist_ids):
+                musiclist_ids.append(ml_id)
+                musiclist[ml_id] = data["directories"][ml_id]["path"]
+
+        for mpl_id in multiplaylist_ids:
+            cur_pl = []
+            for x in range(data["multiplaylists"][mpl_id]["content"]["len"]):
+                cur_pl.append(data["multiplaylists"][mpl_id]["content"][str(x)])
+
+            new_cur_pl = []
+            for x in range(len(cur_pl)):
+                if Search(cur_pl[x], musiclist_ids):
+                    new_cur_pl.append(cur_pl[x])
+
+            if new_cur_pl:
+                multiplaylists[mpl_id] = new_cur_pl
+
+        self.musiclist = musiclist.copy()
+        self.multiplaylists = multiplaylists.copy()
+
+        self.multiplaylists_key = []
+        for key in self.multiplaylists:
+            self.multiplaylists_key.append(key)
+
+        #self.playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing", "Parov Stelar", "jPOP & etc", "OMFG"]
+        #self.playlists_key = ["lis", "an", "phu", "cp", "es", "ps", "jpop", "omfg"]
+
+        self.playlists = []
+        self.playlists_key = []
+
+        for key in self.musiclist:
+            self.playlists.append(self.musiclist[key].split("\\")[-1].title())
+            self.playlists_key.append(key)
 
     def findMusic(self, path, reset=True):
         if reset:
@@ -1197,7 +1244,8 @@ class MusicPlayerC(threading.Thread):
             musicDirLoad = "Music"+path_seg+"Presets"
 
         old_Num = self.music["all_files"]
-        key = key.lower()
+        if type(key) == str:
+            key = key.lower()
 
         if custom:
             key = "cus"
@@ -1229,6 +1277,8 @@ class MusicPlayerC(threading.Thread):
             for x in self.musiclist:
                 self.addMusic(x)
             return True
+        elif Search(key, self.multiplaylists_key):
+            self.addMusic(self.multiplaylists[key])
         else:
             return False
 
@@ -1274,14 +1324,60 @@ class MusicPlayerC(threading.Thread):
 
         #self.music_playlists_active.append(key)
         self.music["active"].append(key)
-        print("Finished")
+        print("Finished: " + key)
         return True
 
     def read_musiclist(self):
+        """
         with open("data"+path_seg+"Music.txt") as musicfile:
             for line in musicfile:
                 if not lsame(line, "#") and lsame(line, "["):
                     self.musiclist[getPartStrToStr(line, "]", "[", True)] = getPartStrToStr(line, "'", " '", True)
+        """
+
+        with open("data" + path_seg + "Music.json") as jsonfile:
+            data = json.load(jsonfile)
+
+        if data["pc"] == computer:
+            pass
+        else:
+            with open("data" + path_seg + "Backup" + path_seg + "Music_backup.json") as jsonfile:
+                data = json.load(jsonfile)
+
+        #dirs
+
+        musiclist = {}
+        musiclist_ids = []
+        multiplaylists = {}
+        multiplaylist_ids = []
+
+        for mpl_id in data["multiplaylists"]:
+            if mpl_id == data["multiplaylists"][mpl_id]["id"]:
+                multiplaylist_ids.append(mpl_id)
+
+        for ml_id in data["directories"]:
+            if ml_id == data["directories"][ml_id]["id"] and not Search(ml_id, multiplaylist_ids):
+                musiclist_ids.append(ml_id)
+                musiclist[ml_id] = data["directories"][ml_id]["path"]
+
+        for mpl_id in multiplaylist_ids:
+            cur_pl = []
+            for x in range(data["multiplaylists"][mpl_id]["content"]["len"]):
+                cur_pl.append(data["multiplaylists"][mpl_id]["content"][str(x)])
+
+            new_cur_pl = []
+            for x in range(len(cur_pl)):
+                if Search(cur_pl[x], musiclist_ids):
+                    new_cur_pl.append(cur_pl[x])
+
+            if new_cur_pl:
+                multiplaylists[mpl_id] = new_cur_pl
+
+        self.musiclist = musiclist.copy()
+        self.multiplaylists = multiplaylists.copy()
+
+
+
 
     def reloadMusic(self, tracknum):
         if type(tracknum) == int:
@@ -2707,8 +2803,19 @@ class Client(threading.Thread):
             else:
                 data_send_de = data_send
 
-            self.Logsend.append(data)
             self.s.send(data_send_de)
+
+            if type(data) == str:
+                data_str = data
+            elif type(data) == bytes:
+                data_str = data.decode("UTF-8")
+            else:
+                data_str = str(data)
+
+            self.Logsend.append(data_str)
+            self.writeLog("Send: " + data_str)
+        else:
+            return False
 
     def receive(self, data):
         if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
@@ -3135,33 +3242,40 @@ class Server(threading.Thread):
     def save(self, directory: str):
         file_log_raw = open("Log.txt", "w")
         for x in self.Log:
-            file_log_raw.write(x)
+            file_log_raw.write(x + "\n")
         file_log_raw.close()
 
         file_logsend_raw = open("LogSend.txt", "w")
         for x in self.Logsend:
             if type(x) == str:
-                file_logsend_raw.write(x)
+                file_logsend_raw.write(x + "\n")
             elif type(x) == bytes:
-                file_logsend_raw.write(x.decode("UTF-8"))
+                file_logsend_raw.write(x.decode("UTF-8") + "\n")
             elif type(x) == bool:
-                file_logsend_raw.write(str(x))
+                file_logsend_raw.write(str(x) + "\n")
         file_logsend_raw.close()
 
         file_logrece_raw = open("LogReceive.txt", "w")
         for x in self.Logrece:
             if type(x) == str:
-                file_logrece_raw.write(x)
+                file_logrece_raw.write(x + "\n")
             elif type(x) == bytes:
-                file_logrece_raw.write(x.decode("UTF-8"))
+                file_logrece_raw.write(x.decode("UTF-8") + "\n")
             elif type(x) == bool:
-                file_logrece_raw.write(str(x))
+                file_logrece_raw.write(str(x) + "\n")
         file_logrece_raw.close()
 
     def exit(self, sendM=True):
         if sendM:
             self.send("#T!exit")
         self.con.close()
+        self.Connected = False
+        self.Running = False
+
+    def close_connection(self):
+        self.send("#T!exit")
+        self.con.close()
+        self.Connected = False
 
     def getStatus(self):
         curStatus = {"status": {"status": self.Status, "running": self.Running, "connected": self.Connected},
@@ -3873,6 +3987,91 @@ class ToolsC:
         subprocess.call(["shutdown", "/r", "/t", str(wait)])
 
 Tools = ToolsC()
+
+
+# Klakum.relays[0].set(2)
+
+
+class KlakumC:
+    class RelayC:
+        def __init__(self, myid, connection):
+            self.id = myid
+            self.connetion = connection
+            self.value = None
+
+        def refresh(self):
+            if self.connetion.Connected:
+                self.connetion.send("relay_" + str(self.id) + "_get")
+
+        def set(self, value):
+            if self.connetion.Connected:
+                self.value = value
+                self.connetion.send("relay_" + str(self.id) + "_set_" + str(value))
+
+        def switch(self):
+            if self.connetion.Connected:
+                self.connetion.send("relay_" + str(self.id) + "_switch")
+
+    class SRelayC:
+        def __init__(self, myid, connection):
+            self.id = myid
+            self.connetion = connection
+
+        def switch(self):
+            if self.connetion.Connected:
+                self.connetion.send("srelay_" + str(self.id) + "_switch")
+
+    def __init__(self):
+        self.connection = Client(ip="192.168.2.107", port=1007, react=self.react)
+        self.relays = [self.RelayC(0, self.connection), self.RelayC(1, self.connection), self.RelayC(2, self.connection),
+                       self.RelayC(3, self.connection), self.RelayC(4, self.connection), self.RelayC(5, self.connection),
+                       self.RelayC(6, self.connection)]
+
+        self.srelays = [self.SRelayC(0, self.connection)]
+
+        self.Connected = False
+
+
+    def react(self, msg):
+        msg_split = msg.split("_")
+
+        if msg_split[0] == "relay":
+
+            relay_id = int(msg_split[1])
+            if msg_split[2] == "return":
+                self.relays[relay_id].value = msg_split[3]
+
+        elif msg_split[0] == "srelay":
+            relay_id = int(msg_split[1])
+
+    def connect(self):
+        if not self.Connected:
+            self.connection.start()
+            while not self.connection.Connected:
+                time.sleep(0.05)
+            time.sleep(0.15)
+            self.Connected = True
+            self.refresh()
+            time.sleep(0.05)
+            return True
+        else:
+            return False
+
+    def disconnect(self):
+        if self.Connected:
+            self.connection.exit()
+            self.Connected = False
+
+            return True
+        else:
+            return False
+
+    def refresh(self):
+        for x in self.relays:
+            x.refresh()
+            time.sleep(0.05)
+
+Klakum = KlakumC()
 
 
 def exit_now(killmex = False):
