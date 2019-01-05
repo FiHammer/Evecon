@@ -306,7 +306,7 @@ def Music(systrayon=True):
                         continue
                     muPlayer.printit()
                     muPlayer.refreshTitle()
-                    while muPlayer.paused or muPlayer.autorefresh:
+                    while muPlayer.paused or not muPlayer.autorefresh:
                         time.sleep(1)
 
 

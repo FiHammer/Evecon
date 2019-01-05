@@ -39,7 +39,7 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
-code_version = "0.9.2.0"
+code_version = "0.9.2.1"
 
 
 ss_active = False
@@ -1068,7 +1068,7 @@ class MPlayerC:
 
 # noinspection PyTypeChecker
 class MusicPlayerC(threading.Thread):
-    def __init__(self, systray=True, random=True, expandRange=2, stop_del=True, scanner_active=True):
+    def __init__(self, systray=True, random=True, expandRange=2, stop_del=False, scanner_active=True):
         super().__init__()
 
         self.debug = False
@@ -1100,7 +1100,7 @@ class MusicPlayerC(threading.Thread):
         self.playing = False
         self.exitn = False
         self.allowPrint = False
-        self.autorefresh = False
+        self.autorefresh = True
 
         self.player = pyglet.media.Player()
         self.timer = TimerC()
@@ -1127,6 +1127,12 @@ class MusicPlayerC(threading.Thread):
         self.searching = False
         self.searchlist = []
         self.cur_Search = ""
+
+
+        self.tmp_pl_input_1 = []
+        self.tmp_pl_input_2 = []
+        self.tmp_pl_output_1 = []
+        self.tmp_pl_output_2 = []
 
 
 
@@ -1565,12 +1571,10 @@ class MusicPlayerC(threading.Thread):
         self.hardworktime = time.time() + 0.2
     def Del(self, num):
         #num = Search(plfile, self.playlist)[0]
-        #if num == 0 and self.stop_del:
-            #self.stop()
+        if num == 0 and self.stop_del:
+            self.stop()
         if num > len(self.playlist) - 1:
             return False
-
-
 
         if self.cur_Pos >= len(self.playlist) - 1:
             self.cur_Pos -= 1
@@ -1619,57 +1623,93 @@ class MusicPlayerC(threading.Thread):
 
     def refreshSearch(self):
 
-        def work():
-            self.cur_Pos = 0
 
-            if self.cur_Search != "":
-                namelist = []
+        self.cur_Pos = 0
 
-                for x in self.playlist:
-                    namelist.append(self.music[x]["name"])
+        if self.cur_Search != "":
+            namelist = []
 
-                found = Search(self.cur_Search, namelist)
+            for x in self.playlist:
+                namelist.append(self.music[x]["name"])
 
-                searchlist_name = []
-                for x in found:
-                    searchlist_name.append(namelist[x])
+            found = Search(self.cur_Search, namelist)
 
-                searchlist_name.sort()
+            searchlist_name = []
+            for x in found:
+                searchlist_name.append(namelist[x])
 
-                new_playlist = []
-                for name in searchlist_name:
-                    for num_file in range(1, self.music["all_files"] + 1):
-                        if name == self.music["file" + str(num_file)]["name"]:
-                            ok = True
-                            for x in new_playlist:
-                                if x == "file" + str(num_file):
-                                    ok = False
-                            if ok:
-                                new_playlist.append("file" + str(num_file))
+            searchlist_name.sort()
 
+            music_dir = self.music.copy()
+
+        else:
+            searchlist_name = []
+            for fileX in self.playlist:
+                searchlist_name.append(self.music[fileX]["name"])
+            searchlist_name.sort()
+
+        self.tmp_pl_input_1 = []
+        self.tmp_pl_input_2 = []
+        for name in searchlist_name:
+            if len(searchlist_name)/2 > len(self.tmp_pl_input_1):
+                self.tmp_pl_input_1.append(name)
             else:
-                pl_names = []
-                for fileX in self.playlist:
-                    pl_names.append(self.music[fileX]["name"])
-                pl_names.sort()
-
-                new_playlist = []
-                for name in pl_names:
-                    for num_file in range(1, self.music["all_files"] + 1):
-                        if name == self.music["file" + str(num_file)]["name"]:
-                            ok = True
-                            for x in new_playlist:
-                                if x == "file" + str(num_file):
-                                    ok = False
-                            if ok:
-                                new_playlist.append("file" + str(num_file))
-
-            self.searchlist = new_playlist.copy()
+                self.tmp_pl_input_2.append(name)
 
 
-        t = threading.Thread(target=work)
-        t.start()
-        t.join()
+        """
+        for num_file in range(1, music_dir["all_files"] + 1):
+            try:
+                if name == music_dir["file" + str(num_file)]["name"]:
+                    new_playlist.append("file" + str(num_file))
+                    del music_dir["file" + str(num_file)]
+                    break
+            except KeyError:
+                pass
+        """
+
+        def work1():
+            music_dir = self.music.copy()
+
+            new_playlist = []
+            for name in self.tmp_pl_input_1:
+                for num_file in range(1, music_dir["all_files"] + 1):
+                    try:
+                        if name == music_dir["file" + str(num_file)]["name"]:
+                            new_playlist.append("file" + str(num_file))
+                            del music_dir["file" + str(num_file)]
+                            break
+                    except KeyError:
+                        pass
+            self.tmp_pl_output_1 = new_playlist
+
+        def work2():
+            music_dir = self.music.copy()
+
+            new_playlist = []
+            for name in self.tmp_pl_input_2:
+                for num_file in range(1, music_dir["all_files"] + 1):
+                    try:
+                        if name == music_dir["file" + str(num_file)]["name"]:
+                            new_playlist.append("file" + str(num_file))
+                            del music_dir["file" + str(num_file)]
+                            break
+                    except KeyError:
+                        pass
+            self.tmp_pl_output_2 = new_playlist
+
+        t1 = threading.Thread(target=work1)
+        t2 = threading.Thread(target=work2)
+
+        t1.start()
+        t2.start()
+
+        t1.join()
+        t2.join()
+
+        new_playlist = self.tmp_pl_output_1 + self.tmp_pl_output_2
+
+        self.searchlist = new_playlist.copy()
 
 
 
@@ -1777,10 +1817,7 @@ class MusicPlayerC(threading.Thread):
             if self.exitn:
                 self.stop()
 
-    def printit(self):
-        self.last_print = time.time()
-        cls()
-
+    def print_head(self):
         # Info-Container
 
         print("Musicplayer:\n")
@@ -1799,9 +1836,10 @@ class MusicPlayerC(threading.Thread):
             print(pre + int((console_data["pixx"] / 2) - 3) * l1 + "Muted" + int((console_data["pixx"] / 2) - 2) * l2)
 
 
-        print("\n" + console_data["pixx"]*"-" + "\n")
         #sys.stdout.write(console_data[0]*"-")
 
+
+    def print_body(self):
         # Main-Container
 
         if self.con_main == "pl":
@@ -2180,9 +2218,9 @@ class MusicPlayerC(threading.Thread):
 
 
 
-        # Control-Container
 
-        print("\n" + console_data["pixx"]*"-" + "\n")
+    def print_foot(self):
+
 
         if self.con_cont == "set":
             print("Commands:\n")
@@ -2233,6 +2271,22 @@ class MusicPlayerC(threading.Thread):
             print("Current: " + str(self.spl.Effect))
 
             print("\n" + self.cur_Input)
+
+    def printit(self):
+        self.last_print = time.time()
+        cls()
+
+        # Info-Container
+        self.print_head()
+
+        print("\n" + console_data["pixx"]*"-" + "\n")
+        # Main-Container
+        self.print_body()
+
+
+        print("\n" + console_data["pixx"]*"-" + "\n")
+        # Control-Container
+        self.print_foot()
 
     def react(self, inp):
         while self.starttime + 1.5 >= time.time() and self.hardworktime + 0.65 >= time.time():
