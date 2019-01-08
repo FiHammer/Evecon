@@ -1241,7 +1241,7 @@ class MusicPlayerC(threading.Thread):
 
         return content
 
-    def addMusic(self, key, custom=None):  # key (AN, LIS)
+    def addMusic(self, key, custom=False):  # key (AN, LIS)
         self.read_musiclist()
         if computer == "MiniPC":
             cls()
@@ -1991,6 +1991,8 @@ class MusicPlayerC(threading.Thread):
 
         elif self.con_main == "details":
             print("Details:\n")
+            print("Duration: " + str(TimeFor(mp.music["file1"]["loaded"].duration)))
+
             if self.music[self.playlist[self.cur_Pos]]["antype"]:
                 print("Title: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["title"]))
                 print("Interpreter: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["interpreter"]))

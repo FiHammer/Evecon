@@ -287,7 +287,7 @@ def debug():
 
 
 
-def Music(systrayon=True):
+def Music(load=None, systrayon=True):
 
     def Play():
         title("Musicplayer")
@@ -326,30 +326,34 @@ def Music(systrayon=True):
 
     muPlayer = MusicPlayerC(systrayon, random=musicrandom)
 
-    music_playlists_print = ""
-    for x, y in zip(muPlayer.playlists, muPlayer.playlists_key):
-        music_playlists_print += x.title() + " (" + y.upper() + "), "
-    music_playlists_print = music_playlists_print.rstrip(", ")
+    if not load:
+        music_playlists_print = ""
+        for x, y in zip(muPlayer.playlists, muPlayer.playlists_key):
+            music_playlists_print += x.title() + " (" + y.upper() + "), "
+        music_playlists_print = music_playlists_print.rstrip(", ")
 
-    mpl_keys = []
-    for x in muPlayer.multiplaylists:
-        mpl_keys.append(x)
+        mpl_keys = []
+        for x in muPlayer.multiplaylists:
+            mpl_keys.append(x)
 
-    music_multiplaylists_print = ""
-    for x in mpl_keys:
-        music_multiplaylists_print += x + " (" + x.upper() + "), "
-    music_multiplaylists_print = music_multiplaylists_print.rstrip(", ")
+        music_multiplaylists_print = ""
+        for x in mpl_keys:
+            music_multiplaylists_print += x + " (" + x.upper() + "), "
+        music_multiplaylists_print = music_multiplaylists_print.rstrip(", ")
 
 
-    cls()
-    print("Playlists:")
-    print("\nFix Playlists:")
-    print(music_playlists_print)
-    print("\nCustom:")
-    print("User's Playlist (US), User defined (UD), Multiple PL (MPL), All (ALL)\n")
-    print("MultiPL:")
-    print(music_multiplaylists_print)
-    music_user_input = input("\n")
+        cls()
+        print("Playlists:")
+        print("\nFix Playlists:")
+        print(music_playlists_print)
+        print("\nCustom:")
+        print("User's Playlist (US), User defined (UD), Multiple PL (MPL), All (ALL)\n")
+        print("MultiPL:")
+        print(music_multiplaylists_print)
+        music_user_input = input("\n")
+    else:
+        music_user_input = ""
+        muPlayer.addMusic(load)
 
     """
     if music_user_input.lower() == "mix":
@@ -1801,7 +1805,7 @@ def Alarmprint(x=230, y=65, colorCh=False):
     afk = False
     color.change(oldColor)
 
-def Timer():
+def Alarm():
     cls()
     hr = int(input("Hour:\n"))
     mi = int(input("\nMinute:\n"))
@@ -1839,6 +1843,45 @@ def Splatoon():
 
 
 
+def Timer():
+    """
+        Function Timer:
+        is a user interface with use of the TimerC
+    """
+    class TimePrinter(threading.Thread):
+        def __init__(self):
+            super().__init__()
+            self.Running = False
+            self.t = TimerC()
+        def run(self):
+            self.Running = True
+            self.t.start()
+            while self.Running:
+                time.sleep(0.8)
+                os.system("cls")
+                print("Running:")
+                print(self.t.getTimeFor())
+        def stop(self):
+            self.Running = False
+            self.t.stop()
+            os.system("cls")
+            print("Stopped:")
+            print(self.t.getTimeFor())
+            input()
+
+    p = TimePrinter()
+
+    print("Start?")
+    input()
+    p.start()
+    input()
+    p.stop()
+
+
+
+
+
+
 def main():
     versionFind()
     title("Waiting for Input")
@@ -1852,7 +1895,7 @@ def main():
 
     print("\nFuntions:")
     print("Musicplayer (MUSIC), Radio (RADIO), Foxi (FOX)")
-    print("Time (TIME), Timer (TIMER)")
+    print("Time (TIME), Timer (TIMER), Alarm (ALARM)")
 
     print("\nSettings:")
     print("Light (L)")
@@ -1887,10 +1930,12 @@ def main():
     #    passwordmanager()
     elif user_input.lower() == "radio":
         Radio()
-    elif user_input.lower() == "timer":
-        Timer()
+    elif user_input.lower() == "alarm":
+        Alarm()
     elif user_input.lower() == "status":
         Status()
+    elif user_input.lower() == "timer":
+        Timer()
 
 
 def Arg():
@@ -1986,7 +2031,10 @@ def Arg():
             exit_now()
         if sys.argv[x] == "--music":
             title("Load Argument", "Musicplayer")
-            Music()
+            if len(sys.argv) > x + 1:
+                Music(sys.argv[x + 1])
+            else:
+                Music()
             exit_now()
         if sys.argv[x] == "--radio":
             title("Load Argument", "Radio")
@@ -1999,9 +2047,6 @@ def Arg():
             Klakum.disconnect()
             exit_now()
 
-
-if sys.argv:
-    Arg()
 
 def debug_startup():
     """
@@ -2016,6 +2061,8 @@ def debug_startup():
 
 if exitnow == 0:
     if __name__ == "__main__":
+        if sys.argv:
+            Arg()
         title("Search for Updates")
         #update()
         title("Start Enviroment")
@@ -2024,7 +2071,3 @@ if exitnow == 0:
         time.sleep(0)
 
         exit_now()
-
-
-# Ideas:
-# settings ?
