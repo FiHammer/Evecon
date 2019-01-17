@@ -128,20 +128,24 @@ class FoxiC:
         else:
             self.browser = Firefox()
 
+        self.pageurl = ""
+
         if enable_foxi:
+            with open("data"+path_seg+"Foxi"+path_seg+"website.txt") as file:
+                self.pageurl = file.readline().rstrip()
+
             with open("data"+path_seg+"Foxi"+path_seg+"data.json") as jsonfile:
                 self.data = json.load(jsonfile)
 
-
     def readJson(self):
+        with open("data"+path_seg+"Foxi"+path_seg+"website.txt") as file:
+            self.pageurl = file.readline().rstrip()
         with open("data"+path_seg+"Foxi"+path_seg+"data.json") as jsonfile:
             self.data = json.load(jsonfile)
 
     def writeJson(self):
         with open("data"+path_seg+"Foxi"+path_seg+"data.json", "w") as jsonfile:
             json.dump(self.data, jsonfile, indent=4, sort_keys=True)
-
-
 
     def open_fox(self):
         if not enable_foxi:
@@ -200,7 +204,7 @@ class FoxiC:
             print("You read: %s" % thistime_read)
             print("You are fapping: %s\n" % thistime_timeC.getTimeFor())
 
-            print("Everything for next HManga, Finish (FIN)")
+            print("Everything for Next, Finish (FIN)")
 
             user_input = input()
 
@@ -212,20 +216,20 @@ class FoxiC:
         thistime_timeC.stop()
 
         cls()
-        print("End HManga: (Name)")
-        hmangaend_name = input()
+        print("End Hanga: (Name)")
+        hangaend_name = input()
 
-        print("End HManga: (URL)")
-        hmangaend_url = input()
+        print("End Hanga: (URL)")
+        hangaend_url = input()
 
         print("End Page: ")
         pageend = int(input())
 
-        pageend_url = "https://hentaifox.com/pag/%s/" % pageend
+        pageend_url = self.pageurl + str(pageend)+ "/"
         pageprogress = pagestart - pageend
 
 
-        idend = int(hmangaend_url.split("/")[-2])
+        idend = int(hangaend_url.split("/")[-2])
         idprogress = idend - idstart
         skipped = idprogress - thistime_read
         startname = self.data["Last"]["last_name"]
@@ -233,10 +237,10 @@ class FoxiC:
 
         self.data["Stats"] = {"fapped": self.data["Stats"]["fapped"] + 1,
                               "all_pages": self.data["Stats"]["all_pages"] + pageprogress,
-                              "all_hmangas": self.data["Stats"]["all_hmangas"] + thistime_read}
+                              "all_hangas": self.data["Stats"]["all_hangas"] + thistime_read}
 
         self.data["Last"] = {"last_page": pageend, "last_page_url": pageend_url,
-                             "last_name": hmangaend_name, "last_name_url": hmangaend_url}
+                             "last_name": hangaend_name, "last_name_url": hangaend_url}
 
         self.data[str(self.data["Stats"]["fapped"])] = {"number": self.data["Stats"]["fapped"],
                                                    "date": thistime_date,
@@ -250,17 +254,17 @@ class FoxiC:
                                                             "idstart": idstart,
                                                             "idend": idend,
                                                             "idprogress": idprogress,
-                                                            "start_HManga": {
+                                                            "start_Hanga": {
                                                                 "page": pagestart,
                                                                 "name": startname,
                                                                 "id": idstart,
                                                                 "url": starturl
                                                             },
-                                                            "end_HManga": {
+                                                            "end_Hanga": {
                                                                 "page": pageend,
-                                                                "name": hmangaend_name,
+                                                                "name": hangaend_name,
                                                                 "id": idend,
-                                                                "url": hmangaend_url
+                                                                "url": hangaend_url
                                                             }
                                                             }}
 
