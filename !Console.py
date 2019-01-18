@@ -2061,7 +2061,32 @@ def debug_startup():
     s.start()
     s.join()
     """
-    pass
+
+    """
+    myList = []
+
+    for x in range(15):
+        myList.append(randompw(True, printpw=False))
+
+    done = True
+
+    def hi(i):
+        nonlocal done
+        print(i)
+        if i == "return":
+            done = False
+
+    f = Findus(hi, myList, onlyReturn=True, autoPrint=False, autoSearch=True, autoSort=True, afterPrint=True)
+    f.start()
+
+    while done:
+        time.sleep(0.6)
+
+    cls()
+    print("You chose: " + f.workList[f.curPos])
+
+    input()
+    """
 
 if exitnow == 0:
     if __name__ == "__main__":
