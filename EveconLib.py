@@ -39,7 +39,7 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
-code_version = "0.9.2.1"
+code_version = "0.9.2.3"
 
 
 ss_active = False
@@ -49,7 +49,6 @@ musicrun = False
 thisIP = None
 StartupServer = None
 browser = "vivaldi"
-MusicDir = None
 startmain = False
 Alphabet = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 musicrandom = True
@@ -90,9 +89,9 @@ def killme():
 
 def readConfig():
     config = configparser.ConfigParser()
-    config.read("data"+path_seg+"config.ini")
+    config.read("data"+path_seg+"Config"+path_seg+"config.ini")
 
-    global browser, musicrandom, enable_foxi
+    global browser, musicrandom, enable_foxi, thisIP, cores
 
     try:
         enable_foxi_tmp = config["Notepad"]["enable_foxi"]
@@ -109,6 +108,10 @@ def readConfig():
 
         browser = config["Notepad"]["browser"]
 
+        thisIP = config["PC"]["thisIP"]
+        cores = config["PC"]["cores"]
+
+
     except KeyError:
         pass
 
@@ -116,7 +119,7 @@ def readConfig():
 readConfig()
 
 def Log(functioni, info, typei = "Normal"):
-    log_file = open("data"+path_seg+"Log.txt", "a+")
+    log_file = open("data"+path_seg+"Log"+"Log.txt", "a+")
     part_time = "[" + datetime.datetime.now().strftime("%H:%M:%S") + "]"
     if typei == "Normal":
         part_type = "[Info]"
@@ -1137,7 +1140,7 @@ class MusicPlayerC(threading.Thread):
 
 
 
-        with open("data" + path_seg + "Music.json") as jsonfile:
+        with open("data" + path_seg + "Config" + path_seg + "Music.json") as jsonfile:
             data = json.load(jsonfile)
 
         if data["pc"] == computer:
@@ -1145,6 +1148,8 @@ class MusicPlayerC(threading.Thread):
         else:
             with open("data" + path_seg + "Backup" + path_seg + "Music_backup.json") as jsonfile:
                 data = json.load(jsonfile)
+
+        self.musicDir = data["musicDir"]
 
         #dirs
 
@@ -1243,20 +1248,13 @@ class MusicPlayerC(threading.Thread):
 
     def addMusic(self, key, custom=False):  # key (AN, LIS)
         self.read_musiclist()
+        cls()
         if computer == "MiniPC":
-            cls()
             print("Loading... (On Mini-PC)")
-            musicDirLoad = MusicDir
-
         elif computer == "BigPC":
-            cls()
             print("Loading... (On Big-PC)")
-            musicDirLoad = MusicDir
-
         else:
-            cls()
             print("Loading...")
-            musicDirLoad = "Music"+path_seg+"Presets"
 
         old_Num = self.music["all_files"]
         if type(key) == str:
@@ -1269,7 +1267,7 @@ class MusicPlayerC(threading.Thread):
         if type(key) == str:
             for x in self.musiclist:
                 if x == key:
-                    self.findMusic(musicDirLoad + path_seg + self.musiclist[key])
+                    self.findMusic(self.musicDir + path_seg + self.musiclist[key])
                     done = True
                     break
         elif type(key) == list:
@@ -1279,8 +1277,6 @@ class MusicPlayerC(threading.Thread):
                         self.addMusic(x)
                         break
             return True
-
-
 
         if done:
             pass
@@ -1350,7 +1346,7 @@ class MusicPlayerC(threading.Thread):
                     self.musiclist[getPartStrToStr(line, "]", "[", True)] = getPartStrToStr(line, "'", " '", True)
         """
 
-        with open("data" + path_seg + "Music.json") as jsonfile:
+        with open("data" + path_seg + "Config" + path_seg+ "Music.json") as jsonfile:
             data = json.load(jsonfile)
 
         if data["pc"] == computer:
@@ -1991,7 +1987,7 @@ class MusicPlayerC(threading.Thread):
 
         elif self.con_main == "details":
             print("Details:\n")
-            print("Duration: " + str(TimeFor(mp.music["file1"]["loaded"].duration)))
+            print("Duration: " + str(TimeFor(self.music["file1"]["loaded"].duration)))
 
             if self.music[self.playlist[self.cur_Pos]]["antype"]:
                 print("Title: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["title"]))
@@ -3791,27 +3787,16 @@ def computerconfig_schoolpc():
     color.change("F0")
 
 def computerconfig_minipc():
-    global MusicDir, thisIP, cores#, browser
-    MusicDir = "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Musik\\Musik\\!Fertige Musik"
-    thisIP = "192.168.2.102"
-    #browser = "vivaldi"
-    cores = 2
+    pass
 
 def computerconfig_bigpc():
-    global MusicDir, thisIP, cores
-    MusicDir = "D:\\Musik\\!Fertige Musik"
-    thisIP = "192.168.2.101"
-    cores = 4
+    pass
 
 def computerconfig_aldi():
     nircmd("setsize", 1000, 520)
-    thisIP = "192.168.2.110"
-
 
 def computerconfig_laptop():
-    global thisIP
-    thisIP = "192.168.2.106" # Lan __ .104 = WLAN
-    cores = 4
+    pass
 
 
 Computername = socket.gethostname()

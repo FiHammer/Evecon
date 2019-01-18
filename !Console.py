@@ -9,7 +9,6 @@ startmain = False
 exitnow = 0
 pausetime = 180
 thisIP = None
-MusicDir = None
 
 from EveconLib import *
 
@@ -129,18 +128,19 @@ class FoxiC:
             self.browser = Firefox()
 
         self.pageurl = ""
+        self.working_dir = "data"+path_seg+"Data"+path_seg+"Foxi"+path_seg
 
         if enable_foxi:
-            with open("data"+path_seg+"Foxi"+path_seg+"website.txt") as file:
+            with open(self.working_dir+"website.txt") as file:
                 self.pageurl = file.readline().rstrip()
 
-            with open("data"+path_seg+"Foxi"+path_seg+"data.json") as jsonfile:
+            with open(self.working_dir+"data.json") as jsonfile:
                 self.data = json.load(jsonfile)
 
     def readJson(self):
-        with open("data"+path_seg+"Foxi"+path_seg+"website.txt") as file:
+        with open(self.working_dir+"website.txt") as file:
             self.pageurl = file.readline().rstrip()
-        with open("data"+path_seg+"Foxi"+path_seg+"data.json") as jsonfile:
+        with open(self.working_dir+"data.json") as jsonfile:
             self.data = json.load(jsonfile)
 
     def writeJson(self):
