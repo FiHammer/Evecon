@@ -109,7 +109,7 @@ def readConfig():
         browser = config["Notepad"]["browser"]
 
         thisIP = config["PC"]["thisIP"]
-        cores = config["PC"]["cores"]
+        cores = int(config["PC"]["cores"])
 
 
     except KeyError:
@@ -1352,6 +1352,7 @@ class MusicPlayerC(threading.Thread):
         if data["pc"] == computer:
             pass
         else:
+            print("Music-file is not valid for this PC!")
             with open("data" + path_seg + "Backup" + path_seg + "Music_backup.json") as jsonfile:
                 data = json.load(jsonfile)
 
@@ -1367,7 +1368,7 @@ class MusicPlayerC(threading.Thread):
                 multiplaylist_ids.append(mpl_id)
 
         for ml_id in data["directories"]:
-            if ml_id == data["directories"][ml_id]["id"] and not Search(ml_id, multiplaylist_ids):
+            if ml_id == data["directories"][ml_id]["id"] and not Search(ml_id, multiplaylist_ids, exact=True):
                 musiclist_ids.append(ml_id)
                 musiclist[ml_id] = data["directories"][ml_id]["path"]
 
@@ -4194,12 +4195,12 @@ class SplatoonC:
 
 
 
-def Search(searchkeyU, searchlistU, exact=False):
+def Search(searchkeyU, searchlistU, exact=False, lower=True):
 
     if len(searchkeyU) == 0:
         return None
 
-    if not exact:
+    if lower:
         searchkey = searchkeyU.lower()
         searchlist = []
         for x in searchlistU:
@@ -4213,6 +4214,11 @@ def Search(searchkeyU, searchlistU, exact=False):
     OutputNum = []
 
     for sListNum in range(len(searchlist)): # wort aus der liste
+        if exact:
+            if searchlist[sListNum] == searchkey:
+                OutputNum.append(sListNum)
+            else:
+                continue
         if len(searchkey) > len(searchlist[sListNum]):
             continue  # suchwort größer als anderes wort (jetzt in der Liste)
 
