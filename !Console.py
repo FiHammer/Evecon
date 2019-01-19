@@ -2076,7 +2076,8 @@ def debug_startup():
         if i == "return":
             done = False
 
-    f = Findus(hi, myList, onlyReturn=True, autoPrint=False, autoSearch=True, autoSort=True, afterPrint=True)
+    f = Findus(workList=myList, reactUser=hi, onlyReturn=True, autoPrint=False, autoSearch=True, autoSort=True, afterPrint=True, suffix="LOL", prefix="HI")
+    f.setPrefix("NICE", f.workList[0])
     f.start()
 
     while done:

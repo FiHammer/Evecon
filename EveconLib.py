@@ -39,7 +39,7 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
-code_version = "0.9.3.0"
+code_version = "0.9.3.1"
 
 
 ss_active = False
@@ -341,7 +341,7 @@ class Scanner(threading.Thread):
 
 
 class Findus:
-    def __init__(self, reactUser, workList: list, startPos=0, expandRange=2, scanner=None, autoPrint=False, afterPrint=True, autoSearch=False, onlyReturn=True, autoSort=False, enableCommands=False):
+    def __init__(self, workList: list, reactUser=None, prefix=None, suffix=None, startPos=0, expandRange=2, scanner=None, autoPrint=False, afterPrint=True, autoSearch=False, onlyReturn=True, autoSort=False, enableCommands=False):
         """
         :param workList: the list with the content with witch the user can play
         :type workList: list
@@ -349,6 +349,16 @@ class Findus:
         :param reactUser: Findus will send the input of the user to this function if it is NOT NONE
         :type reactUser: function
         :type reactUser: NoneType
+
+        :param prefix: will be printed(returned) before the word; str for all word; dict ('content of list': prefix in str) for singel; none for none
+        :type prefix: str
+        :type prefix: dict
+        :type prefix: NoneType
+
+        :param suffix: will be printed(returned) after the word; str for all word; dict ('content of list': prefix in str) for singel; none for none
+        :type suffix: str
+        :type suffix: dict
+        :type suffix: NoneType
 
         :param startPos: sets the startposition of the curser
         :type startPos: int
@@ -393,6 +403,52 @@ class Findus:
         self.autoSort = autoSort
         self.afterPrint = afterPrint
         self.enableCommands = enableCommands
+
+        self.prefix = {}
+        if isinstance(prefix, str):
+            self.prefixEnabled = True
+            for x in self.workList:
+                self.prefix[x] = prefix
+
+        elif isinstance(prefix, dict):
+            self.prefixEnabled = True
+
+            self.prefix = prefix
+            alreadyLoaded = []
+            for x in prefix:
+                alreadyLoaded.append(x)
+
+            for x in self.workList:
+                if not Search(x, alreadyLoaded, exact=True, lower=False):
+                    self.prefix[x] = ""
+
+        else: # None or other
+            self.prefixEnabled = False
+            for x in self.workList:
+                self.prefix[x] = ""
+
+        self.suffix = {}
+        if isinstance(suffix, str):
+            self.suffixEnabled = True
+            for x in self.workList:
+                self.suffix[x] = suffix
+
+        elif isinstance(suffix, dict):
+            self.suffixEnabled = True
+
+            self.suffix = suffix
+            alreadyLoaded = []
+            for x in suffix:
+                alreadyLoaded.append(x)
+
+            for x in self.workList:
+                if not Search(x, alreadyLoaded, exact=True, lower=False):
+                    self.suffix[x] = ""
+
+        else:  # None or other
+            self.suffixEnabled = False
+            for x in self.workList:
+                self.suffix[x] = ""
 
         self.debug = False
         self.started = False
@@ -454,7 +510,7 @@ class Findus:
         else:
             return False
 
-    def setNewList(self, workList: list, resetSearch=True):
+    def setNewList(self, workList: list, prefix=None, suffix=None, resetSearch=True):
         """
         deletes the old workList and overwrites it with the param
 
@@ -463,6 +519,16 @@ class Findus:
 
         :param workList: the new workList
         :type workList: list
+
+        :param prefix: will be printed(returned) before the word; str for all word; dict ('content of list': prefix in str) for singel; none for none
+        :type prefix: str
+        :type prefix: dict
+        :type prefix: NoneType
+
+        :param suffix: will be printed(returned) after the word; str for all word; dict ('content of list': prefix in str) for singel; none for none
+        :type suffix: str
+        :type suffix: dict
+        :type suffix: NoneType
         """
 
         self._orgList = workList
@@ -470,10 +536,147 @@ class Findus:
         self.searchList = workList
         self.workList = workList
 
+        self.prefix = {}
+        if isinstance(prefix, str):
+            self.prefixEnabled = True
+            for x in self.workList:
+                self.prefix[x] = prefix
+
+        elif isinstance(prefix, dict):
+            self.prefixEnabled = True
+
+            self.prefix = prefix
+            alreadyLoaded = []
+            for x in prefix:
+                alreadyLoaded.append(x)
+
+            for x in self.workList:
+                if not Search(x, alreadyLoaded, exact=True, lower=False):
+                    self.prefix[x] = ""
+
+        else:  # None or other
+            self.prefixEnabled = False
+            for x in self.workList:
+                self.prefix[x] = ""
+
+        self.suffix = {}
+        if isinstance(suffix, str):
+            self.suffixEnabled = True
+            for x in self.workList:
+                self.suffix[x] = suffix
+
+        elif isinstance(suffix, dict):
+            self.suffixEnabled = True
+
+            self.suffix = suffix
+            alreadyLoaded = []
+            for x in suffix:
+                alreadyLoaded.append(x)
+
+            for x in self.workList:
+                if not Search(x, alreadyLoaded, exact=True, lower=False):
+                    self.suffix[x] = ""
+
+        else:  # None or other
+            self.suffixEnabled = False
+            for x in self.workList:
+                self.suffix[x] = ""
+
         if resetSearch:
             self.searchWord = ""
         else:
             self.search("", overwrite=False)
+
+    def setPrefix(self, prefix, directName=""):
+        """
+        sets the prefix
+
+        :param prefix: will be printed(returned) before the word; str for all word; dict ('content of list': prefix in str) for singel; none for none
+        :type prefix: dict
+        :type prefix: str
+        :type prefix: NoneType
+
+        :param directName: with this you can specify which one you want to change; var is the name/content of the workList; only works with prefix: str
+        :type directName: str
+
+        :return: success
+        """
+
+        if directName:
+            if isinstance(prefix, str) and isinstance(directName, str) and directName in self.prefix:
+                self.prefix[directName] = prefix
+            else:
+                return False
+        else:
+            self.prefix = {}
+            if isinstance(prefix, str):
+                self.prefixEnabled = True
+                for x in self.workList:
+                    self.prefix[x] = prefix
+
+            elif isinstance(prefix, dict):
+                self.prefixEnabled = True
+
+                self.prefix = prefix
+                alreadyLoaded = []
+                for x in prefix:
+                    alreadyLoaded.append(x)
+
+                for x in self.workList:
+                    if not Search(x, alreadyLoaded, exact=True, lower=False):
+                        self.prefix[x] = ""
+
+            else:  # None or other
+                self.prefixEnabled = False
+                for x in self.workList:
+                    self.prefix[x] = ""
+
+        return True
+
+    def setSuffix(self, suffix, directName=""):
+        """
+        sets the suffix
+
+        :param suffix: will be printed(returned) after the word; str for all word; dict ('content of list': prefix in str) for singel; none for none
+        :type suffix: dict
+        :type suffix: str
+        :type suffix: NoneType
+
+        :param directName: with this you can specify which one you want to change; var is the name/content of the workList; only works with prefix: str
+        :type directName: str
+
+        :return: success
+        """
+        if directName:
+            if isinstance(prefix, str) and isinstance(directName, str) and directName in self.prefix:
+                self.prefix[directName] = prefix
+            else:
+                return False
+        else:
+            self.suffix = {}
+            if isinstance(suffix, str):
+                self.suffixEnabled = True
+                for x in self.workList:
+                    self.suffix[x] = suffix
+
+            elif isinstance(suffix, dict):
+                self.suffixEnabled = True
+
+                self.suffix = suffix
+                alreadyLoaded = []
+                for x in suffix:
+                    alreadyLoaded.append(x)
+
+                for x in self.workList:
+                    if not Search(x, alreadyLoaded, exact=True, lower=False):
+                        self.suffix[x] = ""
+
+            else:  # None or other
+                self.suffixEnabled = False
+                for x in self.workList:
+                    self.suffix[x] = ""
+
+        return True
 
     def switchSearch(self):
         """
@@ -669,158 +872,16 @@ class Findus:
         """
         prints the programm body output
         """
-
-        search_done = False
-        for now in range(self.expandRange):
-            if not search_done:
-                if self.curPos == now:
-                    if self.expandRange >= len(self.workList) - 1:
-                        for word_num in range(0, len(self.workList)):
-                            if word_num + 1 < 10:
-                                word_num_str = str(word_num + 1) + "  "
-                            elif word_num + 1 < 100:
-                                word_num_str = str(word_num + 1) + " "
-                            else:
-                                word_num_str = str(word_num + 1)
-
-                            if self.curPos == word_num:
-                                if not self.debug:
-                                    if len(self.workList[word_num]) > 108:
-                                        print(" " + word_num_str + " * " + getPartStr(self.workList[word_num], 0, 108) + "...")
-                                    else:
-                                        print(" " + word_num_str + " * " + self.workList[word_num])
-                                else:
-                                    print(" " + word_num_str + " * " + self.workList[word_num], 0, self.workList[word_num])
-                            else:
-                                if not self.debug:
-                                    if len(self.workList[word_num]) > 108:
-                                        print(" " + word_num_str + "   " + getPartStr(self.workList[word_num], 0, 108) + "...")
-                                    else:
-                                        print(" " + word_num_str + "   " + self.workList[word_num])
-                                else:
-                                    print(" " + word_num_str + "   " + self.workList[word_num], 1, self.workList[word_num])
-
-                    elif 2 * self.expandRange + 1 >= len(self.workList):
-                        for word_num in range(0, 2 * self.expandRange + 1):  # + 1?
-                            if word_num + 1 < 10:
-                                word_num_str = str(word_num + 1) + "  "
-                            elif word_num + 1 < 100:
-                                word_num_str = str(word_num + 1) + " "
-                            else:
-                                word_num_str = str(word_num + 1)
-
-                            if self.curPos == word_num:
-                                try:
-                                    if not self.debug:
-                                        if len(self.workList[word_num]) > 108:
-                                            print(" " + word_num_str + " * " + getPartStr(self.workList[word_num], 0, 108) + "...")
-                                        else:
-                                            print(" " + word_num_str + " * " + self.workList[word_num])
-                                    else:
-                                        print(" " + word_num_str + " * " +self.workList[word_num], 2, self.workList[word_num])
-                                except IndexError:
-                                    pass
-                            else:
-                                try:
-                                    if not self.debug:
-                                        if len(self.workList[word_num]) > 108:
-                                            print(" " + word_num_str + "   " + getPartStr(self.workList[word_num], 0, 108) + "...")
-                                        else:
-                                            print(" " + word_num_str + "   " + self.workList[word_num])
-                                    else:
-                                        print(" " + word_num_str + "   " + self.workList[word_num], 3, self.workList[word_num])
-                                except IndexError:
-                                    pass
-                    else:
-                        for word_num in range(0, 2 * self.expandRange + 1):  # + 1? # Anfang
-                            if word_num + 1 < 10:
-                                word_num_str = str(word_num + 1) + "  "
-                            elif word_num + 1 < 100:
-                                word_num_str = str(word_num + 1) + " "
-                            else:
-                                word_num_str = str(word_num + 1)
-                            if self.curPos == word_num:
-                                if not self.debug:
-                                    if len(self.workList[word_num]) > 108:
-                                        print(" " + word_num_str + " * " + getPartStr(self.workList[word_num], 0, 108) + "...")
-                                    else:
-                                        print(" " + word_num_str + " * " + self.workList[word_num])
-                                else:
-                                    print(" " + word_num_str + " * " + self.workList[word_num], 4, self.workList[word_num])
-                            else:
-                                if not self.debug:
-                                    if len(self.workList[word_num]) > 108:
-                                        print(" " + word_num_str + "   " + getPartStr(self.workList[word_num], 0, 108) + "...")
-                                    else:
-                                        print(" " + word_num_str + "   " + self.workList[word_num])
-                                else:
-                                    print(" " + word_num_str + "   " + self.workList[word_num], 5, self.workList[word_num])
-                    search_done = True
-                    break
-
-                elif self.curPos == len(self.workList) - now - 1 and self.curPos >= self.expandRange:  # Ende
-                    for word_num in range(self.curPos - self.expandRange - 2 + now, self.curPos + 1 + now):
-                        if word_num < 0:
-                            continue
-                        # print(word_num, self.curPos, now, self.expandRange)
-                        if word_num + 1 < 10:
-                            word_num_str = str(word_num + 1) + "  "
-                        elif word_num + 1 < 100:
-                            word_num_str = str(word_num + 1) + " "
-                        else:
-                            word_num_str = str(word_num + 1)
-                        if self.curPos == word_num:
-                            if not self.debug:
-                                if len(self.workList[word_num]) > 108:
-                                    print(" " + word_num_str + " * " + getPartStr(self.workList[word_num], 0, 108) + "...")
-                                else:
-                                    print(" " + word_num_str + " * " + self.workList[word_num])
-                            else:
-                                print(" " + word_num_str + " * " + self.workList[word_num], 6, self.workList[word_num])
-                        else:
-                            if not self.debug:
-                                if len(self.workList[word_num]) > 108:
-                                    print(" " + word_num_str + "   " + getPartStr(self.workList[word_num], 0, 108) + "...")
-                                else:
-                                    print(" " + word_num_str + "   " + self.workList[word_num])
-                            else:
-                                print(" " + word_num_str + "   " + self.workList[word_num], 7, self.workList[word_num])
-                    search_done = True
-                    break
-
-        if not search_done:  # Mitte
-            for word_num in range(self.curPos - self.expandRange, self.curPos + self.expandRange + 1):
-                if word_num + 1 < 10:
-                    word_num_str = str(word_num + 1) + "  "
-                elif word_num + 1 < 100:
-                    word_num_str = str(word_num + 1) + " "
-                else:
-                    word_num_str = str(word_num + 1)
-                if self.curPos == word_num:
-                    if not self.debug:
-                        if len(self.workList[word_num]) > 108:
-                            print(
-                                " " + word_num_str + " * " + getPartStr(self.workList[word_num], 0, 108) + "...")
-                        else:
-                            print(" " + word_num_str + " * " + self.workList[word_num])
-                    else:
-                        print(" " + word_num_str + " * " + self.workList[word_num], 10, self.workList[word_num])
-                else:
-                    if not self.debug:
-                        if len(self.workList[word_num]) > 108:
-                            print(
-                                " " + word_num_str + "   " + getPartStr(self.workList[word_num], 0, 108) + "...")
-                        else:
-                            print(" " + word_num_str + "   " + self.workList[word_num])
-                    else:
-                        print(" " + word_num_str + "   " + self.workList[word_num], 11, self.workList[word_num])
+        for x in self.returnbody():
+            print(x)
 
     def printfoot(self):
         """
         prints the programm foot output
         """
-        if self.enableInput:
-            print("\nInput: " + self.Input)
+        print("")
+        for x in self.returnfoot():
+            print(x)
 
     def returnit(self):
         """
@@ -847,22 +908,35 @@ class Findus:
                             else:
                                 word_num_str = str(word_num + 1)
 
+                            if self.prefixEnabled and self.suffixEnabled:
+                                prefix = self.prefix[self.workList[word_num]] + " "
+                                suffix = " " + self.suffix[self.workList[word_num]] + " "
+                            elif self.prefixEnabled:
+                                prefix = self.prefix[self.workList[word_num]] + " "
+                                suffix = ""
+                            elif self.suffixEnabled:
+                                prefix = ""
+                                suffix = " " + self.suffix[self.workList[word_num]] + " "
+                            else:
+                                prefix = ""
+                                suffix = ""
+
                             if self.curPos == word_num:
                                 if not self.debug:
-                                    if len(self.workList[word_num]) > 108:
-                                        outputList.append(" " + word_num_str + " * " + getPartStr(self.workList[word_num], 0, 108) + "...")
+                                    if len(self.workList[word_num]) > 108 - len(prefix) - len(suffix):
+                                        outputList.append(" " + word_num_str + " * " + prefix + getPartStr(self.workList[word_num], 0, 108 - len(prefix) - len(suffix)) + "..." + suffix)
                                     else:
-                                        outputList.append(" " + word_num_str + " * " + self.workList[word_num])
+                                        outputList.append(" " + word_num_str + " * " + prefix + self.workList[word_num] + suffix)
                                 else:
-                                    outputList.append(" " + word_num_str + " * " + self.workList[word_num] + "0")
+                                    outputList.append(" " + word_num_str + " * " + prefix + self.workList[word_num] + suffix + "0")
                             else:
                                 if not self.debug:
-                                    if len(self.workList[word_num]) > 108:
-                                        outputList.append(" " + word_num_str + "   " + getPartStr(self.workList[word_num], 0, 108) + "...")
+                                    if len(self.workList[word_num]) > 108 - len(prefix) - len(suffix):
+                                        outputList.append(" " + word_num_str + "   " + prefix + getPartStr(self.workList[word_num], 0, 108 - len(prefix) - len(suffix)) + "..." + suffix)
                                     else:
-                                        outputList.append(" " + word_num_str + "   " + self.workList[word_num])
+                                        outputList.append(" " + word_num_str + "   " + prefix + self.workList[word_num] + suffix)
                                 else:
-                                    outputList.append(" " + word_num_str + "   " + self.workList[word_num] + "1")
+                                    outputList.append(" " + word_num_str + "   " + prefix + self.workList[word_num] + suffix + "1")
 
                     elif 2 * self.expandRange + 1 >= len(self.workList):
                         for word_num in range(0, 2 * self.expandRange + 1):  # + 1?
@@ -873,29 +947,39 @@ class Findus:
                             else:
                                 word_num_str = str(word_num + 1)
 
+                            if self.prefixEnabled and self.suffixEnabled:
+                                prefix = self.prefix[self.workList[word_num]] + " "
+                                suffix = " " + self.suffix[self.workList[word_num]] + " "
+                            elif self.prefixEnabled:
+                                prefix = self.prefix[self.workList[word_num]] + " "
+                                suffix = ""
+                            elif self.suffixEnabled:
+                                prefix = ""
+                                suffix = " " + self.suffix[self.workList[word_num]] + " "
+                            else:
+                                prefix = ""
+                                suffix = ""
+
                             if self.curPos == word_num:
                                 try:
                                     if not self.debug:
-                                        if len(self.workList[word_num]) > 108:
-                                            outputList.append(
-                                                " " + word_num_str + " * " + getPartStr(self.workList[word_num], 0, 108) + "...")
+                                        if len(self.workList[word_num]) > 108 - len(prefix) - len(suffix):
+                                            outputList.append(" " + word_num_str + " * " + prefix + getPartStr(self.workList[word_num], 0, 108 - len(prefix) - len(suffix)) + "..." + suffix)
                                         else:
-                                            outputList.append(" " + word_num_str + " * " + self.workList[word_num])
+                                            outputList.append(" " + word_num_str + " * " + prefix + self.workList[word_num] + suffix)
                                     else:
-                                        outputList.append(" " + word_num_str + " * " + self.workList[word_num] + "2")
+                                        outputList.append(" " + word_num_str + " * " + prefix + self.workList[word_num] + suffix + "2")
                                 except IndexError:
                                     pass
                             else:
                                 try:
                                     if not self.debug:
-                                        if len(self.workList[word_num]) > 108:
-                                            outputList.append(
-                                                " " + word_num_str + "   " + getPartStr(self.workList[word_num], 0,
-                                                                                        108) + "...")
+                                        if len(self.workList[word_num]) > 108 - len(prefix) - len(suffix):
+                                            outputList.append(" " + word_num_str + "   " + prefix + getPartStr(self.workList[word_num], 0, 108 - len(prefix) - len(suffix)) + "..." + suffix)
                                         else:
-                                            outputList.append(" " + word_num_str + "   " + self.workList[word_num])
+                                            outputList.append(" " + word_num_str + "   " + prefix + self.workList[word_num] + suffix)
                                     else:
-                                        outputList.append(" " + word_num_str + "   " + self.workList[word_num] + "3")
+                                        outputList.append(" " + word_num_str + "   " + prefix + self.workList[word_num] + suffix + "3")
                                 except IndexError:
                                     pass
                     else:
@@ -906,22 +990,36 @@ class Findus:
                                 word_num_str = str(word_num + 1) + " "
                             else:
                                 word_num_str = str(word_num + 1)
+
+                            if self.prefixEnabled and self.suffixEnabled:
+                                prefix = self.prefix[self.workList[word_num]] + " "
+                                suffix = " " + self.suffix[self.workList[word_num]] + " "
+                            elif self.prefixEnabled:
+                                prefix = self.prefix[self.workList[word_num]] + " "
+                                suffix = ""
+                            elif self.suffixEnabled:
+                                prefix = ""
+                                suffix = " " + self.suffix[self.workList[word_num]] + " "
+                            else:
+                                prefix = ""
+                                suffix = ""
+
                             if self.curPos == word_num:
                                 if not self.debug:
-                                    if len(self.workList[word_num]) > 108:
-                                        outputList.append(" " + word_num_str + " * " + getPartStr(self.workList[word_num], 0, 108) + "...")
+                                    if len(self.workList[word_num]) > 108 - len(prefix) - len(suffix):
+                                        outputList.append(" " + word_num_str + " * " + prefix + getPartStr(self.workList[word_num], 0, 108 - len(prefix) - len(suffix)) + "..." + suffix)
                                     else:
-                                        outputList.append(" " + word_num_str + " * " + self.workList[word_num])
+                                        outputList.append(" " + word_num_str + " * " + prefix + self.workList[word_num] + suffix)
                                 else:
-                                    outputList.append(" " + word_num_str + " * " + self.workList[word_num] + "4")
+                                    outputList.append(" " + word_num_str + " * " + prefix + self.workList[word_num] + suffix + "4")
                             else:
                                 if not self.debug:
-                                    if len(self.workList[word_num]) > 108:
-                                        outputList.append(" " + word_num_str + "   " + getPartStr(self.workList[word_num], 0, 108) + "...")
+                                    if len(self.workList[word_num]) > 108 - len(prefix) - len(suffix):
+                                        outputList.append(" " + word_num_str + "   " + prefix + getPartStr(self.workList[word_num], 0, 108 - len(prefix) - len(suffix)) + "..." + suffix)
                                     else:
-                                        outputList.append(" " + word_num_str + "   " + self.workList[word_num])
+                                        outputList.append(" " + word_num_str + "   " + prefix + self.workList[word_num] + suffix)
                                 else:
-                                    outputList.append(" " + word_num_str + "   " + self.workList[word_num] + "5")
+                                    outputList.append(" " + word_num_str + "   " + prefix + self.workList[word_num] + suffix + "5")
                     search_done = True
                     break
 
@@ -936,22 +1034,36 @@ class Findus:
                             word_num_str = str(word_num + 1) + " "
                         else:
                             word_num_str = str(word_num + 1)
+
+                        if self.prefixEnabled and self.suffixEnabled:
+                            prefix = self.prefix[self.workList[word_num]] + " "
+                            suffix = " " + self.suffix[self.workList[word_num]] + " "
+                        elif self.prefixEnabled:
+                            prefix = self.prefix[self.workList[word_num]] + " "
+                            suffix = ""
+                        elif self.suffixEnabled:
+                            prefix = ""
+                            suffix = " " + self.suffix[self.workList[word_num]] + " "
+                        else:
+                            prefix = ""
+                            suffix = ""
+
                         if self.curPos == word_num:
                             if not self.debug:
-                                if len(self.workList[word_num]) > 108:
-                                    outputList.append(" " + word_num_str + " * " + getPartStr(self.workList[word_num], 0, 108) + "...")
+                                if len(self.workList[word_num]) > 108 - len(prefix) - len(suffix):
+                                    outputList.append(" " + word_num_str + " * " + prefix + getPartStr(self.workList[word_num], 0, 108 - len(prefix) - len(suffix)) + "..." + suffix)
                                 else:
-                                    outputList.append(" " + word_num_str + " * " + self.workList[word_num])
+                                    outputList.append(" " + word_num_str + " * " + prefix + self.workList[word_num] + suffix)
                             else:
-                                outputList.append(" " + word_num_str + " * " + self.workList[word_num] + "6")
+                                outputList.append(" " + word_num_str + " * " + prefix + self.workList[word_num] + suffix + "6")
                         else:
                             if not self.debug:
-                                if len(self.workList[word_num]) > 108:
-                                    outputList.append(" " + word_num_str + "   " + getPartStr(self.workList[word_num], 0, 108) + "...")
+                                if len(self.workList[word_num]) > 108 - len(prefix) - len(suffix):
+                                    outputList.append(" " + word_num_str + "   " + prefix + getPartStr(self.workList[word_num], 0, 108 - len(prefix) - len(suffix)) + "..." + suffix)
                                 else:
-                                    outputList.append(" " + word_num_str + "   " + self.workList[word_num])
+                                    outputList.append(" " + word_num_str + "   " + prefix + self.workList[word_num] + suffix)
                             else:
-                                outputList.append(" " + word_num_str + "   " + self.workList[word_num] + "7")
+                                outputList.append(" " + word_num_str + "   " + prefix + self.workList[word_num] + suffix + "7")
                     search_done = True
                     break
 
@@ -963,22 +1075,36 @@ class Findus:
                     word_num_str = str(word_num + 1) + " "
                 else:
                     word_num_str = str(word_num + 1)
+
+                if self.prefixEnabled and self.suffixEnabled:
+                    prefix = self.prefix[self.workList[word_num]] + " "
+                    suffix = " " + self.suffix[self.workList[word_num]] + " "
+                elif self.prefixEnabled:
+                    prefix = self.prefix[self.workList[word_num]] + " "
+                    suffix = ""
+                elif self.suffixEnabled:
+                    prefix = ""
+                    suffix = " " + self.suffix[self.workList[word_num]] + " "
+                else:
+                    prefix = ""
+                    suffix = ""
+
                 if self.curPos == word_num:
                     if not self.debug:
-                        if len(self.workList[word_num]) > 108:
-                            outputList.append(" " + word_num_str + " * " + getPartStr(self.workList[word_num], 0, 108) + "...")
+                        if len(self.workList[word_num]) > 108 - len(prefix) - len(suffix):
+                            outputList.append(" " + word_num_str + " * " + prefix + getPartStr(self.workList[word_num], 0, 108 - len(prefix) - len(suffix)) + "..." + suffix)
                         else:
-                            outputList.append(" " + word_num_str + " * " + self.workList[word_num])
+                            outputList.append(" " + word_num_str + " * " + prefix + self.workList[word_num] + suffix)
                     else:
-                        outputList.append(" " + word_num_str + " * " + self.workList[word_num] + "10")
+                        outputList.append(" " + word_num_str + " * " + prefix + self.workList[word_num] + suffix + "10")
                 else:
                     if not self.debug:
-                        if len(self.workList[word_num]) > 108:
-                            outputList.append(" " + word_num_str + "   " + getPartStr(self.workList[word_num], 0, 108) + "...")
+                        if len(self.workList[word_num]) > 108 - len(prefix) - len(suffix):
+                            outputList.append(" " + word_num_str + "   " + prefix + getPartStr(self.workList[word_num], 0, 108 - len(prefix) - len(suffix)) + "..." + suffix)
                         else:
-                            outputList.append(" " + word_num_str + "   " + self.workList[word_num])
+                            outputList.append(" " + word_num_str + "   " + prefix + self.workList[word_num] + suffix)
                     else:
-                        outputList.append(" " + word_num_str + "   " + self.workList[word_num] + "11")
+                        outputList.append(" " + word_num_str + "   " + prefix + self.workList[word_num] + suffix + "11")
 
         return outputList
 
@@ -990,10 +1116,6 @@ class Findus:
         if self.enableInput:
             outputList.append("\nInput: " + self.Input)
         return outputList
-
-
-
-
 
 
 
