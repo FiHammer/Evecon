@@ -648,8 +648,8 @@ class Findus:
         :return: success
         """
         if directName:
-            if isinstance(prefix, str) and isinstance(directName, str) and directName in self.prefix:
-                self.prefix[directName] = prefix
+            if isinstance(suffix, str) and isinstance(directName, str) and directName in self.prefix:
+                self.prefix[directName] = suffix
             else:
                 return False
         else:
@@ -1949,7 +1949,7 @@ class MPlayerC:
 
 # noinspection PyTypeChecker
 class MusicPlayerC(threading.Thread):
-    def __init__(self, systray=True, random=True, expandRange=2, stop_del=False, scanner_active=True):
+    def __init__(self, systray=True, random=True, expandRange=2, stop_del=False, scanner_active=True, ballonTip=True):
         super().__init__()
 
         self.debug = False
@@ -1959,6 +1959,7 @@ class MusicPlayerC(threading.Thread):
 
         self.systray = None
         self.systrayon = systray
+        self.ballonTip = True
 
         self.volume = Volume.getVolume()
         self.volumep = 1
@@ -2298,6 +2299,13 @@ class MusicPlayerC(threading.Thread):
         else:
             title("OLD", self.getCur()["name"], "Now Playing")
 
+    def showBalloonTip(self):
+        if self.getCur()["antype"]:
+            name = self.getCur()["andata"]["title"]
+        else:
+            name = self.getCur()["name"]
+        WindowsBalloonTip.ShowWindow("Evecon: MusicPlayer", "Now playing: " + name)
+
     def getCur(self):
         if len(self.playlist) == 0:
             self.stop()
@@ -2395,6 +2403,7 @@ class MusicPlayerC(threading.Thread):
 
         self.playlist = new_playlist.copy()
         self.hardworktime = time.time()
+
 
     #Options
 
@@ -2636,6 +2645,10 @@ class MusicPlayerC(threading.Thread):
 
             if self.music[self.playlist[0]]["loaded"].is_queued:
                 self.reloadMusic(self.playlist[0])
+
+            if self.ballonTip:
+                self.showBalloonTip()
+
             self.player.queue(self.music[self.playlist[0]]["loaded"])
             self.player.play()
 
