@@ -144,7 +144,7 @@ class FoxiC:
             self.data = json.load(jsonfile)
 
     def writeJson(self):
-        with open("data"+path_seg+"Foxi"+path_seg+"data.json", "w") as jsonfile:
+        with open(self.working_dir+"data.json", "w") as jsonfile:
             json.dump(self.data, jsonfile, indent=4, sort_keys=True)
 
     def open_fox(self):
@@ -291,7 +291,7 @@ def debug():
 
 
 
-def Music(load=None, systrayon=True):
+def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
 
     def Play():
         title("Musicplayer")
@@ -328,11 +328,12 @@ def Music(load=None, systrayon=True):
         #    muPlayer.input(user_input)
 
 
-    muPlayer = MusicPlayerC(systrayon, random=musicrandom)
+    muPlayer = MusicPlayerC(systray=systrayon, balloonTip=balloonTip, random=musicrandom, killMeAfterEnd=killMeAfterEnd)
+
 
     if not load:
         music_playlists_print = ""
-        for x, y in zip(muPlayer.playlists, muPlayer.playlists_key):
+        for x, y in zip(muPlayer.musiclist["names"], muPlayer.musiclist["keys"]):
             music_playlists_print += x.title() + " (" + y.upper() + "), "
         music_playlists_print = music_playlists_print.rstrip(", ")
 
@@ -642,7 +643,7 @@ def screensaver(preset = None):
             #elif user_input.lower() == "snake":
             #    games("snake")
             elif user_input.lower() == "music":
-                Music(False)
+                Music(systrayon=False, balloonTip=False, killMeAfterEnd=True)
                 killmem = True
             elif user_input.lower() == "radio":
                 Radio(False)

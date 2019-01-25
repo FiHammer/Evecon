@@ -139,7 +139,7 @@ def Log(functioni, info, typei = "Normal"):
 
 
 class Printer(threading.Thread):
-    def __init__(self, printit, waitTime=1.5, refreshTime=1):
+    def __init__(self, printit, waitTime=1.5, refreshTime=1, waitUntil=0):
         """
         An easy printer, which will print every some secons the function(s)
 
@@ -155,6 +155,11 @@ class Printer(threading.Thread):
         :type refreshTime: int
         :type refreshTime: float
         :type refreshTime: double
+
+        :param waitUntil: this should be a time from time.time(); the printer will wait until the time is over
+        :type waitUntil: int
+        :type waitUntil: float
+        :type waitUntil: double
 
         running: started/stopped
         printing: printing loop
@@ -173,6 +178,7 @@ class Printer(threading.Thread):
         self.running = False
         self.printing = False
         self.waiting = False
+        self.waitUntil = waitUntil
 
 
     def run(self):
@@ -184,7 +190,7 @@ class Printer(threading.Thread):
         self.waiting = True
 
         while self.running:
-            while self.printing:
+            while self.printing and self.waitUntil < time.time():
                 cls()
                 for printFunc in self.printitS:
                     printFunc()
@@ -1949,7 +1955,7 @@ class MPlayerC:
 
 # noinspection PyTypeChecker
 class MusicPlayerC(threading.Thread):
-    def __init__(self, systray=True, random=True, expandRange=2, stop_del=False, scanner_active=True, ballonTip=True):
+    def __init__(self, systray=True, random=True, expandRange=2, stop_del=False, scanner_active=True, balloonTip=True, killMeAfterEnd=True):
         super().__init__()
 
         self.debug = False
@@ -1959,7 +1965,8 @@ class MusicPlayerC(threading.Thread):
 
         self.systray = None
         self.systrayon = systray
-        self.ballonTip = True
+        self.balloonTip = balloonTip
+        self.killMeAfterEnd = killMeAfterEnd
 
         self.volume = Volume.getVolume()
         self.volumep = 1
@@ -2016,9 +2023,136 @@ class MusicPlayerC(threading.Thread):
         self.tmp_pl_output_1 = []
         self.tmp_pl_output_2 = []
 
+        # read MUSICLIST
+
+        def unvalid(error, key=False, remove=False):
+            nonlocal data
+            if not key:
+                print("Musicfile is not valid:\n" + error)
+            else:
+                print("Musicfile is not valid:\nKey not found! (" + error + ")")
+
+            if remove:
+                with open("data" + path_seg + "Backup" + path_seg + "Music_backup.json") as jsonfile:
+                    data = json.load(jsonfile)
+
+            return False
+
+        def parse(unvaild):
+            if data.get("pc") != computer or data.get("pc") == "global":
+                unvaild("Wrong PC!", remove=True)
+                return parse(unvalid)
+            if data.get("version"):
+                if not data["version"] == version:
+                    unvaild("Wrong Version! (" + version + " required)")
+                    return parse(unvalid)
+            else:
+                unvaild("version", True, remove=True)
+                return parse(unvalid)
+
+            if data.get("musicDir"):
+                if os.path.exists(data["musicDir"]):
+                    musicDir = data["musicDir"] + "\\"
+                else:
+                    unvaild("Wrong musicDir path", remove=True)
+                    return parse(unvalid)
+            else:
+                unvaild("musicDir", True, remove=True)
+                return parse(unvalid)
+
+            if not data.get("directories"):
+                unvaild("directories", True, remove=True)
+                return parse(unvalid)
+            if not data.get("multiplaylists"):
+                unvaild("multiplaylists", True, remove=True)
+                return parse(unvalid)
 
 
+            musicDirs = {"names": []}
+            musicDirs_direct = data["directories"].copy()
+            multiPls = {}
+            multiPls_direct = data["multiplaylists"].copy()
 
+            dirIDs = []
+            dirIDs_direct = list(musicDirs_direct.keys())
+            mplIDs = []
+            mplIDs_direct = list(multiPls_direct.keys())
+            genre = []
+
+            # generate the music directories and genre!
+
+            for aDir in dirIDs_direct:
+                if aDir == musicDirs_direct[aDir].get("id"):
+                    if Search(aDir, dirIDs, exact=True):
+                        unvalid("A Dir-ID was double (" + aDir + ")")
+                        continue
+                    if not os.path.exists(musicDir + musicDirs_direct[aDir].get("path")):
+                        unvalid("A Dir-Path does not exist (" + musicDirs_direct[aDir].get("path") + ")")
+                        continue
+                    dirIDs.append(aDir)
+
+                    musicDirs[aDir] = musicDirs_direct[aDir].copy()
+                    if musicDirs_direct[aDir].get("genre"):
+                        for aGenre in musicDirs_direct[aDir]["genre"]:
+                            if not Search(aGenre, genre, exact=True):
+                                genre.append(aGenre)
+                    else:
+                        musicDirs[aDir]["genre"] = []
+                    if not musicDirs_direct[aDir].get("name"):
+                        musicDirs[aDir]["name"] = musicDirs[aDir]["path"].split("\\")[-1].title()
+                    musicDirs["names"].append(musicDirs[aDir]["name"])
+                else:
+                    unvalid("Diffrent Dir-IDs (" + aDir + ")")
+
+            musicDirs["keys"] = dirIDs
+
+            # generate mpl
+            for aMPl in mplIDs_direct:
+                if aMPl == multiPls_direct[aMPl].get("id"):
+                    if not Search(aMPl, dirIDs, exact=True):
+                        if Search(aMPl, mplIDs, exact=True):
+                            unvalid("A MPl-ID was double (" + aMPl + ")")
+                            continue
+                        mplIDs.append(aMPl)
+
+                        multiPls[aMPl] = multiPls_direct[aMPl]["content"]["ids"].copy()
+
+                        if multiPls_direct[aMPl]["content"].get("genre"):
+                            for aGenre in multiPls_direct[aMPl]["content"]["genre"]:
+                                for aDir in dirIDs:
+                                    if Search(aGenre, musicDirs[aDir]["genre"], exact=True) and not Search(aDir,
+                                                                                                           multiPls[
+                                                                                                               aMPl],
+                                                                                                           exact=True):
+                                        multiPls[aMPl].append(aDir)
+
+                    else:
+                        unvalid("MPl-ID is used in the musicDirs (" + aMPl + ")")
+                else:
+                    unvalid("Diffrent MPl-IDs (" + aMPl + ")")
+
+
+            # deleting genre
+            delGenre = []
+            for aGenre_ID in range(len(genre)):
+                for aID in dirIDs+mplIDs:
+                    if aID == genre[aGenre_ID]:
+                        delGenre.append(aGenre_ID)
+
+            for x in delGenre:
+                del genre[x]
+
+            return musicDirs, multiPls, genre, musicDir
+
+        version = "1.0"
+
+        with open("data" + path_seg + "Config" + path_seg+ "Music.json") as jsonfile:
+            data = json.load(jsonfile)
+
+
+        self.musiclist, self.multiplaylists, self.genre, self.musicDir = parse(unvalid)
+
+        """
         with open("data" + path_seg + "Config" + path_seg + "Music.json") as jsonfile:
             data = json.load(jsonfile)
 
@@ -2069,12 +2203,14 @@ class MusicPlayerC(threading.Thread):
         #self.playlists = ["LiS", "Anime", "Phunk", "Caravan Palace", "Electro Swing", "Parov Stelar", "jPOP & etc", "OMFG"]
         #self.playlists_key = ["lis", "an", "phu", "cp", "es", "ps", "jpop", "omfg"]
 
-        self.playlists = []
-        self.playlists_key = []
+        self.playlists = [] # name NOW: self.musiclist["names"]
+        self.playlists_key = [] # key NOW: self.musiclist["keys"]
 
         for key in self.musiclist:
             self.playlists.append(self.musiclist[key].split("\\")[-1].title())
             self.playlists_key.append(key)
+        
+        """
 
     def findMusic(self, path, reset=True):
         if reset:
@@ -2125,7 +2261,7 @@ class MusicPlayerC(threading.Thread):
 
         return content
 
-    def addMusic(self, key, custom=False):  # key (AN, LIS)
+    def addMusic(self, key, custom=False, genre=False):  # key (AN, LIS)
         self.read_musiclist()
         cls()
         if computer == "MiniPC":
@@ -2141,16 +2277,30 @@ class MusicPlayerC(threading.Thread):
 
         if custom:
             key = "cus"
+        elif genre:
+            if Search(key, self.genre, exact=True):
+                if isinstance(key, str):
+                    for aDir in self.musiclist["keys"]:
+                        if Search(key, self.musiclist[aDir]["genre"], exact=True):
+                            self.addMusic(aDir)
+                elif isinstance(key, list):
+                    for aGenre in key:
+                        for aDir in self.musiclist["keys"]:
+                            if Search(aGenre, self.musiclist[aDir]["genre"], exact=True):
+                                self.addMusic(aDir)
+                return True
+            else:
+                return False
 
         done = False
         if type(key) == str:
-            for x in self.musiclist:
+            for x in self.musiclist["keys"]:
                 if x == key:
-                    self.findMusic(self.musicDir + path_seg + self.musiclist[key])
+                    self.findMusic(self.musicDir + path_seg + self.musiclist[key]["path"])
                     done = True
                     break
         elif type(key) == list:
-            for x in self.musiclist:
+            for x in self.musiclist["keys"]:
                 for y in key:
                     if x == y:
                         self.addMusic(x)
@@ -2164,11 +2314,25 @@ class MusicPlayerC(threading.Thread):
         elif key == "cus" and custom: # custom
             self.findMusic(custom)
         elif key == "all":
-            for x in self.musiclist:
+            for x in self.musiclist["keys"]:
                 self.addMusic(x)
             return True
-        elif Search(key, self.multiplaylists_key):
+        elif Search(key, list(self.multiplaylists.keys()), exact=True):
             self.addMusic(self.multiplaylists[key])
+        elif Search(key, self.genre, exact=True):
+            if isinstance(key, str):
+                for aDir in self.musiclist["keys"]:
+                    if Search(key, self.musiclist[aDir]["genre"], exact=True):
+                        self.addMusic(aDir)
+            elif isinstance(key, list):
+                for aGenre in key:
+                    for aDir in self.musiclist["keys"]:
+                        if Search(aGenre, self.musiclist[aDir]["genre"], exact=True):
+                            self.addMusic(aDir)
+            else:
+                pass
+            return True
+
         else:
             return False
 
@@ -2218,23 +2382,135 @@ class MusicPlayerC(threading.Thread):
         return True
 
     def read_musiclist(self):
-        """
-        with open("data"+path_seg+"Music.txt") as musicfile:
-            for line in musicfile:
-                if not lsame(line, "#") and lsame(line, "["):
-                    self.musiclist[getPartStrToStr(line, "]", "[", True)] = getPartStrToStr(line, "'", " '", True)
-        """
+        def unvalid(error, key=False, remove=False):
+            nonlocal data
+            if not key:
+                print("Musicfile is not valid:\n" + error)
+            else:
+                print("Musicfile is not valid:\nKey not found! (" + error + ")")
+
+            if remove:
+                with open("data" + path_seg + "Backup" + path_seg + "Music_backup.json") as jsonfile:
+                    data = json.load(jsonfile)
+
+            return False
+
+        def parse(unvaild):
+            if data.get("pc") != computer or data.get("pc") == "global":
+                unvaild("Wrong PC!", remove=True)
+                return parse(unvalid)
+            if data.get("version"):
+                if not data["version"] == version:
+                    unvaild("Wrong Version! (" + version + " required)")
+                    return parse(unvalid)
+            else:
+                unvaild("version", True, remove=True)
+                return parse(unvalid)
+
+            if data.get("musicDir"):
+                if os.path.exists(data["musicDir"]):
+                    musicDir = data["musicDir"] + "\\"
+                else:
+                    unvaild("Wrong musicDir path", remove=True)
+                    return parse(unvalid)
+            else:
+                unvaild("musicDir", True, remove=True)
+                return parse(unvalid)
+
+            if not data.get("directories"):
+                unvaild("directories", True, remove=True)
+                return parse(unvalid)
+            if not data.get("multiplaylists"):
+                unvaild("multiplaylists", True, remove=True)
+                return parse(unvalid)
+
+
+            musicDirs = {"names": []}
+            musicDirs_direct = data["directories"].copy()
+            multiPls = {}
+            multiPls_direct = data["multiplaylists"].copy()
+
+            dirIDs = []
+            dirIDs_direct = list(musicDirs_direct.keys())
+            mplIDs = []
+            mplIDs_direct = list(multiPls_direct.keys())
+            genre = []
+
+            # generate the music directories and genre!
+
+            for aDir in dirIDs_direct:
+                if aDir == musicDirs_direct[aDir].get("id"):
+                    if Search(aDir, dirIDs, exact=True):
+                        unvalid("A Dir-ID was double (" + aDir + ")")
+                        continue
+                    if not os.path.exists(musicDir + musicDirs_direct[aDir].get("path")):
+                        unvalid("A Dir-Path does not exist (" + musicDirs_direct[aDir].get("path") + ")")
+                        continue
+                    dirIDs.append(aDir)
+
+                    musicDirs[aDir] = musicDirs_direct[aDir].copy()
+                    if musicDirs_direct[aDir].get("genre"):
+                        for aGenre in musicDirs_direct[aDir]["genre"]:
+                            if not Search(aGenre, genre, exact=True):
+                                genre.append(aGenre)
+                    else:
+                        musicDirs[aDir]["genre"] = []
+                    if not musicDirs_direct[aDir].get("name"):
+                        musicDirs[aDir]["name"] = musicDirs[aDir]["path"].split("\\")[-1].title()
+                    musicDirs["names"].append(musicDirs[aDir]["name"])
+                else:
+                    unvalid("Diffrent Dir-IDs (" + aDir + ")")
+
+            musicDirs["keys"] = dirIDs
+
+            # generate mpl
+            for aMPl in mplIDs_direct:
+                if aMPl == multiPls_direct[aMPl].get("id"):
+                    if not Search(aMPl, dirIDs, exact=True):
+                        if Search(aMPl, mplIDs, exact=True):
+                            unvalid("A MPl-ID was double (" + aMPl + ")")
+                            continue
+                        mplIDs.append(aMPl)
+
+                        multiPls[aMPl] = multiPls_direct[aMPl]["content"]["ids"].copy()
+
+                        if multiPls_direct[aMPl]["content"].get("genre"):
+                            for aGenre in multiPls_direct[aMPl]["content"]["genre"]:
+                                for aDir in dirIDs:
+                                    if Search(aGenre, musicDirs[aDir]["genre"], exact=True) and not Search(aDir,
+                                                                                                           multiPls[
+                                                                                                               aMPl],
+                                                                                                           exact=True):
+                                        multiPls[aMPl].append(aDir)
+
+                    else:
+                        unvalid("MPl-ID is used in the musicDirs (" + aMPl + ")")
+                else:
+                    unvalid("Diffrent MPl-IDs (" + aMPl + ")")
+
+            # deleting genre
+            delGenre = []
+            for aGenre_ID in range(len(genre)):
+                for aID in dirIDs+mplIDs:
+                    if aID == genre[aGenre_ID]:
+                        delGenre.append(aGenre_ID)
+
+            for x in delGenre:
+                del genre[x]
+
+            return musicDirs, multiPls, genre, musicDir
+
+        version = "1.0"
 
         with open("data" + path_seg + "Config" + path_seg+ "Music.json") as jsonfile:
             data = json.load(jsonfile)
 
-        if data["pc"] == computer:
-            pass
-        else:
-            print("Music-file is not valid for this PC!")
-            with open("data" + path_seg + "Backup" + path_seg + "Music_backup.json") as jsonfile:
-                data = json.load(jsonfile)
 
+        self.musiclist, self.multiplaylists, self.genre, self.musicDir = parse(unvalid)
+
+
+
+        """
         #dirs
 
         musiclist = {}
@@ -2253,13 +2529,13 @@ class MusicPlayerC(threading.Thread):
 
         for mpl_id in multiplaylist_ids:
             cur_pl = []
-            for x in range(data["multiplaylists"][mpl_id]["content"]["len"]):
-                cur_pl.append(data["multiplaylists"][mpl_id]["content"][str(x)])
+            for aDir in range(data["multiplaylists"][mpl_id]["content"]["len"]):
+                cur_pl.append(data["multiplaylists"][mpl_id]["content"][str(aDir)])
 
             new_cur_pl = []
-            for x in range(len(cur_pl)):
-                if Search(cur_pl[x], musiclist_ids):
-                    new_cur_pl.append(cur_pl[x])
+            for aDir in range(len(cur_pl)):
+                if Search(cur_pl[aDir], musiclist_ids):
+                    new_cur_pl.append(cur_pl[aDir])
 
             if new_cur_pl:
                 multiplaylists[mpl_id] = new_cur_pl
@@ -2267,7 +2543,7 @@ class MusicPlayerC(threading.Thread):
         self.musiclist = musiclist.copy()
         self.multiplaylists = multiplaylists.copy()
 
-
+        """
 
 
     def reloadMusic(self, tracknum):
@@ -2442,7 +2718,7 @@ class MusicPlayerC(threading.Thread):
         self.paused = False
         self.running = False
         self.scanner.running = False
-        if self.systrayon:
+        if self.systrayon and self.killMeAfterEnd:
             time.sleep(1)
             killme()
     def next(self, skipthis=False):
@@ -2646,7 +2922,7 @@ class MusicPlayerC(threading.Thread):
             if self.music[self.playlist[0]]["loaded"].is_queued:
                 self.reloadMusic(self.playlist[0])
 
-            if self.ballonTip:
+            if self.balloonTip:
                 self.showBalloonTip()
 
             self.player.queue(self.music[self.playlist[0]]["loaded"])
