@@ -329,7 +329,7 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
 
 
     muPlayer = MusicPlayerC(systray=systrayon, balloonTip=balloonTip, random=musicrandom, killMeAfterEnd=killMeAfterEnd)
-
+    muPlayer.read_musiclist()
 
     if not load:
         music_playlists_print = ""
@@ -377,30 +377,30 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
     """
 
     if music_user_input.lower() == "all":
-        for x in muPlayer.playlists_key:
+        for x in muPlayer.musiclist["keys"]:
             muPlayer.addMusic(x)
 
     elif music_user_input.lower() == "mpl":
         musicman_search = True
 
-        muPlayer.playlists.append("User's List")
+        muPlayer.musiclist["names"].append("User's List")
 
         musicman_list = []
         music_playlists_used = {}
 
-        for x in muPlayer.playlists_key:
+        for x in muPlayer.musiclist["keys"]:
             music_playlists_used[x] = " "
 
         while musicman_search:
             music_playlists_used_List = []
-            for x in muPlayer.playlists_key:
+            for x in muPlayer.musiclist["keys"]:
                 music_playlists_used_List.append(music_playlists_used[x])
             cls()
             print("Playlists:\n")
             #print(music_playlists_print)
             #print("User's list (US), User defined (UD)")
             #print("\nLoaded:")
-            for xl, x2, x3 in zip(music_playlists_used_List, muPlayer.playlists, muPlayer.playlists_key):
+            for xl, x2, x3 in zip(music_playlists_used_List, muPlayer.musiclist["names"], muPlayer.musiclist["keys"]):
                 print(" " + xl + " " + x2 + " (" + x3.upper() + ")")
             for x in musicman_list:
                 print(" X " + x)

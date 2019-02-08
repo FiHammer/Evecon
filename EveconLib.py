@@ -39,8 +39,9 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
-code_version = "0.9.3.1"
+code_version = "0.9.4.0"
 
+pyglet.options['search_local_libs'] = True
 
 ss_active = False
 exitnow = 0
@@ -1596,6 +1597,100 @@ def non_string_iterable(obj):
     else:
         return not isinstance(obj, str)
 
+class UsedPortsC:
+    def __init__(self):
+        self.ports = []
+        error = False
+        with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt") as file:
+            for x in file:
+                try:
+                    int(x)
+                    self.ports.append(x)
+                except ValueError:
+                    error = True
+                    break
+        if error:
+            with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt", "w") as file:
+                file.write("")
+
+    def readFile(self):
+        self.ports = []
+        error = False
+        with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt") as file:
+            for x in file:
+                try:
+                    int(x)
+                    self.ports.append(x)
+                except ValueError:
+                    error = True
+                    break
+        if error:
+            with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt", "w") as file:
+                file.write("")
+
+    def writeFile(self):
+        with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt", "w") as file:
+            for x in range(len(self.ports)):
+                if x == len(self.ports) - 1:
+                    file.write(self.ports[x])
+                else:
+                    file.write(self.ports[x] + "\n")
+    def addPort(self, port):
+        self.ports.append(str(port))
+        self.writeFile()
+    def remPort(self, port):
+        found = Search(str(port), self.ports)
+        del self.ports[found[0]]
+    def isAvalible(self, port):
+        if Search(str(port), self.ports):
+            return False
+        else:
+            return True
+    def getNextPort(self, port):
+        while True:
+            port += 1
+            if not Search(str(port), self.ports):
+                return port
+
+usedPorts = UsedPortsC()
+
+class globalMPportsC:
+    def __init__(self):
+        self.ports = []
+        with open("data" + path_seg + "tmp" + path_seg + "mpPorts.txt", "w") as file:
+            file.write("")
+
+    def readFile(self):
+        self.ports = []
+        error = False
+        with open("data" + path_seg + "tmp" + path_seg + "mpPorts.txt") as file:
+            for x in file:
+                try:
+                    int(x)
+                    self.ports.append(x)
+                except ValueError:
+                    error = True
+                    break
+        if error:
+            with open("data" + path_seg + "tmp" + path_seg + "mpPorts.txt", "w") as file:
+                file.write("")
+
+    def writeFile(self):
+        with open("data" + path_seg + "tmp" + path_seg + "mpPorts.txt", "w") as file:
+            for x in range(len(self.ports)):
+                if x == len(self.ports) - 1:
+                    file.write(self.ports[x])
+                else:
+                    file.write(self.ports[x] + "\n")
+    def addPort(self, port):
+        self.ports.append(str(port))
+        self.writeFile()
+    def remPort(self, port):
+        found = Search(str(port), self.ports)
+        del self.ports[found[0]]
+
+
+globalMPports = globalMPportsC()
 
 class SysTray(threading.Thread):
     def __init__(self, icon: str, hover_text: str, menu: dict, sub_menu_name1: str=None, sub_menu1: dict=None,
@@ -1955,7 +2050,7 @@ class MPlayerC:
 
 # noinspection PyTypeChecker
 class MusicPlayerC(threading.Thread):
-    def __init__(self, systray=True, random=True, expandRange=2, stop_del=False, scanner_active=True, balloonTip=True, killMeAfterEnd=True):
+    def __init__(self, systray=True, random=True, expandRange=2, stop_del=False, scanner_active=True, balloonTip=True, killMeAfterEnd=True, remote=True, remotePort=4554):
         super().__init__()
 
         self.debug = False
@@ -1967,6 +2062,17 @@ class MusicPlayerC(threading.Thread):
         self.systrayon = systray
         self.balloonTip = balloonTip
         self.killMeAfterEnd = killMeAfterEnd
+        self.remote = True
+        self.remotePort = remotePort
+
+        self.remoteAddress = ""
+        self.remoteAction = ""
+        if self.remote:
+            self.server = Server(port=self.remotePort, ip="192.168.2.102", react=self.react_remote, welcomeMessage="", reactLogINOUT=True, printLog=False)
+            self.server_java = ServerJava(port=self.remotePort + 1, ip="192.168.2.102", react=self.react_remote)
+        else:
+            self.server = None
+            self.server_java = None
 
         self.volume = Volume.getVolume()
         self.volumep = 1
@@ -2023,134 +2129,11 @@ class MusicPlayerC(threading.Thread):
         self.tmp_pl_output_1 = []
         self.tmp_pl_output_2 = []
 
-        # read MUSICLIST
 
-        def unvalid(error, key=False, remove=False):
-            nonlocal data
-            if not key:
-                print("Musicfile is not valid:\n" + error)
-            else:
-                print("Musicfile is not valid:\nKey not found! (" + error + ")")
-
-            if remove:
-                with open("data" + path_seg + "Backup" + path_seg + "Music_backup.json") as jsonfile:
-                    data = json.load(jsonfile)
-
-            return False
-
-        def parse(unvaild):
-            if data.get("pc") != computer or data.get("pc") == "global":
-                unvaild("Wrong PC!", remove=True)
-                return parse(unvalid)
-            if data.get("version"):
-                if not data["version"] == version:
-                    unvaild("Wrong Version! (" + version + " required)")
-                    return parse(unvalid)
-            else:
-                unvaild("version", True, remove=True)
-                return parse(unvalid)
-
-            if data.get("musicDir"):
-                if os.path.exists(data["musicDir"]):
-                    musicDir = data["musicDir"] + "\\"
-                else:
-                    unvaild("Wrong musicDir path", remove=True)
-                    return parse(unvalid)
-            else:
-                unvaild("musicDir", True, remove=True)
-                return parse(unvalid)
-
-            if not data.get("directories"):
-                unvaild("directories", True, remove=True)
-                return parse(unvalid)
-            if not data.get("multiplaylists"):
-                unvaild("multiplaylists", True, remove=True)
-                return parse(unvalid)
-
-
-            musicDirs = {"names": []}
-            musicDirs_direct = data["directories"].copy()
-            multiPls = {}
-            multiPls_direct = data["multiplaylists"].copy()
-
-            dirIDs = []
-            dirIDs_direct = list(musicDirs_direct.keys())
-            mplIDs = []
-            mplIDs_direct = list(multiPls_direct.keys())
-            genre = []
-
-            # generate the music directories and genre!
-
-            for aDir in dirIDs_direct:
-                if aDir == musicDirs_direct[aDir].get("id"):
-                    if Search(aDir, dirIDs, exact=True):
-                        unvalid("A Dir-ID was double (" + aDir + ")")
-                        continue
-                    if not os.path.exists(musicDir + musicDirs_direct[aDir].get("path")):
-                        unvalid("A Dir-Path does not exist (" + musicDirs_direct[aDir].get("path") + ")")
-                        continue
-                    dirIDs.append(aDir)
-
-                    musicDirs[aDir] = musicDirs_direct[aDir].copy()
-                    if musicDirs_direct[aDir].get("genre"):
-                        for aGenre in musicDirs_direct[aDir]["genre"]:
-                            if not Search(aGenre, genre, exact=True):
-                                genre.append(aGenre)
-                    else:
-                        musicDirs[aDir]["genre"] = []
-                    if not musicDirs_direct[aDir].get("name"):
-                        musicDirs[aDir]["name"] = musicDirs[aDir]["path"].split("\\")[-1].title()
-                    musicDirs["names"].append(musicDirs[aDir]["name"])
-                else:
-                    unvalid("Diffrent Dir-IDs (" + aDir + ")")
-
-            musicDirs["keys"] = dirIDs
-
-            # generate mpl
-            for aMPl in mplIDs_direct:
-                if aMPl == multiPls_direct[aMPl].get("id"):
-                    if not Search(aMPl, dirIDs, exact=True):
-                        if Search(aMPl, mplIDs, exact=True):
-                            unvalid("A MPl-ID was double (" + aMPl + ")")
-                            continue
-                        mplIDs.append(aMPl)
-
-                        multiPls[aMPl] = multiPls_direct[aMPl]["content"]["ids"].copy()
-
-                        if multiPls_direct[aMPl]["content"].get("genre"):
-                            for aGenre in multiPls_direct[aMPl]["content"]["genre"]:
-                                for aDir in dirIDs:
-                                    if Search(aGenre, musicDirs[aDir]["genre"], exact=True) and not Search(aDir,
-                                                                                                           multiPls[
-                                                                                                               aMPl],
-                                                                                                           exact=True):
-                                        multiPls[aMPl].append(aDir)
-
-                    else:
-                        unvalid("MPl-ID is used in the musicDirs (" + aMPl + ")")
-                else:
-                    unvalid("Diffrent MPl-IDs (" + aMPl + ")")
-
-
-            # deleting genre
-            delGenre = []
-            for aGenre_ID in range(len(genre)):
-                for aID in dirIDs+mplIDs:
-                    if aID == genre[aGenre_ID]:
-                        delGenre.append(aGenre_ID)
-
-            for x in delGenre:
-                del genre[x]
-
-            return musicDirs, multiPls, genre, musicDir
-
-        version = "1.0"
-
-        with open("data" + path_seg + "Config" + path_seg+ "Music.json") as jsonfile:
-            data = json.load(jsonfile)
-
-
-        self.musiclist, self.multiplaylists, self.genre, self.musicDir = parse(unvalid)
+        self.musiclist = {"names": []}
+        self.multiplaylists = {}
+        self.genre = []
+        self.musicDir = ""
 
         """
         with open("data" + path_seg + "Config" + path_seg + "Music.json") as jsonfile:
@@ -2396,6 +2379,7 @@ class MusicPlayerC(threading.Thread):
             return False
 
         def parse(unvaild):
+            version = "1.1"
             if data.get("pc") != computer or data.get("pc") == "global":
                 unvaild("Wrong PC!", remove=True)
                 return parse(unvalid)
@@ -2440,24 +2424,30 @@ class MusicPlayerC(threading.Thread):
 
             for aDir in dirIDs_direct:
                 if aDir == musicDirs_direct[aDir].get("id"):
-                    if Search(aDir, dirIDs, exact=True):
-                        unvalid("A Dir-ID was double (" + aDir + ")")
-                        continue
-                    if not os.path.exists(musicDir + musicDirs_direct[aDir].get("path")):
-                        unvalid("A Dir-Path does not exist (" + musicDirs_direct[aDir].get("path") + ")")
-                        continue
-                    dirIDs.append(aDir)
+                    if aDir.islower() and musicDirs_direct[aDir]["id"].islower():
+                        if Search(aDir, dirIDs, exact=True):
+                            unvalid("A Dir-ID was double (" + aDir + ")")
+                            continue
+                        if not os.path.exists(musicDir + musicDirs_direct[aDir].get("path")):
+                            unvalid("A Dir-Path does not exist (" + musicDirs_direct[aDir].get("path") + ")")
+                            continue
+                        dirIDs.append(aDir)
 
-                    musicDirs[aDir] = musicDirs_direct[aDir].copy()
-                    if musicDirs_direct[aDir].get("genre"):
-                        for aGenre in musicDirs_direct[aDir]["genre"]:
-                            if not Search(aGenre, genre, exact=True):
-                                genre.append(aGenre)
+                        musicDirs[aDir] = musicDirs_direct[aDir].copy()
+                        if musicDirs_direct[aDir].get("genre"):
+                            for aGenre in musicDirs_direct[aDir]["genre"]:
+                                if aGenre.islower():
+                                    if not Search(aGenre, genre, exact=True):
+                                        genre.append(aGenre)
+                                else:
+                                    unvalid("Genre is not low (" + aGenre + ")")
+                        else:
+                            musicDirs[aDir]["genre"] = []
+                        if not musicDirs_direct[aDir].get("name"):
+                            musicDirs[aDir]["name"] = musicDirs[aDir]["path"].split("\\")[-1].title()
+                        musicDirs["names"].append(musicDirs[aDir]["name"])
                     else:
-                        musicDirs[aDir]["genre"] = []
-                    if not musicDirs_direct[aDir].get("name"):
-                        musicDirs[aDir]["name"] = musicDirs[aDir]["path"].split("\\")[-1].title()
-                    musicDirs["names"].append(musicDirs[aDir]["name"])
+                        unvalid("Dir-ID is not low (" + aDir + "/" + musicDirs_direct[aDir]["id"] + ")")
                 else:
                     unvalid("Diffrent Dir-IDs (" + aDir + ")")
 
@@ -2466,25 +2456,28 @@ class MusicPlayerC(threading.Thread):
             # generate mpl
             for aMPl in mplIDs_direct:
                 if aMPl == multiPls_direct[aMPl].get("id"):
-                    if not Search(aMPl, dirIDs, exact=True):
-                        if Search(aMPl, mplIDs, exact=True):
-                            unvalid("A MPl-ID was double (" + aMPl + ")")
-                            continue
-                        mplIDs.append(aMPl)
+                    if aMPl.islower():
+                        if not Search(aMPl, dirIDs, exact=True):
+                            if Search(aMPl, mplIDs, exact=True):
+                                unvalid("A MPl-ID was double (" + aMPl + ")")
+                                continue
+                            mplIDs.append(aMPl)
 
-                        multiPls[aMPl] = multiPls_direct[aMPl]["content"]["ids"].copy()
+                            multiPls[aMPl] = multiPls_direct[aMPl]["content"]["ids"].copy()
 
-                        if multiPls_direct[aMPl]["content"].get("genre"):
-                            for aGenre in multiPls_direct[aMPl]["content"]["genre"]:
-                                for aDir in dirIDs:
-                                    if Search(aGenre, musicDirs[aDir]["genre"], exact=True) and not Search(aDir,
-                                                                                                           multiPls[
-                                                                                                               aMPl],
-                                                                                                           exact=True):
-                                        multiPls[aMPl].append(aDir)
+                            if multiPls_direct[aMPl]["content"].get("genre"):
+                                for aGenre in multiPls_direct[aMPl]["content"]["genre"]:
+                                    for aDir in dirIDs:
+                                        if Search(aGenre, musicDirs[aDir]["genre"], exact=True) and not Search(aDir,
+                                                                                                               multiPls[
+                                                                                                                   aMPl],
+                                                                                                               exact=True):
+                                            multiPls[aMPl].append(aDir)
 
+                        else:
+                            unvalid("MPl-ID is used in the musicDirs (" + aMPl + ")")
                     else:
-                        unvalid("MPl-ID is used in the musicDirs (" + aMPl + ")")
+                        unvalid("MPl-ID is not low (" + aMPl + ")")
                 else:
                     unvalid("Diffrent MPl-IDs (" + aMPl + ")")
 
@@ -2499,8 +2492,6 @@ class MusicPlayerC(threading.Thread):
                 del genre[x]
 
             return musicDirs, multiPls, genre, musicDir
-
-        version = "1.0"
 
         with open("data" + path_seg + "Config" + path_seg+ "Music.json") as jsonfile:
             data = json.load(jsonfile)
@@ -2718,6 +2709,11 @@ class MusicPlayerC(threading.Thread):
         self.paused = False
         self.running = False
         self.scanner.running = False
+
+        if self.remote:
+            self.server.close_connection()
+            globalMPports.remPort(self.server.port)
+
         if self.systrayon and self.killMeAfterEnd:
             time.sleep(1)
             killme()
@@ -2913,6 +2909,13 @@ class MusicPlayerC(threading.Thread):
 
         if self.randomizer:
             self.shufflePL(True)
+
+
+        if self.remote:
+            globalMPports.addPort(self.server.port)
+            self.server.start()
+            self.server_java.start()
+
         self.starttime = time.time()
         self.hardworktime = time.time()
         if self.scanner_active:
@@ -2998,6 +3001,9 @@ class MusicPlayerC(threading.Thread):
             l2 = ""
             pre = ""
             print(pre + int((console_data["pixx"] / 2) - 3) * l1 + "Muted" + int((console_data["pixx"] / 2) - 2) * l2)
+        if self.remoteAddress:
+            print("Remoteaccess: " + self.remoteAddress)
+            print("Last remoteaction: " + self.remoteAction)
 
 
         #sys.stdout.write(console_data[0]*"-")
@@ -3201,6 +3207,9 @@ class MusicPlayerC(threading.Thread):
                 print("Timer direct: " + str(self.timer.getTime()))
                 print("Last print: " + str(self.last_print))
 
+            if self.server:
+                print("\nPort: " + str(self.server.port))
+                print("Port-Java: " + str(self.server_java.port))
 
         elif self.con_main == "spl":
             self.spl.printit(False)
@@ -3469,13 +3478,18 @@ class MusicPlayerC(threading.Thread):
             self.con_cont = "set"
             self.searching = False
             self.cur_Search = ""
+            self.cur_Input = ""
 
         elif inp == " " and self.searching:
             self.cur_Search += " "
             self.refreshSearch()
 
         elif len(inp) == 1 and self.searching:
-            if inp == inp.upper(): # COMMANDS
+            if inp == inp.lower(): # SEARCH
+                self.cur_Search += inp
+                self.refreshSearch()
+
+            else: # COMMANDS
                 self.cur_Input += inp
 
                 i = self.cur_Input.lower()
@@ -3516,9 +3530,6 @@ class MusicPlayerC(threading.Thread):
                     self.cur_Input = ""
 
 
-            else: # SEARCH
-                self.cur_Search += inp
-                self.refreshSearch()
 
         elif inp == "del" and self.searching:
             self.Del_plfile(self.searchlist[self.cur_Pos])
@@ -3740,6 +3751,7 @@ class MusicPlayerC(threading.Thread):
             self.con_cont = "search"
             self.searching = True
             self.cur_Search = ""
+            self.cur_Input = "" # need this ?
             self.refreshSearch()
 
 
@@ -3766,6 +3778,60 @@ class MusicPlayerC(threading.Thread):
         else:
             return False
         return True
+
+    def react_remote(self, i):
+        if isinstance(i, tuple):
+            self.remoteAddress = i[0]
+        elif i is None:
+            self.remoteAddress = ""
+            self.remoteAction = ""
+        else: # COMMANDS
+            """
+            HOW:
+            
+            type_what(_value)
+            
+            eg.: 
+            set_pause_0
+            get_pause
+            """
+            data = i.split("_")
+
+            if data[0] == "set":
+                if data[1] == "next":
+                    self.next()
+                elif data[1] == "pause":
+                    if len(data) == 3:
+                        if data[2] == "0":
+                            self.play()
+                        elif data[2] == "1":
+                            self.pause()
+                    else:
+                        self.switch()
+                elif data[1] == "mute":
+                    if len(data) == 3:
+                        if data[2] == "0":
+                            self.unmute()
+                        elif data[2] == "1":
+                            self.mute()
+                    else:
+                        self.switchmute()
+                elif data[1] == "exit":
+                    self.stop()
+                elif data[1] == "volume" and len(data) == 3:
+                    self.vol(float(data[2]))
+
+
+            elif data[0] == "get":
+                if data[1] == "title":
+                    self.server.send(self.getCur()["name"])
+                elif data[1] == "time":
+                    self.server.send(self.timer.getTimeFor())
+                elif data[1] == "duration":
+                    self.server.send(TimeFor(self.getCur()["loaded"].duration))
+
+            self.remoteAction = i
+
 
 
 
@@ -4499,8 +4565,8 @@ class Client(threading.Thread):
 
 class Server(threading.Thread):
     def __init__(self, port: int, react, ip=socket.gethostbyname(socket.gethostname()), buffersize=1024,
-                 loginName=None, loginPW=None, maxConnections=1, Seculevel=0, BigServerBuffersize=536870912,
-                 BigServerPort=0, welcomeMessage="Welcome to Evecon Server!", thisBig=False):
+                 loginName=None, loginPW=None, maxConnections=1, Seculevel=0, BigServerBuffersize=0,
+                 BigServerPort=0, welcomeMessage="Welcome to Evecon Server!", thisBig=False, printLog=True, reactLogINOUT=False):
         """
         ip
         ip of the server
@@ -4568,6 +4634,10 @@ class Server(threading.Thread):
         BigServerPort
         set the Port of the BigServer if it is 0 the port is the normal port+1
 
+        reactLogINOUT
+        if True the server will send a react with only the ip-address if the connection is succsessful
+        at disconnet with None
+
         Keywords:
         #C! for a command
         #T! do not use, this will be used to talk to the client directly, like login in
@@ -4579,13 +4649,20 @@ class Server(threading.Thread):
 
         self.version = "1.0.0"
 
+        if usedPorts.isAvalible(port):
+            self.port = port
+        else:
+            self.port = usedPorts.getNextPort(port)
+        usedPorts.addPort(self.port)
+
         self.thisBigServer = thisBig
-        self.port = port
         self.react = react
         self.ip = ip
         self.buffersize = buffersize
         self.maxConnections = maxConnections
         self.welcomeMessage = welcomeMessage
+        self.printLog = printLog
+        self.reactLogINOUT = reactLogINOUT
 
         if loginName and loginPW:
             self.login = True
@@ -4736,6 +4813,9 @@ class Server(threading.Thread):
             if self.welcomeMessage:
                 self.send(self.welcomeMessage)
 
+            if self.reactLogINOUT:
+                self.react(self.conAddress)
+
             if self.conInfo["secu"]["status"] == 1:  # yes
                 self.writeLog("Started Connection with Client. Decryption")
 
@@ -4793,6 +4873,10 @@ class Server(threading.Thread):
             self.conAddress = None
             self.con = None
             self.conInfo = None
+
+
+            if self.reactLogINOUT:
+                self.react(None)
 
         self.Running = False
         self.Status = "Ended"
@@ -4852,7 +4936,8 @@ class Server(threading.Thread):
     def writeLog(self, data):
         write = "(" + datetime.datetime.now().strftime("%H:%M:%S:%f") + ") " + "(" + self.Status + ") " + data
         self.Log.append(write)
-        print("[Log] " + write)
+        if self.printLog:
+            print("[Log] " + write)
 
     def save(self, directory: str):
         file_log_raw = open("Log.txt", "w")
@@ -4891,6 +4976,7 @@ class Server(threading.Thread):
         self.send("#T!exit")
         self.con.close()
         self.Connected = False
+        usedPorts.remPort(self.port)
 
     def getStatus(self):
         curStatus = {"status": {"status": self.Status, "running": self.Running, "connected": self.Connected},
@@ -4903,8 +4989,74 @@ class Server(threading.Thread):
         else:
             return self.Timer.getTimeFor()
 
+class ServerJava(threading.Thread):
+    def __init__(self, ip, port, react):
+        super().__init__()
+        self.host = ip
 
-class Browser:
+        if usedPorts.isAvalible(port):
+            self.port = port
+        else:
+            self.port = usedPorts.getNextPort(port)
+        usedPorts.addPort(self.port)
+
+
+        self.Running = False
+        self.Connected = False
+        self.End = False
+        self.allDataSend = []
+        self.allDataRec = []
+        self.s = socket.socket()
+        self.conAddress = None
+        self.con = None
+
+        self.reac = react
+
+    def stop(self):
+        self.Running = False
+        self.End = True
+        self.Connected = False
+        self.con.close()
+
+    def send(self, data):
+        if self.Running and self.Connected and not self.End:
+            if type(data) == str:
+                data = data.encode()
+            elif type(data) == int:
+                data = str(data).encode()
+            data += b'\r\n'
+            self.con.send(data)
+            self.allDataSend.append(data)
+
+    def react(self, curData):
+        data = curData.decode("UTF-8").lstrip().rstrip()
+        self.reac(data)
+
+    def run(self):
+        self.Running = True
+        self.bind()
+        while self.Running:
+            self.s.listen(1)
+            self.con, self.conAddress = self.s.accept()
+            self.Connected = True
+            while self.Connected:
+                try:
+                    data = self.con.recv(1024)
+                except ConnectionResetError:
+                    self.Connected = False
+                    break
+                if not data:
+                    break
+                self.allDataRec.append(data)
+                self.react(data)
+
+        self.stop()
+
+    def bind(self):
+        self.s.bind((self.host, self.port))
+
+
+class BrowserOld:
     def __init__(self, path):
         self.path = path
         self.bro = None
@@ -4933,22 +5085,84 @@ class Browser:
         else:
             self.running = False
 
+"""
 class Firefox(Browser):
     def __init__(self, path=firefox_path):
         super().__init__(path)
 
         self.bro = webbrowser.Mozilla(self.path)
+"""
 
-
-class Vivaldi(Browser):
+class Vivaldi(BrowserOld):
     def __init__(self, path=vivaldi_path):
         super().__init__(path)
 
         self.bro = webbrowser.Chrome(self.path)
 
+class Browser:
+    def __init__(self, path):
+        self.path = path
+
+        self.com_newWin = ""
+        self.com_newTab = ""
+        self.path_dir = ""
+        for x in self.path.split(path_seg):
+            if x == "C:":
+                self.path_dir = x
+            elif x != "firefox.exe":
+                self.path_dir += path_seg + x
+
+        self.name = self.path.split(path_seg)[-1]
+        if self.name in (p.name() for p in psutil.process_iter()):
+            self.running = True
+        else:
+            self.running = False
+
+
+    def open(self, url: list, new_type=2):
+        if type(url) != list:
+            url = [url]
+        for x in url:
+            self.open_tab(url=str(x))
+
+    def open_win(self, url: str):
+        dir_tmp = os.getcwd()
+        os.chdir(self.path_dir)
+        subprocess.call([self.name, self.com_newWin, url])
+        time.sleep(0.15)
+        os.chdir(dir_tmp)
+
+    def open_tab(self, url: str):
+        dir_tmp = os.getcwd()
+        os.chdir(self.path_dir)
+        subprocess.call([self.name, self.com_newTab, url])
+        time.sleep(0.15)
+        os.chdir(dir_tmp)
+
+    def refresh(self):
+        if self.name in (p.name() for p in psutil.process_iter()):
+            self.running = True
+        else:
+            self.running = False
+
+class Firefox(Browser):
+    def __init__(self, path=firefox_path):
+        super().__init__(path)
+
+        self.com_newWin = "-new-window"
+        self.com_newTab = "-new-tab"
+
+
+class MusicPlayerRemote:
+    #TODO: HERE
+    pass
+
+
+
+
+
 
 title("Loading Title Time")
-
 
 
 def computerconfig_schoolpc():

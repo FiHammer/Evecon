@@ -77,7 +77,7 @@ def install(zipFile, installDir="", installPY=True):
     szip.extract_archive(zipFile, "data\\Update\\unzipTMP")
 
     backuptime = open(installDir + "data\\Backup\\backup.txt", "w")  # von Mainstick auf Ministick
-    backuptime.write("Backup:\nFrom: Zip\nTo: Me\nDate: %s\nTime: %s\nVersion: %s" % (
+    backuptime.write("Backup:\nFrom: Zip\nTo: Me\nDate: %s\n_time: %s\nVersion: %s" % (
         datetime.datetime.now().strftime("%d.%m.%Y"),
         datetime.datetime.now().strftime("%H:%M:%S"), this_version[1]))
     backuptime.close()
@@ -252,7 +252,7 @@ def upgrade():
         title("Upgrade", "Backup")
 
         backuptime = open("data\\Backup\\backup.txt", "w")
-        backuptime.write("Backup while Upgrading:\nDate: %s\nTime: %s\nVersion: %s" % (
+        backuptime.write("Backup while Upgrading:\nDate: %s\n_time: %s\nVersion: %s" % (
             datetime.datetime.now().strftime("%d.%m.%Y"),
             datetime.datetime.now().strftime("%H:%M:%S"), this_version[1]))
         backuptime.close()
@@ -284,7 +284,7 @@ def upgrade():
 
         file_changelog_raw = open("data\\Info\\Changelog.txt", "a+")
         file_changelog_raw.write(
-            "Version: %s\nNumber: %s\nDate: %s\nTime: %s\nChanges:\n" % (newversion, str(this_version_1),
+            "Version: %s\nNumber: %s\nDate: %s\n_time: %s\nChanges:\n" % (newversion, str(this_version_1),
                                                                          datetime.datetime.now().strftime("%d.%m.%Y"),
                                                                          datetime.datetime.now().strftime("%H:%M:%S")))
         for x in range(len(newupdate)):

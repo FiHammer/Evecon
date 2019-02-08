@@ -61,7 +61,7 @@ class TimerC:
         self.stoptime = 0
         self.startpausetime = 0
         self.stoppausetime = 0
-        self.Time = 0
+        self._time = 0
         self.Pause = 0
         self.curPause = 0
         self.startcurPause = 0
@@ -106,7 +106,7 @@ class TimerC:
         self.stoptime = 0
         self.startpausetime = 0
         self.stoppausetime = 0
-        self.Time = 0
+        self._time = 0
         self.Pause = 0
         self.curPause = 0
         self.startcurPause = 0
@@ -133,17 +133,19 @@ class TimerC:
         self.Pause = self.stoppausetime - self.startpausetime
 
         if self.End:
-            self.Time = self.stoptime - self.starttime - self.Pause
+            self._time = self.stoptime - self.starttime - self.Pause
         else:
-            self.Time = time.time() - self.starttime - self.Pause - self.curPause
+            self._time = time.time() - self.starttime - self.Pause - self.curPause
 
     def getTime(self):
         self.reload()
-        return self.Time
+        return self._time
+
+    time = property(getTime)
 
     def getTimeFor(self):
         self.reload()
-        return TimeFor(self.Time)
+        return TimeFor(self._time)
 
 def TimeFor(Time):
     if (round(Time) % 60) == 0:

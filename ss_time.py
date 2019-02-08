@@ -10,15 +10,19 @@ import threading
 from cls import *
 
 cdir = os.getcwd()
-os.chdir("..")
-os.chdir("..")
-os.chdir("..")
+if cdir == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
+	os.chdir("..")
+	os.chdir("..")
+else:
+	os.chdir("..")
+	os.chdir("..")
+	os.chdir("..")
 
-ctypes.windll.kernel32.SetConsoleTitleW("Time Printer")
+ctypes.windll.kernel32.SetConsoleTitleW("_time Printer")
 
 dir_tmp = os.getcwd()
 os.chdir("Programs\\nircmd")
-subprocess.call(["nircmdc", "win", "max", "title", "Time Printer"])# nircmd mach mich groß # nircmdc win max title "NirCmd"
+subprocess.call(["nircmdc", "win", "max", "title", "_time Printer"])# nircmd mach mich groß # nircmdc win max title "NirCmd"
 time.sleep(0.1)
 os.chdir(dir_tmp)
 
