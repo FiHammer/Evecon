@@ -39,7 +39,7 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
-code_version = "0.9.4.0"
+code_version = "0.9.4.1"
 
 pyglet.options['search_local_libs'] = True
 
@@ -1600,97 +1600,221 @@ def non_string_iterable(obj):
 class UsedPortsC:
     def __init__(self):
         self.ports = []
-        error = False
-        with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt") as file:
-            for x in file:
-                try:
-                    int(x)
-                    self.ports.append(x)
-                except ValueError:
-                    error = True
-                    break
-        if error:
-            with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt", "w") as file:
-                file.write("")
+        self.programs = 0
+
+        self.usePorts = []
+
+        python = 0
+        evecon = 0
+
+        for x in psutil.process_iter():
+            if x.name() == "!Console.exe":
+                evecon += 1
+            elif x.name() == "python.exe":
+                python += 1
+
+        if python + evecon == 1 or self.programs > python + evecon - 1:
+            self.resetFile()
+
+        else:
+            with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt") as file:
+                lines = file.readlines()
+                for x in range(len(lines)):
+                    if x == 0: # first Line
+                        self.programs = int(lines[x].rstrip())
+                    else:
+                        try:
+                            int(x)
+                            self.ports.append(lines[x].rstrip())
+                        except ValueError:
+                            self.resetFile()
+                            break
 
     def readFile(self):
         self.ports = []
-        error = False
+        self.programs = 0
+        python = 0
+        evecon = 0
+
+        for x in psutil.process_iter():
+            if x.name() == "!Console.exe":
+                evecon += 1
+            elif x.name() == "python.exe":
+                python += 1
+        """
+        if python + evecon == 1 or self.programs > python + evecon:
+            self.resetFile()
+        
+        else:
+        """
         with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt") as file:
-            for x in file:
-                try:
-                    int(x)
-                    self.ports.append(x)
-                except ValueError:
-                    error = True
-                    break
-        if error:
-            with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt", "w") as file:
-                file.write("")
+            lines = file.readlines()
+            for x in range(len(lines)):
+                if x == 0: # first Line
+                    self.programs = int(lines[x].rstrip())
+                else:
+                    try:
+                        int(x)
+                        self.ports.append(lines[x].rstrip())
+                    except ValueError:
+                        self.resetFile()
+                        break
+        if len(self.ports) < self.programs:
+            self.resetFile()
 
     def writeFile(self):
         with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt", "w") as file:
-            for x in range(len(self.ports)):
-                if x == len(self.ports) - 1:
-                    file.write(self.ports[x])
+            for x in range(len(self.ports) + 1):
+                if x == 0:
+                    file.write(str(self.programs) + "\n")
+                elif x == len(self.ports):
+                    file.write(self.ports[x - 1])
                 else:
-                    file.write(self.ports[x] + "\n")
+                    file.write(self.ports[x - 1] + "\n")
+    def resetFile(self):
+        self.programs = 0
+        self.usePorts = []
+        self.ports = []
+        with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt", "w") as file:
+            file.write(str(self.programs))
+
     def addPort(self, port):
+        if Search(str(port), self.ports):
+            return False
         self.ports.append(str(port))
+        if not self.usePorts:
+            self.programs += 1
+        self.usePorts.append(str(port))
         self.writeFile()
     def remPort(self, port):
         found = Search(str(port), self.ports)
         del self.ports[found[0]]
+
+
+        found = Search(str(port), self.usePorts)
+        del self.usePorts[found[0]]
+        if not self.usePorts:
+            self.programs -= 1
+        self.writeFile()
     def isAvalible(self, port):
+        self.readFile()
         if Search(str(port), self.ports):
             return False
         else:
             return True
     def getNextPort(self, port):
+        self.readFile()
         while True:
             port += 1
             if not Search(str(port), self.ports):
                 return port
+    def givePort(self, port=4000):
+        if not self.isAvalible(port):
+            port = self.getNextPort(port)
+        self.addPort(port)
+        return port
 
 usedPorts = UsedPortsC()
 
 class globalMPportsC:
-    def __init__(self):
+    def __init__(self, file):
+        self.file = file
         self.ports = []
-        with open("data" + path_seg + "tmp" + path_seg + "mpPorts.txt", "w") as file:
-            file.write("")
+        self.programs = 0
+
+        self.usePorts = []
+
+        python = 0
+        evecon = 0
+
+        for x in psutil.process_iter():
+            if x.name() == "!Console.exe":
+                evecon += 1
+            elif x.name() == "python.exe":
+                python += 1
+
+        if python + evecon == 1 or self.programs > python + evecon:
+            self.resetFile()
+
+        else:
+            with open("data" + path_seg + "tmp" + path_seg + self.file) as file:
+                lines = file.readlines()
+                for x in range(len(lines)):
+                    if x == 0: # first Line
+                        self.programs = int(lines[x].rstrip())
+                    else:
+                        try:
+                            int(x)
+                            self.ports.append(lines[x].rstrip())
+                        except ValueError:
+                            self.resetFile()
+                            break
 
     def readFile(self):
-        self.ports = []
-        error = False
-        with open("data" + path_seg + "tmp" + path_seg + "mpPorts.txt") as file:
-            for x in file:
-                try:
-                    int(x)
-                    self.ports.append(x)
-                except ValueError:
-                    error = True
-                    break
-        if error:
-            with open("data" + path_seg + "tmp" + path_seg + "mpPorts.txt", "w") as file:
-                file.write("")
+        python = 0
+        evecon = 0
+
+        for x in psutil.process_iter():
+            if x.name() == "!Console.exe":
+                evecon += 1
+            elif x.name() == "python.exe":
+                python += 1
+
+        if python + evecon == 1 or self.programs > python + evecon:
+            self.resetFile()
+
+        else:
+            with open("data" + path_seg + "tmp" + path_seg + self.file) as file:
+                lines = file.readlines()
+                for x in range(len(lines)):
+                    if x == 0: # first Line
+                        self.programs = int(lines[x].rstrip())
+                    else:
+                        try:
+                            int(x)
+                            self.ports.append(lines[x].rstrip())
+                        except ValueError:
+                            self.resetFile()
+                            break
+            if len(self.ports) < self.programs:
+                self.resetFile()
 
     def writeFile(self):
-        with open("data" + path_seg + "tmp" + path_seg + "mpPorts.txt", "w") as file:
-            for x in range(len(self.ports)):
-                if x == len(self.ports) - 1:
-                    file.write(self.ports[x])
+        with open("data" + path_seg + "tmp" + path_seg + self.file, "w") as file:
+            for x in range(len(self.ports) + 1):
+                if x == 0:
+                    file.write(str(self.programs) + "\n")
+                elif x == len(self.ports):
+                    file.write(self.ports[x - 1])
                 else:
-                    file.write(self.ports[x] + "\n")
+                    file.write(self.ports[x - 1] + "\n")
+    def resetFile(self):
+        self.programs = 0
+        with open("data" + path_seg + "tmp" + path_seg + self.file, "w") as file:
+            file.write(str(self.programs))
+
     def addPort(self, port):
+        if Search(str(port), self.ports):
+            return False
         self.ports.append(str(port))
+        if not self.usePorts:
+            self.programs += 1
+        self.usePorts.append(str(port))
         self.writeFile()
     def remPort(self, port):
         found = Search(str(port), self.ports)
         del self.ports[found[0]]
 
+        found = Search(str(port), self.usePorts)
+        del self.usePorts[found[0]]
+        if not self.usePorts:
+            self.programs -= 1
+        self.writeFile()
 
-globalMPports = globalMPportsC()
+
+globalMPports = globalMPportsC("mpPorts.txt")
+globalMPportsJava = globalMPportsC("mpPortsJava.txt")
+
 
 class SysTray(threading.Thread):
     def __init__(self, icon: str, hover_text: str, menu: dict, sub_menu_name1: str=None, sub_menu1: dict=None,
@@ -2712,7 +2836,9 @@ class MusicPlayerC(threading.Thread):
 
         if self.remote:
             self.server.close_connection()
+            self.server_java.stop()
             globalMPports.remPort(self.server.port)
+            globalMPportsJava.remPort(self.server_java.port)
 
         if self.systrayon and self.killMeAfterEnd:
             time.sleep(1)
@@ -2913,6 +3039,7 @@ class MusicPlayerC(threading.Thread):
 
         if self.remote:
             globalMPports.addPort(self.server.port)
+            globalMPportsJava.addPort(self.server_java.port)
             self.server.start()
             self.server_java.start()
 
@@ -3779,7 +3906,7 @@ class MusicPlayerC(threading.Thread):
             return False
         return True
 
-    def react_remote(self, i):
+    def react_remote(self, i, java=False):
         if isinstance(i, tuple):
             self.remoteAddress = i[0]
         elif i is None:
@@ -3800,37 +3927,56 @@ class MusicPlayerC(threading.Thread):
             if data[0] == "set":
                 if data[1] == "next":
                     self.next()
+                    self.remoteAction = "Next"
                 elif data[1] == "pause":
                     if len(data) == 3:
                         if data[2] == "0":
                             self.play()
+                            self.remoteAction = "Unpause"
                         elif data[2] == "1":
                             self.pause()
+                            self.remoteAction = "Pause"
                     else:
                         self.switch()
+                        self.remoteAction = "Switch pause"
                 elif data[1] == "mute":
                     if len(data) == 3:
                         if data[2] == "0":
                             self.unmute()
+                            self.remoteAction = "Unmute"
                         elif data[2] == "1":
                             self.mute()
+                            self.remoteAction = "Mute"
                     else:
                         self.switchmute()
+                        self.remoteAction = "Switch mute"
                 elif data[1] == "exit":
                     self.stop()
                 elif data[1] == "volume" and len(data) == 3:
                     self.vol(float(data[2]))
+                    self.remoteAction = "Volume to: " + str(self.volume)
+                elif data[1] == "volumep" and len(data) == 3:
+                    self.volp(float(data[2]))
+                    self.remoteAction = "VolumeP to: " + str(self.volumep)
 
 
             elif data[0] == "get":
+                data_send = ""
                 if data[1] == "title":
-                    self.server.send(self.getCur()["name"])
+                    data_send = self.getCur()["name"]
                 elif data[1] == "time":
-                    self.server.send(self.timer.getTimeFor())
+                    data_send = round(self.timer.getTime())
                 elif data[1] == "duration":
-                    self.server.send(TimeFor(self.getCur()["loaded"].duration))
+                    data_send = round(self.getCur()["loaded"].duration)
+                elif data[1] == "volume":
+                    data_send = str(Volume.getVolume())
+                #print(data_send)
+                if data_send:
+                    if not java:
+                        self.server.send(data_send)
+                    else:
+                        self.server_java.send(data_send)
 
-            self.remoteAction = i
 
 
 
@@ -4410,7 +4556,7 @@ class Client(threading.Thread):
                    str(self.Info["secu"]["level"]).encode() + b'!' + \
                    str(self.Info["secu"]["key"]).encode()
 
-        self.send(InfoSend, encrypt=False)
+        self.send(InfoSend, encrypt=False, direct=True)
 
         try:
             conAccept = self.s.recv(self.buffersize).decode("UTF-8")
@@ -4463,8 +4609,8 @@ class Client(threading.Thread):
         self.Status = "Ended"
 
 
-    def send(self, data, encrypt=None):
-        if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
+    def send(self, data, encrypt=None, direct=False):
+        if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected" or direct:
             if type(data) == str:
                 data_send = data.encode()
             elif type(data) == int:
@@ -4649,11 +4795,7 @@ class Server(threading.Thread):
 
         self.version = "1.0.0"
 
-        if usedPorts.isAvalible(port):
-            self.port = port
-        else:
-            self.port = usedPorts.getNextPort(port)
-        usedPorts.addPort(self.port)
+        self.port = usedPorts.givePort(port)
 
         self.thisBigServer = thisBig
         self.react = react
@@ -4751,7 +4893,7 @@ class Server(threading.Thread):
                        str(self.Info["secu"]["level"]).encode()
 
             # self.Log.append(InfoSend)
-            self.send(InfoSend, encrypt=False)
+            self.send(InfoSend, encrypt=False, direct=True)
 
             try:
                 InfoClient_raw = self.con.recv(1024)
@@ -4881,8 +5023,8 @@ class Server(threading.Thread):
         self.Running = False
         self.Status = "Ended"
 
-    def send(self, data, encrypt=None):
-        if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected" or not encrypt:
+    def send(self, data, encrypt=None, direct=False):
+        if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected" or direct:
 
             if type(data) == str:
                 data_send = data.encode()
@@ -4966,17 +5108,20 @@ class Server(threading.Thread):
         file_logrece_raw.close()
 
     def exit(self, sendM=True):
-        if sendM:
-            self.send("#T!exit")
-        self.con.close()
+        if self.con:
+            if sendM:
+                self.send("#T!exit")
+            self.con.close()
         self.Connected = False
         self.Running = False
+        usedPorts.remPort(self.port)
 
     def close_connection(self):
-        self.send("#T!exit")
-        self.con.close()
-        self.Connected = False
-        usedPorts.remPort(self.port)
+        if self.con and self.Connected:
+            self.send("#T!exit")
+            self.con.close()
+            self.Connected = False
+            usedPorts.remPort(self.port)
 
     def getStatus(self):
         curStatus = {"status": {"status": self.Status, "running": self.Running, "connected": self.Connected},
@@ -4990,16 +5135,13 @@ class Server(threading.Thread):
             return self.Timer.getTimeFor()
 
 class ServerJava(threading.Thread):
-    def __init__(self, ip, port, react):
+    def __init__(self, ip, port, react, allowPrint=False, giveJava=True, sendIP=True):
         super().__init__()
         self.host = ip
-
-        if usedPorts.isAvalible(port):
-            self.port = port
-        else:
-            self.port = usedPorts.getNextPort(port)
-        usedPorts.addPort(self.port)
-
+        self.allowPrint = allowPrint
+        self.port = usedPorts.givePort(port)
+        self.giveJava = giveJava
+        self.sendIP = sendIP
 
         self.Running = False
         self.Connected = False
@@ -5022,22 +5164,36 @@ class ServerJava(threading.Thread):
         if self.Running and self.Connected and not self.End:
             if type(data) == str:
                 data = data.encode()
-            elif type(data) == int:
+            else:
                 data = str(data).encode()
             data += b'\r\n'
+            if self.allowPrint:
+                print("[Log] Sending:" + str(data))
             self.con.send(data)
             self.allDataSend.append(data)
 
     def react(self, curData):
+        if self.allowPrint:
+            print("[Log] Recieving:" + str(curData))
         data = curData.decode("UTF-8").lstrip().rstrip()
-        self.reac(data)
+        if self.giveJava:
+            self.reac(data, java=True)
+        else:
+            self.reac(data)
 
     def run(self):
         self.Running = True
         self.bind()
+
+        if self.allowPrint:
+            print("[Log] Started!")
         while self.Running:
             self.s.listen(1)
             self.con, self.conAddress = self.s.accept()
+            if self.allowPrint:
+                print("[Log] Connected:" + str(self.conAddress))
+            if self.sendIP:
+                self.reac(self.conAddress)
             self.Connected = True
             while self.Connected:
                 try:

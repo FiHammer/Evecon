@@ -9,6 +9,7 @@ startmain = False
 exitnow = 0
 pausetime = 180
 thisIP = None
+StartupServerJava = None
 
 from EveconLib import *
 
@@ -117,6 +118,16 @@ def StartupServerTasks(data):
             StartupServer.send("End: True")
     elif data == "help":
         StartupServer.send("shutdown, sleep, ep_energysave, reboot, mp_setup, mp_add_*, mp_start, mp_pause, mp_stop, mp_getsong, mp_status")
+
+def StartupServerTasksJava(dataraw):
+    global StartupServerJava
+    data = dataraw.split("_")
+
+    if data[0] == "get":
+        if data[1] == "mpPort":
+            globalMPportsJava.readFile()
+            if globalMPportsJava.ports[0]:
+                StartupServerJava.send(globalMPportsJava.ports[0])
 
 class FoxiC:
     def __init__(self, browser_type=browser):
@@ -2023,9 +2034,14 @@ def Arg():
             serverport = int(sys.argv[x + 1])
             if not sys.argv[x + 2] == "app":
                 killConsoleWin()
+            global StartupServerJava
             StartupServer = Server(ip=thisIP, port=serverport, react=StartupServerTasks)
+            StartupServerJava = ServerJava(ip=thisIP, port=serverport + 2, react=StartupServerTasksJava, allowPrint=True, sendIP=False, giveJava=False)
+            print("JAVA-SERVER port: " + str(StartupServerJava.port))
             StartupServer.start()
+            StartupServerJava.start()
             StartupServer.join()
+            StartupServerJava.join()
             exit_now()
         if sys.argv[x] == "--inter_client":
             title("Interactive Client", " ", " ")
