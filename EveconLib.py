@@ -2192,8 +2192,8 @@ class MusicPlayerC(threading.Thread):
         self.remoteAddress = ""
         self.remoteAction = ""
         if self.remote:
-            self.server = Server(port=self.remotePort, ip="192.168.2.102", react=self.react_remote, welcomeMessage="", reactLogINOUT=True, printLog=False)
-            self.server_java = ServerJava(port=self.remotePort + 1, ip="192.168.2.102", react=self.react_remote)
+            self.server = Server(port=self.remotePort, ip=thisIP, react=self.react_remote, welcomeMessage="", reactLogINOUT=True, printLog=False)
+            self.server_java = ServerJava(port=self.remotePort + 1, ip=thisIP, react=self.react_remote)
         else:
             self.server = None
             self.server_java = None
@@ -2497,16 +2497,18 @@ class MusicPlayerC(threading.Thread):
                 print("Musicfile is not valid:\nKey not found! (" + error + ")")
 
             if remove:
-                with open("data" + path_seg + "Backup" + path_seg + "Music_backup.json") as jsonfile:
+                with open("data" + path_seg + "Backup" + path_seg + "Music.json") as jsonfile:
                     data = json.load(jsonfile)
 
             return False
 
         def parse(unvaild):
             version = "1.1"
-            if data.get("pc") != computer or data.get("pc") == "global":
-                unvaild("Wrong PC!", remove=True)
-                return parse(unvalid)
+
+            if data.get("pc") != computer:
+                if data.get("pc") != "global":
+                    unvaild("Wrong PC!", remove=True)
+                    return parse(unvalid)
             if data.get("version"):
                 if not data["version"] == version:
                     unvaild("Wrong Version! (" + version + " required)")
@@ -2529,8 +2531,11 @@ class MusicPlayerC(threading.Thread):
                 unvaild("directories", True, remove=True)
                 return parse(unvalid)
             if not data.get("multiplaylists"):
-                unvaild("multiplaylists", True, remove=True)
-                return parse(unvalid)
+                multiPls_deac = True
+                #unvaild("multiplaylists", True, remove=True)
+                #return parse(unvalid)
+            else:
+                multiPls_deac = False
 
 
             musicDirs = {"names": []}
@@ -2578,32 +2583,33 @@ class MusicPlayerC(threading.Thread):
             musicDirs["keys"] = dirIDs
 
             # generate mpl
-            for aMPl in mplIDs_direct:
-                if aMPl == multiPls_direct[aMPl].get("id"):
-                    if aMPl.islower():
-                        if not Search(aMPl, dirIDs, exact=True):
-                            if Search(aMPl, mplIDs, exact=True):
-                                unvalid("A MPl-ID was double (" + aMPl + ")")
-                                continue
-                            mplIDs.append(aMPl)
+            if not multiPls_deac:
+                for aMPl in mplIDs_direct:
+                    if aMPl == multiPls_direct[aMPl].get("id"):
+                        if aMPl.islower():
+                            if not Search(aMPl, dirIDs, exact=True):
+                                if Search(aMPl, mplIDs, exact=True):
+                                    unvalid("A MPl-ID was double (" + aMPl + ")")
+                                    continue
+                                mplIDs.append(aMPl)
 
-                            multiPls[aMPl] = multiPls_direct[aMPl]["content"]["ids"].copy()
+                                multiPls[aMPl] = multiPls_direct[aMPl]["content"]["ids"].copy()
 
-                            if multiPls_direct[aMPl]["content"].get("genre"):
-                                for aGenre in multiPls_direct[aMPl]["content"]["genre"]:
-                                    for aDir in dirIDs:
-                                        if Search(aGenre, musicDirs[aDir]["genre"], exact=True) and not Search(aDir,
-                                                                                                               multiPls[
-                                                                                                                   aMPl],
-                                                                                                               exact=True):
-                                            multiPls[aMPl].append(aDir)
+                                if multiPls_direct[aMPl]["content"].get("genre"):
+                                    for aGenre in multiPls_direct[aMPl]["content"]["genre"]:
+                                        for aDir in dirIDs:
+                                            if Search(aGenre, musicDirs[aDir]["genre"], exact=True) and not Search(aDir,
+                                                                                                                   multiPls[
+                                                                                                                       aMPl],
+                                                                                                                   exact=True):
+                                                multiPls[aMPl].append(aDir)
 
+                            else:
+                                unvalid("MPl-ID is used in the musicDirs (" + aMPl + ")")
                         else:
-                            unvalid("MPl-ID is used in the musicDirs (" + aMPl + ")")
+                            unvalid("MPl-ID is not low (" + aMPl + ")")
                     else:
-                        unvalid("MPl-ID is not low (" + aMPl + ")")
-                else:
-                    unvalid("Diffrent MPl-IDs (" + aMPl + ")")
+                        unvalid("Diffrent MPl-IDs (" + aMPl + ")")
 
             # deleting genre
             delGenre = []
@@ -2851,7 +2857,7 @@ class MusicPlayerC(threading.Thread):
             self.paused = False
             self.player.play()
         self.hardworktime = time.time() + 0.2
-    def Del(self, num):
+    def DelById(self, num):
         #num = Search(plfile, self.playlist)[0]
         if num == 0 and self.stop_del:
             self.stop()
@@ -2866,7 +2872,7 @@ class MusicPlayerC(threading.Thread):
         if num == 0:
             self.next(True)
 
-    def Del_plfile(self, plfile):
+    def DelByFile(self, plfile):
         num = Search(plfile, self.playlist)[0]
         if num == 0 and self.stop_del:
             self.stop()
@@ -2890,13 +2896,13 @@ class MusicPlayerC(threading.Thread):
     def volp(self, vol):
         self.volumep = vol
         self.player.volume = self.volumep
-    def queue(self, pos):
+    def queueById(self, pos):
         oldPL = self.playlist.copy()
         del oldPL[pos]
         del oldPL[0]
         self.playlist = [self.playlist[0]] + [self.playlist[pos]] + oldPL
         self.hardworktime = time.time()
-    def queue_plfile(self, plfile):
+    def queueByFile(self, plfile):
         oldPL = self.playlist.copy()
         del oldPL[Search(plfile, oldPL)[0]]
         del oldPL[0]
@@ -3004,7 +3010,7 @@ class MusicPlayerC(threading.Thread):
             def nextm(x):
                 self.next()
             def delm(x):
-                self.Del(0)
+                self.DelById(0)
                 self.playing = False
                 if self.paused:
                     self.play()
@@ -3637,12 +3643,12 @@ class MusicPlayerC(threading.Thread):
                     self.cur_Input = ""
 
                 elif i == "del":
-                    self.Del_plfile(self.searchlist[self.cur_Pos])
+                    self.DelByFile(self.searchlist[self.cur_Pos])
                     self.refreshSearch()
                     self.cur_Input = ""
 
                 elif i == "qu":
-                    self.queue_plfile(self.searchlist[self.cur_Pos])
+                    self.queueByFile(self.searchlist[self.cur_Pos])
                     self.cur_Input = ""
 
                 # Musicplayer commands
@@ -3659,7 +3665,7 @@ class MusicPlayerC(threading.Thread):
 
 
         elif inp == "del" and self.searching:
-            self.Del_plfile(self.searchlist[self.cur_Pos])
+            self.DelByFile(self.searchlist[self.cur_Pos])
             self.refreshSearch()
             self.cur_Input = ""
 
@@ -3797,7 +3803,7 @@ class MusicPlayerC(threading.Thread):
             self.cur_Pos += 1
 
         elif inp == "del" and self.con_main == "pl":
-            self.Del(self.cur_Pos)
+            self.DelById(self.cur_Pos)
 
         elif inp == "return" and self.con_main == "pl":
             oldPL = self.playlist.copy()
@@ -3827,7 +3833,7 @@ class MusicPlayerC(threading.Thread):
         #    time.sleep(0.5)
         #    self.Del(self.playlist[-1])
         elif i == "del":
-            self.Del(self.cur_Pos)
+            self.DelById(self.cur_Pos)
 
         elif i == "volw":
             self.cur_Input = ""
@@ -3857,7 +3863,7 @@ class MusicPlayerC(threading.Thread):
             self.sortPL_an()
             self.next(True)
         elif i == "qu":
-            self.queue(self.cur_Pos)
+            self.queueById(self.cur_Pos)
         elif i == "debug":
             if self.debug:
                 self.debug = False
@@ -5310,10 +5316,253 @@ class Firefox(Browser):
 
 
 class MusicPlayerRemote:
-    #TODO: HERE
-    pass
+    def __init__(self, ip="127.0.0.1", port=0, showLog=False):
+        """
+        :type ip: str
+        :param ip: the IP of the Musicplayer
+
+        :type port: int
+        :param port: the IP of the Musicplayer
+
+        standart: searching on the current pc
+        """
+
+        if not port:
+            globalMPports.readFile()
+            if globalMPports.ports:
+                port = globalMPports.ports[0]
+
+        self.cl = Client(ip=ip, port=port, react=self.react, showLog=showLog)
+
+        self.recieved = False
+
+        # DATA VARS NO TOUCHING
+
+        self._title = "" # Cur title
+        self._time = 0.0 # Cur time
+        self._duration = 0.0 # Duration of cur title
+        self._vol = 0.0 # Volume (Windows)
+        self._volp = 0.0 # Volume (Player)
+
+        # TEMPORARY
+        self._file = "" # a tmp file str from the last requested id
+
+        self._playlistLen = 0
+        self._playlist = []
+
+    # control
+
+    def stop(self):
+        """
+        stops the remote control
+
+        :rtype: bool
+        :return: succsess
+        """
+
+    def start(self):
+        """
+        starts the connection
+
+        :rtype: bool
+        :return: succsess
+        """
+
+    def react(self, dataRaw):
+        """
+        reacts to the data sent from the server
+
+        :param dataRaw: data
+        :type dataRaw: str
+        """
+
+        data = dataRaw.split("_")
+
+        if data[0] == "get":
+            if data[1] == "title":
+                self._title = data[2]
+            elif data[1] == "time":
+                self._time = data[2]
+            elif data[1] == "duration":
+                self._duration = data[2]
+            elif data[1] == "vol":
+                self._vol = data[2]
+            elif data[1] == "volp":
+                self._volp = data[2]
+            elif data[1] == "file":
+                self._file = data[2]
+            elif data[1] == "playlistlen":
+                self._playlistLen = data[2]
+            else:
+                return
+
+            self.recieved = True
+
+    def get(self, var, wait=True):
+        """
+        do the waiting and recieving the info
+
+        :param var: the data for waiting
+        :type var: str
+        :param wait: wait till reci?
+        :type wait: bool
+        """
+
+        self.recieved = False
+        self.cl.send("get_" + var)
+        while not self.recieved and wait:
+            time.sleep(0.1)
 
 
+    # GET
+
+    # GET (Interface)
+    def getTitle(self):
+        """
+        :rtype: str
+        :return: returns the title
+        """
+        self.get("title")
+        return self._title
+    title = property(getTitle)
+
+    def getTime(self):
+        """
+        :rtype: float
+        :return: the time (current playtime) in sec
+        """
+        self.get("time")
+        return self._time
+    time = property(getTime)
+
+    def getDuration(self):
+        """
+        :rtype: float
+        :return: the time (current playtime) in sec
+        """
+        self.get("duration")
+        return self._duration
+    duration = property(getDuration)
+
+    def getVol(self):
+        """
+        :rtype: float
+        :return: the cur windows vol
+        """
+        self.get("vol")
+        return self._vol
+    vol = property(getVol)
+
+    def getVolp(self):
+        """
+        :rtype: float
+        :return: the cur player vol
+        """
+        self.get("volp")
+        return self._volp
+    volp = property(getVolp)
+
+    # GET (Programming)
+    def getFileById(self, num):
+        """
+        :param num: the id of the playlist position
+        :type num: int
+
+        :return: the fileID of the playlist postion
+        :rtype: str
+        """
+        self.get("file")
+        return self._file
+
+    def getPlaylistLen(self):
+        """
+        :return: length of playlist
+        :rtype: int
+        """
+        self.get("playlistlen")
+        return self._playlistLen
+
+    def getPlaylist(self):
+        """
+        :return: the playlist
+        :rtype: list
+        """
+
+        plLen = self.getPlaylistLen()
+        self._playlist = []
+        for x in range(plLen):
+            self._playlist.append(self.getFileById(x))
+
+        return self._playlist
+    playlist = property(getPlaylist)
+
+    def getMusicNameByFile(self, file):
+        pass
+    def getMusicFileByFile(self, file):
+        pass
+    def getMusicPathByFile(self, file):
+        pass
+    def getMusicFullnameByFile(self, file):
+        pass
+
+
+
+    # SET
+
+    # SET (Player)
+
+    def setPlayingStatus(self, status=2):
+        pass
+    def setMuteStatus(self, status=2):
+        pass
+
+
+    def playNext(self):
+        pass
+    def delById(self, num):
+        pass
+    def delByFile(self, file):
+        pass
+
+    def queueById(self):
+        pass
+    def queueByFile(self):
+        pass
+
+
+
+    def setVol(self, vol):
+        pass
+    def setVolp(self, vol):
+        pass
+
+
+    def stopPlayer(self):
+        pass
+
+    # SET (Programming)
+
+    def addMusic(self):
+        pass
+    def setPlaying(self, file):
+        pass
+    def makePlaylist(self):
+        pass
+
+    def printRemote(self):
+        pass
+    def printHeadRemote(self):
+        pass
+    def printBodyRemote(self):
+        pass
+    def printFootRemote(self):
+        pass
+
+
+    def directReact(self, i):
+        pass
+    def directInput(self, i):
+        pass
 
 
 
@@ -5355,6 +5604,7 @@ elif Computername == "Bigger-PC":
 elif Computername == "Test":
     title("OLD", "OLD", "somebody@Aldi-Laptop")
     computer = "AldiPC"
+    input(computer)
     computerconfig_aldi()
 
 elif Computername == "Luis":
