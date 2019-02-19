@@ -156,6 +156,535 @@ def TimeFor(Time):
         TimeFor = "%s:%s" % (round(Time) // 60, round(Time) % 60)
     return TimeFor
 
+def timeFormat_minsec(milsec, enMilsec=True, enSec=True, enMin=True, enHr=False, enDay=False, auto=True, units=True):
+    """
+    formats the time, given in milliseconds, parsed in str
+    the parameters beginning with 'en' enables the output
+    seconds, minutes, hours, days
+    :param auto: this will automaticly decide, which ouput types will be activated
+
+    :type milsec: int
+    :type enMilsec: bool
+    :type enSec: bool
+    :type enMin: bool
+    :type enHr: bool
+    :type enDay: bool
+    :type auto: bool
+    :type units: bool
+
+    :rtype: str
+    :return: formatted time day:hr:min:sec:milsec
+    """
+
+    _milsec = milsec
+    _sec = _milsec // 1000
+    _mi = _sec // 60
+    _hr = _mi // 60
+    _day = _hr // 60
+
+    milsec = _milsec % 1000
+    sec = _sec % 60
+    mi = _mi % 60
+    hr = _hr % 24
+    day = _day
+
+    parse = ""
+
+    if auto:
+        if day:
+            if units:
+                parse += str(int(day)) + "d:"
+            else:
+                parse += str(int(day)) + ":"
+        else:
+            hr += day * 60
+        if hr:
+            if units:
+                parse += str(int(hr)) + "h:"
+            else:
+                parse += str(int(hr)) + ":"
+        else:
+            mi += hr * 60
+        if mi:
+            if units:
+                parse += str(int(mi)) + "m:"
+            else:
+                parse += str(int(mi)) + ":"
+        else:
+            sec += mi * 60
+        if sec:
+            if units:
+                parse += str(sec) + "s:"
+            else:
+                parse += str(sec) + ":"
+        else:
+            milsec += sec * 60
+        if milsec:
+            if units:
+                parse += str(int(milsec)) + "ms"
+            else:
+                parse += str(int(milsec))
+    else:
+        if enDay:
+            if units:
+                parse += str(int(day)) + "d:"
+            else:
+                parse += str(int(day)) + ":"
+        else:
+            hr += day * 60
+        if enHr:
+            if units:
+                parse += str(int(hr)) + "h:"
+            else:
+                parse += str(int(hr)) + ":"
+        else:
+            mi += hr * 60
+        if enMin:
+            if units:
+                parse += str(int(mi)) + "m:"
+            else:
+                parse += str(int(mi)) + ":"
+        else:
+            sec += mi * 60
+        if enSec:
+            if units:
+                parse += str(int(sec)) + "s:"
+            else:
+                parse += str(int(sec)) + ":"
+        else:
+            milsec += sec * 60
+        if enMilsec:
+            if units:
+                parse += str(int(milsec)) + "ms"
+            else:
+                parse += str(int(milsec))
+
+    return parse
+
+
+def timeFormat_sec(sec, enMilsec=True, enSec=True, enMin=True, enHr=False, enDay=False, auto=True, units=True):
+    """
+    formats the time, given in milliseconds, parsed in str
+    the parameters beginning with 'en' enables the output
+    seconds, minutes, hours, days
+    :param auto: this will automaticly decide, which ouput types will be activated
+
+    :type sec: float
+    :type enMilsec: bool
+    :type enSec: bool
+    :type enMin: bool
+    :type enHr: bool
+    :type enDay: bool
+    :type auto: bool
+    :type units: bool
+
+    :rtype: str
+    :return: formatted time
+    """
+
+    _milsec = sec * 1000
+    _sec = _milsec // 1000
+    _mi = _sec // 60
+    _hr = _mi // 60
+    _day = _hr // 60
+
+    milsec = _milsec % 1000
+    sec = _sec % 60
+    mi = _mi % 60
+    hr = _hr % 24
+    day = _day
+
+    parse = ""
+
+    if auto:
+        if day:
+            if units:
+                parse += str(int(day)) + "d:"
+            else:
+                parse += str(int(day)) + ":"
+        else:
+            hr += day * 60
+        if hr:
+            if units:
+                parse += str(int(hr)) + "h:"
+            else:
+                parse += str(int(hr)) + ":"
+        else:
+            mi += hr * 60
+        if mi:
+            if units:
+                parse += str(int(mi)) + "m:"
+            else:
+                parse += str(int(mi)) + ":"
+        else:
+            sec += mi * 60
+        if sec:
+            if units:
+                parse += str(int(sec)) + "s:"
+            else:
+                parse += str(int(sec)) + ":"
+        else:
+            milsec += sec * 60
+        if milsec:
+            if units:
+                parse += str(int(milsec)) + "ms"
+            else:
+                parse += str(int(milsec))
+    else:
+        if enDay:
+            if units:
+                parse += str(int(day)) + "d:"
+            else:
+                parse += str(int(day)) + ":"
+        else:
+            hr += day * 60
+        if enHr:
+            if units:
+                parse += str(int(hr)) + "h:"
+            else:
+                parse += str(int(hr)) + ":"
+        else:
+            mi += hr * 60
+        if enMin:
+            if units:
+                parse += str(int(mi)) + "m:"
+            else:
+                parse += str(int(mi)) + ":"
+        else:
+            sec += mi * 60
+        if enSec:
+            if units:
+                parse += str(int(sec)) + "s:"
+            else:
+                parse += str(int(sec)) + ":"
+        else:
+            milsec += sec * 60
+        if enMilsec:
+            if units:
+                parse += str(int(milsec)) + "ms"
+            else:
+                parse += str(int(milsec))
+
+    return parse
+
+
+def timeFormat_min(mi, enMilsec=True, enSec=True, enMin=True, enHr=False, enDay=False, auto=True, units=True):
+    """
+    formats the time, given in milliseconds, parsed in str
+    the parameters beginning with 'en' enables the output
+    seconds, minutes, hours, days
+    :param auto: this will automaticly decide, which ouput types will be activated
+
+    :type mi: float
+    :type enMilsec: bool
+    :type enSec: bool
+    :type enMin: bool
+    :type enHr: bool
+    :type enDay: bool
+    :type auto: bool
+    :type units: bool
+
+    :rtype: str
+    :return: formatted time
+    """
+
+    _milsec = mi * 60 * 1000
+    _sec = _milsec // 1000
+    _mi = _sec // 60
+    _hr = _mi // 60
+    _day = _hr // 60
+
+    milsec = _milsec % 1000
+    sec = _sec % 60
+    mi = _mi % 60
+    hr = _hr % 24
+    day = _day
+
+    parse = ""
+
+    if auto:
+        if day:
+            if units:
+                parse += str(int(day)) + "d:"
+            else:
+                parse += str(int(day)) + ":"
+        else:
+            hr += day * 60
+        if hr:
+            if units:
+                parse += str(int(hr)) + "h:"
+            else:
+                parse += str(int(hr)) + ":"
+        else:
+            mi += hr * 60
+        if mi:
+            if units:
+                parse += str(int(mi)) + "m:"
+            else:
+                parse += str(int(mi)) + ":"
+        else:
+            sec += mi * 60
+        if sec:
+            if units:
+                parse += str(sec) + "s:"
+            else:
+                parse += str(sec) + ":"
+        else:
+            milsec += sec * 60
+        if milsec:
+            if units:
+                parse += str(int(milsec)) + "ms"
+            else:
+                parse += str(int(milsec))
+    else:
+        if enDay:
+            if units:
+                parse += str(int(day)) + "d:"
+            else:
+                parse += str(int(day)) + ":"
+        else:
+            hr += day * 60
+        if enHr:
+            if units:
+                parse += str(int(hr)) + "h:"
+            else:
+                parse += str(int(hr)) + ":"
+        else:
+            mi += hr * 60
+        if enMin:
+            if units:
+                parse += str(int(mi)) + "m:"
+            else:
+                parse += str(int(mi)) + ":"
+        else:
+            sec += mi * 60
+        if enSec:
+            if units:
+                parse += str(int(sec)) + "s:"
+            else:
+                parse += str(int(sec)) + ":"
+        else:
+            milsec += sec * 60
+        if enMilsec:
+            if units:
+                parse += str(int(milsec)) + "ms"
+            else:
+                parse += str(int(milsec))
+
+    return parse
+
+
+def timeFormat_hr(hr, enMilsec=True, enSec=True, enMin=True, enHr=False, enDay=False, auto=True, units=True):
+    """
+    formats the time, given in milliseconds, parsed in str
+    the parameters beginning with 'en' enables the output
+    seconds, minutes, hours, days
+    :param auto: this will automaticly decide, which ouput types will be activated
+
+    :type hr: float
+    :type enMilsec: bool
+    :type enSec: bool
+    :type enMin: bool
+    :type enHr: bool
+    :type enDay: bool
+    :type auto: bool
+    :type units: bool
+
+    :rtype: str
+    :return: formatted time
+    """
+
+    _milsec = hr * 60 * 60 * 1000
+    _sec = _milsec // 1000
+    _mi = _sec // 60
+    _hr = _mi // 60
+    _day = _hr // 60
+
+    milsec = _milsec % 1000
+    sec = _sec % 60
+    mi = _mi % 60
+    hr = _hr % 24
+    day = _day
+
+    parse = ""
+
+    if auto:
+        if day:
+            if units:
+                parse += str(int(day)) + "d:"
+            else:
+                parse += str(int(day)) + ":"
+        else:
+            hr += day * 60
+        if hr:
+            if units:
+                parse += str(int(hr)) + "h:"
+            else:
+                parse += str(int(hr)) + ":"
+        else:
+            mi += hr * 60
+        if mi:
+            if units:
+                parse += str(int(mi)) + "m:"
+            else:
+                parse += str(int(mi)) + ":"
+        else:
+            sec += mi * 60
+        if sec:
+            if units:
+                parse += str(int(sec)) + "s:"
+            else:
+                parse += str(int(sec)) + ":"
+        else:
+            milsec += sec * 60
+        if milsec:
+            if units:
+                parse += str(int(milsec)) + "ms"
+            else:
+                parse += str(int(milsec))
+    else:
+        if enDay:
+            if units:
+                parse += str(int(day)) + "d:"
+            else:
+                parse += str(int(day)) + ":"
+        else:
+            hr += day * 60
+        if enHr:
+            if units:
+                parse += str(int(hr)) + "h:"
+            else:
+                parse += str(int(hr)) + ":"
+        else:
+            mi += hr * 60
+        if enMin:
+            if units:
+                parse += str(int(mi)) + "m:"
+            else:
+                parse += str(int(mi)) + ":"
+        else:
+            sec += mi * 60
+        if enSec:
+            if units:
+                parse += str(int(sec)) + "s:"
+            else:
+                parse += str(int(sec)) + ":"
+        else:
+            milsec += sec * 60
+        if enMilsec:
+            if units:
+                parse += str(int(milsec)) + "ms"
+            else:
+                parse += str(int(milsec))
+
+    return parse
+
+
+def timeFormat_day(day, enMilsec=True, enSec=True, enMin=True, enHr=False, enDay=False, auto=True, units=True):
+    """
+    formats the time, given in milliseconds, parsed in str
+    the parameters beginning with 'en' enables the output
+    seconds, minutes, hours, days
+    :param auto: this will automaticly decide, which ouput types will be activated
+
+    :type day: float
+    :type enMilsec: bool
+    :type enSec: bool
+    :type enMin: bool
+    :type enHr: bool
+    :type enDay: bool
+    :type auto: bool
+    :type units: bool
+
+    :rtype: str
+    :return: formatted time
+    """
+
+    _milsec = day * 24 * 60 * 60 * 1000
+    _sec = _milsec // 1000
+    _mi = _sec // 60
+    _hr = _mi // 60
+    _day = _hr // 60
+
+    milsec = _milsec % 1000
+    sec = _sec % 60
+    mi = _mi % 60
+    hr = _hr % 24
+    day = _day
+
+    parse = ""
+
+    if auto:
+        if day:
+            if units:
+                parse += str(int(day)) + "d:"
+            else:
+                parse += str(int(day)) + ":"
+        else:
+            hr += day * 60
+        if hr:
+            if units:
+                parse += str(int(hr)) + "h:"
+            else:
+                parse += str(int(hr)) + ":"
+        else:
+            mi += hr * 60
+        if mi:
+            if units:
+                parse += str(int(mi)) + "m:"
+            else:
+                parse += str(int(mi)) + ":"
+        else:
+            sec += mi * 60
+        if sec:
+            if units:
+                parse += str(int(sec)) + "s:"
+            else:
+                parse += str(int(sec)) + ":"
+        else:
+            milsec += sec * 60
+        if milsec:
+            if units:
+                parse += str(int(milsec)) + "ms"
+            else:
+                parse += str(int(milsec))
+    else:
+        if enDay:
+            if units:
+                parse += str(int(day)) + "d:"
+            else:
+                parse += str(int(day)) + ":"
+        else:
+            hr += day * 60
+        if enHr:
+            if units:
+                parse += str(int(hr)) + "h:"
+            else:
+                parse += str(int(hr)) + ":"
+        else:
+            mi += hr * 60
+        if enMin:
+            if units:
+                parse += str(int(mi)) + "m:"
+            else:
+                parse += str(int(mi)) + ":"
+        else:
+            sec += mi * 60
+        if enSec:
+            if units:
+                parse += str(int(sec)) + "s:"
+            else:
+                parse += str(int(sec)) + ":"
+        else:
+            milsec += sec * 60
+        if enMilsec:
+            if units:
+                parse += str(int(milsec)) + "ms"
+            else:
+                parse += str(int(milsec))
+
+    return parse
+
 
 def MusicType(mType, exact=False):
     if rsame(mType, "mp3"):
