@@ -348,13 +348,10 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
             music_playlists_print += x.title() + " (" + y.upper() + "), "
         music_playlists_print = music_playlists_print.rstrip(", ")
 
-        mpl_keys = []
-        for x in muPlayer.multiplaylists:
-            mpl_keys.append(x)
 
         music_multiplaylists_print = ""
-        for x in mpl_keys:
-            music_multiplaylists_print += x + " (" + x.upper() + "), "
+        for x, y in zip(muPlayer.multiplaylists["names"], muPlayer.multiplaylists["keys"]):
+            music_multiplaylists_print += x.title() + " (" + y.upper() + "), "
         music_multiplaylists_print = music_multiplaylists_print.rstrip(", ")
 
 
@@ -419,9 +416,10 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
 
             musicman_user_input = input()
 
-
             if musicman_user_input.lower() == "fin":
                 musicman_search = False
+            elif not Search(musicman_user_input, muPlayer.musiclist["keys"], exact=True):
+                continue
 
             else:
                 x = muPlayer.addMusic(musicman_user_input.lower())

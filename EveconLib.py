@@ -5,7 +5,6 @@ import pycaw
 import pycaw.pycaw
 import getpass
 import comtypes
-import random
 import simplecrypt
 import configparser
 import webbrowser
@@ -2369,33 +2368,47 @@ class MusicPlayerC(threading.Thread):
 
         return content
 
-    def addMusic(self, key, custom=False, genre=False):  # key (AN, LIS)
+    def addMusic(self, key, cusPath=False, genre=False, noList=False, printStaMSG=True, printEndMSG=True):  # key (AN, LIS)
+
+        """
+        :param key: the key of the id (normal id, mpl id)
+        :param cusPath: defines the path for a custom path (ignores the key)
+        :param genre: forces a genre input (?)
+        :param noList: only allows key to be a normal id
+        :param printStaMSG: clears the screen and prints the start msg
+        :param printEndMSG: prints the finished msg
+        :return: success
+        """
         self.read_musiclist()
-        cls()
-        if computer == "MiniPC":
-            print("Loading... (On Mini-PC)")
-        elif computer == "BigPC":
-            print("Loading... (On Big-PC)")
-        else:
-            print("Loading...")
+        if noList and type(key) == str:
+            if Search(key, self.musiclist["keys"], exact=True):
+                return False
+        if printStaMSG:
+            cls()
+            if computer == "MiniPC":
+                print("Loading... (On Mini-PC)")
+            elif computer == "BigPC":
+                print("Loading... (On Big-PC)")
+            else:
+                print("Loading...")
 
         old_Num = self.music["all_files"]
         if type(key) == str:
             key = key.lower()
 
-        if custom:
+        if cusPath:
             key = "cus"
         elif genre:
             if Search(key, self.genre, exact=True):
                 if isinstance(key, str):
                     for aDir in self.musiclist["keys"]:
                         if Search(key, self.musiclist[aDir]["genre"], exact=True):
-                            self.addMusic(aDir)
+                            self.addMusic(aDir, printStaMSG=False)
                 elif isinstance(key, list):
                     for aGenre in key:
                         for aDir in self.musiclist["keys"]:
                             if Search(aGenre, self.musiclist[aDir]["genre"], exact=True):
-                                self.addMusic(aDir)
+                                self.addMusic(aDir, printStaMSG=False)
                 return True
             else:
                 return False
@@ -2411,7 +2424,7 @@ class MusicPlayerC(threading.Thread):
             for x in self.musiclist["keys"]:
                 for y in key:
                     if x == y:
-                        self.addMusic(x)
+                        self.addMusic(x, printStaMSG=False)
                         break
             return True
 
@@ -2419,24 +2432,24 @@ class MusicPlayerC(threading.Thread):
             pass
         elif key == "us":
             self.findMusic("Music"+path_seg+"User")
-        elif key == "cus" and custom: # custom
-            self.findMusic(custom)
+        elif key == "cus" and cusPath: # cusPath
+            self.findMusic(cusPath)
         elif key == "all":
             for x in self.musiclist["keys"]:
-                self.addMusic(x)
+                self.addMusic(x, printStaMSG=False)
             return True
-        elif Search(key, list(self.multiplaylists.keys()), exact=True):
-            self.addMusic(self.multiplaylists[key])
+        elif Search(key, list(self.multiplaylists["keys"]), exact=True):
+            self.addMusic(self.multiplaylists[key]["content"]["all_ids"], printStaMSG=False)
         elif Search(key, self.genre, exact=True):
             if isinstance(key, str):
                 for aDir in self.musiclist["keys"]:
                     if Search(key, self.musiclist[aDir]["genre"], exact=True):
-                        self.addMusic(aDir)
+                        self.addMusic(aDir, printStaMSG=False)
             elif isinstance(key, list):
                 for aGenre in key:
                     for aDir in self.musiclist["keys"]:
                         if Search(aGenre, self.musiclist[aDir]["genre"], exact=True):
-                            self.addMusic(aDir)
+                            self.addMusic(aDir, printStaMSG=False)
             else:
                 pass
             return True
@@ -2486,7 +2499,8 @@ class MusicPlayerC(threading.Thread):
 
         #self.music_playlists_active.append(key)
         self.music["active"].append(key)
-        print("Finished: " + key)
+        if printEndMSG:
+            print("Finished: " + key)
         return True
 
     def read_musiclist(self):
@@ -2541,7 +2555,7 @@ class MusicPlayerC(threading.Thread):
 
             musicDirs = {"names": []}
             musicDirs_direct = data["directories"].copy()
-            multiPls = {}
+            multiPls = {"names": [], "keys": []}
             multiPls_direct = data["multiplaylists"].copy()
 
             dirIDs = []
@@ -2583,7 +2597,88 @@ class MusicPlayerC(threading.Thread):
 
             musicDirs["keys"] = dirIDs
 
+            # deleting genre
+            delGenre = []
+            for aGenre_ID in range(len(genre)):
+                for aID in dirIDs+mplIDs_direct: # PROBLEM THE mpl ID arent valid => maybe a genre is deleted
+                    if aID == genre[aGenre_ID]:
+                        delGenre.append(aGenre_ID)
+
+            for x in delGenre:
+                del genre[x]
+
             # generate mpl
+            """
+            multiplaylists: 
+                names
+                keys
+                
+                -ids- (mix):
+                    id
+                    content
+                        ids
+                        genre
+                        all_ids
+            
+            """
+
+            if not multiPls_deac:
+                for aMPl in mplIDs_direct: # get a multiplaylist ID
+                    if aMPl == multiPls_direct[aMPl].get("id"):
+                        if aMPl.islower():
+                            if not Search(aMPl, dirIDs, exact=True):
+                                if Search(aMPl, mplIDs, exact=True):
+                                    unvalid("A MPl-ID was double (" + aMPl + ")")
+                                    continue
+                                mplIDs.append(aMPl)
+
+                                multiPls[aMPl] = multiPls_direct[aMPl].copy()
+
+                                if not multiPls[aMPl].get("name"):
+                                    multiPls[aMPl]["name"] = multiPls[aMPl]["id"]
+                                if not multiPls[aMPl]["content"].get("ids"):
+                                    multiPls[aMPl]["content"]["ids"] = []
+                                if not multiPls[aMPl]["content"].get("genre"):
+                                    multiPls[aMPl]["content"]["genre"] = []
+
+
+                                if multiPls[aMPl]["content"]["ids"]:
+                                    newIDlist = []
+                                    for aID in multiPls[aMPl]["content"]["ids"]:
+                                        if Search(aID, musicDirs["keys"], exact=True):
+                                            newIDlist.append(aID)
+                                    multiPls[aMPl]["content"]["ids"] = newIDlist
+                                multiPls[aMPl]["content"]["all_ids"] = multiPls[aMPl]["content"]["ids"].copy()
+
+                                if multiPls[aMPl]["content"]["genre"]:
+                                    newGenrelist = []
+                                    for aGenre in multiPls[aMPl]["content"]["ids"]:
+                                        if Search(aGenre, genre, exact=True):
+                                            newGenrelist.append(aGenre)
+                                    multiPls[aMPl]["content"]["genre"] = newGenrelist
+
+                                    for aGenre in multiPls_direct[aMPl]["content"]["genre"]:
+                                        for aDir in dirIDs:
+                                            if Search(aGenre, musicDirs[aDir]["genre"], exact=True) and not Search(aDir, multiPls[aMPl]["content"]["all_ids"], exact=True):
+                                                multiPls[aMPl]["content"]["all_ids"].append(aDir)
+
+
+                                if not multiPls[aMPl]["content"]["ids"] and not multiPls[aMPl]["content"]["genre"]:
+                                    del multiPls[aMPl]
+                                    unvalid("No Content in a MPl (" + aMPl + ")")
+                                    continue
+
+                                multiPls["names"].append(multiPls[aMPl]["name"])
+                                multiPls["keys"].append(multiPls[aMPl]["id"])
+
+                            else:
+                                unvalid("MPl-ID is used in the musicDirs (" + aMPl + ")")
+                        else:
+                            unvalid("MPl-ID is not low (" + aMPl + ")")
+                    else:
+                        unvalid("Diffrent MPl-IDs (" + aMPl + ")")
+
+            """
             if not multiPls_deac:
                 for aMPl in mplIDs_direct:
                     if aMPl == multiPls_direct[aMPl].get("id"):
@@ -2611,16 +2706,8 @@ class MusicPlayerC(threading.Thread):
                             unvalid("MPl-ID is not low (" + aMPl + ")")
                     else:
                         unvalid("Diffrent MPl-IDs (" + aMPl + ")")
+            """
 
-            # deleting genre
-            delGenre = []
-            for aGenre_ID in range(len(genre)):
-                for aID in dirIDs+mplIDs:
-                    if aID == genre[aGenre_ID]:
-                        delGenre.append(aGenre_ID)
-
-            for x in delGenre:
-                del genre[x]
 
             return musicDirs, multiPls, genre, musicDir
 
@@ -5701,35 +5788,6 @@ def Status(printit=True):
     return status #[versionFind()[1], versionFind()[2], versionFind()[0], version, os.getpid(),Computername, getpass.getuser(), computer, thisIP, HomePC]
 
 
-def randompw(returnpw=False, length=150, printpw=True, exclude=None):
-    if exclude is None:
-        exclude = []
-    listx = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
-             "V", "W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",
-             "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "!",
-             "§", "$", "%", "&", "/", "(", ")", "=", "?", "ß", "#", "'", "+", "*", "~", "ü", "ö", "ä", "-", "_", ".",
-             ":", ",", ";", "{", "[", "]", "}", ">", "<", "|"]
-
-    for x in exclude:
-        for y in range(len(listx) - 1):
-            if x == listx[y]:
-                del listx[y]
-
-    pw = ""
-
-    for rx in range(length):
-        pw += listx[random.randint(0, len(listx) - 1)]
-
-    if returnpw:
-        return pw
-
-    if printpw:
-        cls()
-        print("Password: (length: %s) \n\n%s" % (length, pw))
-
-        input()
-
-
 
 class SplatoonC:
     def __init__(self, roundtime = 180, weaponlang="Eng"):
@@ -5979,197 +6037,6 @@ class SplatoonC:
             print("Weapon Randomizer (spWR), Effect (spE), Next Round (spN), Reroll Next Weapon (spR)")
         else:
             print("Weapon Randomizer (spWR), Effect (spE), Next Round (spN)")
-
-
-
-
-def Search(searchkeyU, searchlistU, exact=False, lower=True, onlyOnce=True):
-
-    if len(searchkeyU) == 0:
-        return []
-
-    if lower:
-        searchkey = searchkeyU.lower()
-        searchlist = []
-        for x in searchlistU:
-            searchlist.append(x.lower())
-    else:
-        searchkey = searchkeyU
-        searchlist = []
-        for x in searchlistU:
-            searchlist.append(x)
-
-    OutputNum = []
-
-    for sListNum in range(len(searchlist)): # wort aus der liste
-        if exact:
-            if searchlist[sListNum] == searchkey:
-                OutputNum.append(sListNum)
-            else:
-                continue
-        if len(searchkey) > len(searchlist[sListNum]):
-            continue  # suchwort größer als anderes wort (jetzt in der Liste)
-
-        for letterNum in range(len(searchlist[sListNum])): # buchstabe aus wort aus der gesamt liste
-            if searchlist[sListNum][letterNum] == searchkey[0]: # ist ein Buchstabe (aus der for-Schleife) auch in dem Suchwort[0] vorhanden?
-                test = True
-
-                for keyNum in range(len(searchkey)):
-                    if test:
-                        test = False
-                        if keyNum == len(searchkey) - 1: # Fall: Wenn das Suchwort nur ein Buchstabe groß ist!
-                            OutputNum.append(sListNum)
-                            break
-                        continue
-
-                    # was macht das ?: wenn es der letzte buchstabe vom String ist ende
-                    if len(searchlist[sListNum]) - 1 < keyNum + letterNum:
-                        break
-                    #if len(searchlist[sListNum]) - 1 < keyNum + letterNum:
-                    #    print(OutputNum, sListNum, searchlist[sListNum], letterNum, searchlist[sListNum][letterNum], keyNum)
-
-                    if searchlist[sListNum][keyNum + letterNum] == searchkey[keyNum]:
-                        if keyNum == len(searchkey) - 1:
-
-                            # if the keyword is two times in the fullword: this is a protect of duplication
-                            doit = True
-                            for NumOldList in OutputNum:
-                                if NumOldList == sListNum:
-                                    doit = False
-                                    break
-
-                            if doit:
-                                OutputNum.append(sListNum)
-                            break
-                    else:
-                        break
-
-    if onlyOnce:
-        OutputNum = DelDouble(OutputNum)
-
-
-    return OutputNum
-
-
-def DelDouble(workList: list):
-    """
-    deletes everything in the list which is multiple in the list
-
-    :param workList: the list
-    :return: new list
-    """
-
-    newList = []
-
-    for x in workList:
-        found=False
-        for y in newList:
-            if x == y:
-                found=True
-        if not found:
-            newList.append(x)
-
-
-    return newList
-
-
-def SearchStr(searchkeyU: str, searchStrU: str, exact=False):
-
-    if len(searchkeyU) == 0:
-        return None
-
-    if not exact:
-        searchkey = searchkeyU.lower()
-        searchlist = searchStrU.lower()
-    else:
-        searchkey = searchkeyU
-        searchlist = searchStrU
-
-    OutputNum = []
-
-
-    for letterNum in range(len(searchlist)):
-        if searchlist[letterNum] == searchkey[0]:
-            test = False
-
-            for keyNum in range(len(searchkey)):
-                if test:
-                    test = False
-                    if keyNum == len(searchkey) - 1:
-                        OutputNum.append(keyNum)
-                        break
-                    continue
-                if len(searchlist) - 1 < keyNum + letterNum:
-                    break
-
-                if searchlist[keyNum + letterNum] == searchkey[keyNum]:
-                    if keyNum == len(searchkey) - 1:
-                        OutputNum.append(letterNum)
-                        break
-                else:
-                    break
-
-    return OutputNum
-
-def unge(zahl):
-    if type(zahl) != int:
-        pass
-    elif zahl/2 == int(zahl/2):
-        return 0
-    else:
-        return 1
-
-def getPartStr(word: str, begin: int, end: int):
-    part = ""
-    if len(word) < end or len(word) <= begin or begin >= end:
-        return False
-
-    for x in range(end):
-        if x < begin:
-            continue
-        part += word[x]
-    return part
-
-def getPartStrToStr(word: str, endkey: str, beginkey="", exact=False):
-    if exact:
-        word = word.lower()
-        endkey = endkey.lower()
-    part = ""
-    x = 0
-    end = False
-    beginskip = False
-    beginover = False
-    while True:
-        if beginkey != "" and not beginover:
-            z = 0
-            for y in range(len(beginkey)):
-                if word[x + y] == beginkey[y]:
-                    z += 1
-                else:
-                    beginskip = True
-                if z == len(beginkey):
-                    beginover = True
-                    x += z
-            if beginskip:
-                beginskip = False
-                x += 1
-                continue
-        z = 0
-        for y in range(len(endkey)):
-            if word[x + y] == endkey[y]:
-                z += 1
-            else:
-                break
-            if z == len(endkey):
-                end = True
-                break
-        if end:
-            break
-        part += word[x]
-        x += 1
-
-    return part
-
 
 class ToolsC:
     def __init__(self):

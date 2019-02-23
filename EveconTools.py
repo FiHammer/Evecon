@@ -2,6 +2,7 @@ import time
 import os
 import sys
 import threading
+import random
 
 def cls():
     if sys.platform == "win32":
@@ -699,3 +700,221 @@ def MusicType(mType, exact=False):
             return True
     else:
         return False
+
+
+def Search(searchkeyU, searchlistU, exact=False, lower=True, onlyOnce=True):
+
+    if len(searchkeyU) == 0 or type(searchkeyU) != str:
+        return []
+
+    if lower:
+        searchkey = searchkeyU.lower()
+        searchlist = []
+        for x in searchlistU:
+            searchlist.append(x.lower())
+    else:
+        searchkey = searchkeyU
+        searchlist = []
+        for x in searchlistU:
+            searchlist.append(x)
+
+    OutputNum = []
+
+    for sListNum in range(len(searchlist)): # wort aus der liste
+        if exact:
+            if searchlist[sListNum] == searchkey:
+                OutputNum.append(sListNum)
+            else:
+                continue
+        if len(searchkey) > len(searchlist[sListNum]):
+            continue  # suchwort größer als anderes wort (jetzt in der Liste)
+
+        for letterNum in range(len(searchlist[sListNum])): # buchstabe aus wort aus der gesamt liste
+            if searchlist[sListNum][letterNum] == searchkey[0]: # ist ein Buchstabe (aus der for-Schleife) auch in dem Suchwort[0] vorhanden?
+                test = True
+
+                for keyNum in range(len(searchkey)):
+                    if test:
+                        test = False
+                        if keyNum == len(searchkey) - 1: # Fall: Wenn das Suchwort nur ein Buchstabe groß ist!
+                            OutputNum.append(sListNum)
+                            break
+                        continue
+
+                    # was macht das ?: wenn es der letzte buchstabe vom String ist ende
+                    if len(searchlist[sListNum]) - 1 < keyNum + letterNum:
+                        break
+                    #if len(searchlist[sListNum]) - 1 < keyNum + letterNum:
+                    #    print(OutputNum, sListNum, searchlist[sListNum], letterNum, searchlist[sListNum][letterNum], keyNum)
+
+                    if searchlist[sListNum][keyNum + letterNum] == searchkey[keyNum]:
+                        if keyNum == len(searchkey) - 1:
+
+                            # if the keyword is two times in the fullword: this is a protect of duplication
+                            doit = True
+                            for NumOldList in OutputNum:
+                                if NumOldList == sListNum:
+                                    doit = False
+                                    break
+
+                            if doit:
+                                OutputNum.append(sListNum)
+                            break
+                    else:
+                        break
+
+    if onlyOnce:
+        OutputNum = DelDouble(OutputNum)
+
+
+    return OutputNum
+
+
+def DelDouble(workList: list):
+    """
+    deletes everything in the list which is multiple in the list
+
+    :param workList: the list
+    :return: new list
+    """
+
+    newList = []
+
+    for x in workList:
+        found=False
+        for y in newList:
+            if x == y:
+                found=True
+        if not found:
+            newList.append(x)
+
+
+    return newList
+
+
+def SearchStr(searchkeyU: str, searchStrU: str, exact=False):
+
+    if len(searchkeyU) == 0:
+        return None
+
+    if not exact:
+        searchkey = searchkeyU.lower()
+        searchlist = searchStrU.lower()
+    else:
+        searchkey = searchkeyU
+        searchlist = searchStrU
+
+    OutputNum = []
+
+
+    for letterNum in range(len(searchlist)):
+        if searchlist[letterNum] == searchkey[0]:
+            test = False
+
+            for keyNum in range(len(searchkey)):
+                if test:
+                    test = False
+                    if keyNum == len(searchkey) - 1:
+                        OutputNum.append(keyNum)
+                        break
+                    continue
+                if len(searchlist) - 1 < keyNum + letterNum:
+                    break
+
+                if searchlist[keyNum + letterNum] == searchkey[keyNum]:
+                    if keyNum == len(searchkey) - 1:
+                        OutputNum.append(letterNum)
+                        break
+                else:
+                    break
+
+    return OutputNum
+
+def unge(zahl):
+    if type(zahl) != int:
+        pass
+    elif zahl/2 == int(zahl/2):
+        return 0
+    else:
+        return 1
+
+def getPartStr(word: str, begin: int, end: int):
+    part = ""
+    if len(word) < end or len(word) <= begin or begin >= end:
+        return False
+
+    for x in range(end):
+        if x < begin:
+            continue
+        part += word[x]
+    return part
+
+def getPartStrToStr(word: str, endkey: str, beginkey="", exact=False):
+    if exact:
+        word = word.lower()
+        endkey = endkey.lower()
+    part = ""
+    x = 0
+    end = False
+    beginskip = False
+    beginover = False
+    while True:
+        if beginkey != "" and not beginover:
+            z = 0
+            for y in range(len(beginkey)):
+                if word[x + y] == beginkey[y]:
+                    z += 1
+                else:
+                    beginskip = True
+                if z == len(beginkey):
+                    beginover = True
+                    x += z
+            if beginskip:
+                beginskip = False
+                x += 1
+                continue
+        z = 0
+        for y in range(len(endkey)):
+            if word[x + y] == endkey[y]:
+                z += 1
+            else:
+                break
+            if z == len(endkey):
+                end = True
+                break
+        if end:
+            break
+        part += word[x]
+        x += 1
+
+    return part
+
+
+def randompw(returnpw=False, length=150, printpw=True, exclude=None):
+    if exclude is None:
+        exclude = []
+    listx = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
+             "V", "W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",
+             "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "!",
+             "§", "$", "%", "&", "/", "(", ")", "=", "?", "ß", "#", "'", "+", "*", "~", "ü", "ö", "ä", "-", "_", ".",
+             ":", ",", ";", "{", "[", "]", "}", ">", "<", "|"]
+
+    for x in exclude:
+        for y in range(len(listx) - 1):
+            if x == listx[y]:
+                del listx[y]
+
+    pw = ""
+
+    for rx in range(length):
+        pw += listx[random.randint(0, len(listx) - 1)]
+
+    if returnpw:
+        return pw
+
+    if printpw:
+        cls()
+        print("Password: (length: %s) \n\n%s" % (length, pw))
+
+        input()
+
