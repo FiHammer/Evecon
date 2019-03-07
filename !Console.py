@@ -1892,7 +1892,44 @@ def Timer():
     p.stop()
 
 
+def startStartupServer(serverport: int, ballonTIP=True):
+    global StartupServer
+    global StartupServerJava
+    StartupServer = Server(ip=thisIP, port=serverport, react=StartupServerTasks)
+    StartupServerJava = ServerJava(ip=thisIP, port=serverport + 2, react=StartupServerTasksJava, allowPrint=True, sendIP=False, giveJava=False)
+    print("JAVA-SERVER port: " + str(StartupServerJava.port))
+    print("Server initialized!\nNow Running Systray")
 
+    def quitFunc(x):
+        StartupServer.exit()
+        StartupServerJava.stop()
+    def switchEP(x):
+        Tools.EnergyPlan.Switch()
+        if ballonTIP:
+            Tools.EnergyPlan.getEP(False)
+            balloon_tip("Evecon: StartupServer", "Änderte EP zu: " + Tools.EnergyPlan.cEP)
+    def setEP_energysaver(x):
+        Tools.EnergyPlan.Change(1)
+        if ballonTIP:
+            Tools.EnergyPlan.getEP(False)
+            balloon_tip("Evecon: StartupServer", "Änderte EP zu: Stromsparen")
+    def setEP_fastmode(x):
+        Tools.EnergyPlan.Change(0)
+        if ballonTIP:
+            Tools.EnergyPlan.getEP(False)
+            balloon_tip("Evecon: StartupServer", "Änderte EP zu: Ausbalanciert")
+
+    sub_menu1 = {"Ausbalanciert": setEP_fastmode, "Energiesparen": setEP_energysaver}
+
+    sysTray = SysTray("data"+path_seg+"ico"+path_seg+"PC.ico", "Evecon: StartupServer",
+                      {"EP wechseln": switchEP}, sub_menu1=sub_menu1, sub_menu_name1="EPs", quitFunc=quitFunc)
+
+    sysTray.start()
+
+    StartupServer.start()
+    StartupServerJava.start()
+    StartupServer.join()
+    StartupServerJava.join()
 
 
 
@@ -1953,7 +1990,6 @@ def main():
 
 
 def Arg():
-    global StartupServer
 
     skiparg = []
 
@@ -2032,14 +2068,7 @@ def Arg():
             serverport = int(sys.argv[x + 1])
             if not sys.argv[x + 2] == "app":
                 killConsoleWin()
-            global StartupServerJava
-            StartupServer = Server(ip=thisIP, port=serverport, react=StartupServerTasks)
-            StartupServerJava = ServerJava(ip=thisIP, port=serverport + 2, react=StartupServerTasksJava, allowPrint=True, sendIP=False, giveJava=False)
-            print("JAVA-SERVER port: " + str(StartupServerJava.port))
-            StartupServer.start()
-            StartupServerJava.start()
-            StartupServer.join()
-            StartupServerJava.join()
+            startStartupServer(serverport)
             exit_now()
         if sys.argv[x] == "--inter_client":
             title("Interactive Client", " ", " ")

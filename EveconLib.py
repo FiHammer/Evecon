@@ -39,7 +39,7 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
-code_version = "0.9.4.1"
+code_version = "0.9.5.1"
 
 pyglet.options['search_local_libs'] = True
 
