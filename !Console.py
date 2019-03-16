@@ -1918,6 +1918,11 @@ def startStartupServer(serverport: int, ballonTIP=True):
         if ballonTIP:
             Tools.EnergyPlan.getEP(False)
             balloon_tip("Evecon: StartupServer", "Änderte EP zu: Ausbalanciert")
+    def switchSS(x):
+        Tools.ScreenSaverSettings.switchStatus()
+        if ballonTIP:
+            Tools.EnergyPlan.getEP(False)
+            balloon_tip("Evecon: StartupServer", "Schaltete SreenSaver: " + Tools.ScreenSaverSettings.status)
 
     sub_menu1 = {"Ausbalanciert": setEP_fastmode, "Energiesparen": setEP_energysaver}
 

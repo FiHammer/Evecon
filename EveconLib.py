@@ -2335,7 +2335,7 @@ class MusicPlayerC(threading.Thread):
                 thisDirID = self.music["all_dirs"]
 
                 self.find_music_out["all_dirs"] += 1
-                self.find_music_out["dir" + str(self.find_music_out["all_dirs"])] = {"file": file, "path": path,
+                self.find_music_out["dir" + str(self.music["all_dirs"])] = {"file": file, "path": path,
                                                                                      "fullname": fullname}
                 dir_content = self.findMusic(fullname, False)
 
@@ -5795,85 +5795,95 @@ def Status(printit=True):
 class SplatoonC:
     def __init__(self, roundtime = 180, weaponlang="Eng"):
 
-        self.weaponsGer = ["Disperser", "Disperser Neo", "Junior-Klechser", "Junior-Klechser Plus", "Fein-Disperser",
-                           "Fein-Disperser Neo", "Airbrush MG", "Airbrush RG", "Klechser", "Tentatek-Klechser",
-                           "Kensa-Kleckser", "Heldenwaffe Replik (Klechser)", "Okto-Klechser Replik", ".52 Gallon",
-                           ".52 Gallon Deko", "N-ZAP85", "N-ZAP89", "Profi-Klechser", "Focus-Profi-Kleckser",
-                           "Kensa-Profi-Kleckser", ".96 Gallon", ".96 Gallon Deko", "Platscher", "Platscher SE",
+        self.file = "data" + path_seg + "config" + path_seg + "splWeap.json"
+        self.weapons = {"ger":
+                            ["Disperser", "Disperser Neo", "Junior-Klechser", "Junior-Klechser Plus", "Fein-Disperser",
+                             "Fein-Disperser Neo", "Airbrush MG", "Airbrush RG", "Klechser", "Tentatek-Klechser",
+                             "Kensa-Kleckser", "Heldenwaffe Replik (Klechser)", "Okto-Klechser Replik", ".52 Gallon",
+                             ".52 Gallon Deko", "N-ZAP85", "N-ZAP89", "Profi-Klechser", "Focus-Profi-Kleckser",
+                             "Kensa-Profi-Kleckser", ".96 Gallon", ".96 Gallon Deko", "Platscher", "Platscher SE",
 
-                           "Luna-Blaster", "Luna-Blaster Neo", "Kensa-Luna-Blaster", "Blaster", "Blaster SE",
-                           "Helden-Blaster Replik", "Fern-Blaster", "Fern-Blaster SE", "Kontra-Blaster",
-                           "Kontra-Blaster Neo", "Turbo-Blaster", "Turbo-Blaster Deko", "Turbo-Blaster Plus",
-                           "Turbo-Blaster Plus Deko",
+                             "Luna-Blaster", "Luna-Blaster Neo", "Kensa-Luna-Blaster", "Blaster", "Blaster SE",
+                             "Helden-Blaster Replik", "Fern-Blaster", "Fern-Blaster SE", "Kontra-Blaster",
+                             "Kontra-Blaster Neo", "Turbo-Blaster", "Turbo-Blaster Deko", "Turbo-Blaster Plus",
+                             "Turbo-Blaster Plus Deko",
 
-                           "L3 Tintenwerfer", "L3 Tintenwerfer D", "S3 Tintenwerfer", "S3 Tintenwerfer D", "Quetscher",
-                           "Quetscher Fol",
+                             "L3 Tintenwerfer", "L3 Tintenwerfer D", "S3 Tintenwerfer", "S3 Tintenwerfer D",
+                             "Quetscher",
+                             "Quetscher Fol",
 
-                           "Karbonroller", "Karbonroller Deko", "Klecksroller", "Medusa-Klecksroller",
-                           "Kensa-Klecksroller", "Helden-Roller Replik", "Dynaroller", "Dynaroller Tesla",
-                           "Kensa-Dynaroller", "Flex-Roller", "Flex-Roller Fol",
-                           "Quasto", "Quasto Fresco", "Kalligraf", "Kalligraf Fresco", "Helden-Pinsel Replik",
+                             "Karbonroller", "Karbonroller Deko", "Klecksroller", "Medusa-Klecksroller",
+                             "Kensa-Klecksroller", "Helden-Roller Replik", "Dynaroller", "Dynaroller Tesla",
+                             "Kensa-Dynaroller", "Flex-Roller", "Flex-Roller Fol",
+                             "Quasto", "Quasto Fresco", "Kalligraf", "Kalligraf Fresco", "Helden-Pinsel Replik",
 
-                           "Sepiator Alpha", "Sepiator Beta", "Klecks-Konzentrator", "Rilax-Klecks-Konzentrator",
-                           "Kensa-Klecks-Konzentrator", "Helden-Konzentrator Replik", "Ziel-Konzentrator",
-                           "Rilax-Ziel-Konzentrator", "Kensa-Ziel-Konzentrator", "E-liter 4K", "E-liter 4K SE",
-                           "Ziel-E-liter 4K", "Ziel-E-liter 4K SE", "Klotzer 14-A", "Klotzer 14-B", "T-Tuber",
-                           "T-Tuber SE",
+                             "Sepiator Alpha", "Sepiator Beta", "Klecks-Konzentrator", "Rilax-Klecks-Konzentrator",
+                             "Kensa-Klecks-Konzentrator", "Helden-Konzentrator Replik", "Ziel-Konzentrator",
+                             "Rilax-Ziel-Konzentrator", "Kensa-Ziel-Konzentrator", "E-liter 4K", "E-liter 4K SE",
+                             "Ziel-E-liter 4K", "Ziel-E-liter 4K SE", "Klotzer 14-A", "Klotzer 14-B", "T-Tuber",
+                             "T-Tuber SE",
 
-                           "Schwapper", "Schwapper Deko", "Helden-Schwapper Replik", "3R-Schwapper",
-                           "3R-Schwapper Fresco", "Knall-Schwapper", "Trommel-Schwapper", "Trommel-Schwapper Neo",
-                           "Kensa-Trommel-Schapper", "Wannen-Schwapper",
+                             "Schwapper", "Schwapper Deko", "Helden-Schwapper Replik", "3R-Schwapper",
+                             "3R-Schwapper Fresco", "Knall-Schwapper", "Trommel-Schwapper", "Trommel-Schwapper Neo",
+                             "Kensa-Trommel-Schapper", "Wannen-Schwapper",
 
-                           "Klecks-Splatling", "Sagitron-Klecks-Splatling", "Splatling", "Splatling Deko",
-                           "Helden-Splatling Replik", "Hydrant", "Hydrant SE", "Kuli-Splatling", "Nautilus 47",
+                             "Klecks-Splatling", "Sagitron-Klecks-Splatling", "Splatling", "Splatling Deko",
+                             "Helden-Splatling Replik", "Hydrant", "Hydrant SE", "Kuli-Splatling", "Nautilus 47",
 
-                           "Sprenkler", "Sprenkler Fresco", "Klecks-Doppler", "Enperry-Klecks-Doppler",
-                           "Kensa-Klecks-Doppler", "Helden-Doppler Replik", "Kelvin 525", "Kelvin 525 Deko",
-                           "Dual-Platscher", "Dual-Platscher SE", "Quadhopper Noir", "Quadhopper Blanc",
+                             "Sprenkler", "Sprenkler Fresco", "Klecks-Doppler", "Enperry-Klecks-Doppler",
+                             "Kensa-Klecks-Doppler", "Helden-Doppler Replik", "Kelvin 525", "Kelvin 525 Deko",
+                             "Dual-Platscher", "Dual-Platscher SE", "Quadhopper Noir", "Quadhopper Blanc",
 
-                           "Parapulviator", "Sorella-Parapulviator", "Helden-Pulviator Replik", "Camp-Pulviator",
-                           "Sorella-Camp-Pulviator", "UnderCover", "Sorella-UnderCover"]
+                             "Parapulviator", "Sorella-Parapulviator", "Helden-Pulviator Replik", "Camp-Pulviator",
+                             "Sorella-Camp-Pulviator", "UnderCover", "Sorella-UnderCover"],
 
-        self.weaponsEng = ["Sploosh-o-matic", "Neo Sploosh-o-matic", "Splattershot Jr.", "Custom Splattershot Jr.",
-                           "Splash-o-matic", "Neo Splash-o-matic", "Aerospray MG", "Aerospray RG", "Splattershot",
-                           "Tentatek Splattershot", "Kensa Splattershot", "Hero Shot Replica", "Octo Shot Replica",
-                           ".52 Gal", ".52 Gal Deco", "N-ZAP '85", "N-ZAP '89", "Splattershot Pro",
-                           "Forge Splattershot Pro", "Kensa Splattershot Pro", ".96 Gal", ".96 Gal Deco",
-                           "Jet Squelcher", "Custom Jet Squelcher",
+                        "eng":
+                            ["Sploosh-o-matic", "Neo Sploosh-o-matic", "Splattershot Jr.", "Custom Splattershot Jr.",
+                             "Splash-o-matic", "Neo Splash-o-matic", "Aerospray MG", "Aerospray RG", "Splattershot",
+                             "Tentatek Splattershot", "Kensa Splattershot", "Hero Shot Replica", "Octo Shot Replica",
+                             ".52 Gal", ".52 Gal Deco", "N-ZAP '85", "N-ZAP '89", "Splattershot Pro",
+                             "Forge Splattershot Pro", "Kensa Splattershot Pro", ".96 Gal", ".96 Gal Deco",
+                             "Jet Squelcher", "Custom Jet Squelcher",
 
-                           "Luna Blaster", "Luna Blaster Neo", "Kensa Luna Blaster", "Blaster", "Custom Blaster",
-                           "Hero Blaster Replica", "Range Blaster", "Custom Range Blaster", "Clash Blaster",
-                           "Clash Blaster Neo", "Rapid Blaster", "Rapid Blaster Deco", "Rapid Blaster Pro",
-                           "Rapid Blaster Pro Deco",
+                             "Luna Blaster", "Luna Blaster Neo", "Kensa Luna Blaster", "Blaster", "Custom Blaster",
+                             "Hero Blaster Replica", "Range Blaster", "Custom Range Blaster", "Clash Blaster",
+                             "Clash Blaster Neo", "Rapid Blaster", "Rapid Blaster Deco", "Rapid Blaster Pro",
+                             "Rapid Blaster Pro Deco",
 
-                           "L-3 Nozzlenose", "L-3 Nozzlenose D", "H-3 Nozzlenose", "H-3 Nozzlenose D", "Squeezer",
-                           "Foil Squeezer",
+                             "L-3 Nozzlenose", "L-3 Nozzlenose D", "H-3 Nozzlenose", "H-3 Nozzlenose D", "Squeezer",
+                             "Foil Squeezer",
 
-                           "Carbon Roller", "Carbon Roller Deco", "Splat Roller", "Krak-On Splat Roller",
-                           "Kensa Splat Roller", "Hero Roller Replica", "Dynamo Roller", "Gold Dynamo Roller",
-                           "Kensa Dynamo Roller", "Flingza Roller", "Foil Flingza Roller",
-                           "Inkbrush", "Inkbrush Nouveau", "Octobrush", "Octobrush Nouveau", "Herobrush Replica",
+                             "Carbon Roller", "Carbon Roller Deco", "Splat Roller", "Krak-On Splat Roller",
+                             "Kensa Splat Roller", "Hero Roller Replica", "Dynamo Roller", "Gold Dynamo Roller",
+                             "Kensa Dynamo Roller", "Flingza Roller", "Foil Flingza Roller",
+                             "Inkbrush", "Inkbrush Nouveau", "Octobrush", "Octobrush Nouveau", "Herobrush Replica",
 
-                           "Classic Squiffer", "New Squiffer", "Splat Charger", "Firefin Splat Charger",
-                           "Kensa Charger", "Hero Charger Replica", "Splatterscope", "Firefin Splatterscope",
-                           "Kensa Splatterscope", "E-liter 4K", "Custom E-liter 4K", "E-liter 4K Scope",
-                           "Custom E-liter 4K Scope", "Bamboozler 14 MK I", "Bamboozler 14 MK II", "Goo Tuber",
-                           "Custom Goo Tuber",
+                             "Classic Squiffer", "New Squiffer", "Splat Charger", "Firefin Splat Charger",
+                             "Kensa Charger", "Hero Charger Replica", "Splatterscope", "Firefin Splatterscope",
+                             "Kensa Splatterscope", "E-liter 4K", "Custom E-liter 4K", "E-liter 4K Scope",
+                             "Custom E-liter 4K Scope", "Bamboozler 14 MK I", "Bamboozler 14 MK II", "Goo Tuber",
+                             "Custom Goo Tuber",
 
-                           "Slosher", "Slosher Deco", "Hero Slosher Replica", "Tri-Slosher", "Tri-Slosher Nouverau",
-                           "Sloshing Machine", "Sloshing Machine Neo", "Kensa Sloshing Machine", "Bloblobber",
-                           "Explosher",
+                             "Slosher", "Slosher Deco", "Hero Slosher Replica", "Tri-Slosher", "Tri-Slosher Nouverau",
+                             "Sloshing Machine", "Sloshing Machine Neo", "Kensa Sloshing Machine", "Bloblobber",
+                             "Explosher",
 
-                           "Mini Splatling", "Zink Mini Splatling", "Heavy Splatling", "Heavy Splatling Deco",
-                           "Hero Splatling Replica", "Hydra Splatling", "Custom Hydra Splatling", "Ballpoint Splatling",
-                           "Nautilus 47",
+                             "Mini Splatling", "Zink Mini Splatling", "Heavy Splatling", "Heavy Splatling Deco",
+                             "Hero Splatling Replica", "Hydra Splatling", "Custom Hydra Splatling",
+                             "Ballpoint Splatling",
+                             "Nautilus 47",
 
-                           "Bapple Dualies", "Bapple Dualies Nouveau", "Splat Dualies", "Enperry Splat Dualies",
-                           "Kensa Splat Dualies", "Hero Dualie Replicas", "Glooga Dualies", "Glooga Dualies Deco",
-                           "Dualie Squelchers", "Custom Dualie Squelchers", "Dark Tetra Dualies", "Light Tetra Dualies",
+                             "Bapple Dualies", "Bapple Dualies Nouveau", "Splat Dualies", "Enperry Splat Dualies",
+                             "Kensa Splat Dualies", "Hero Dualie Replicas", "Glooga Dualies", "Glooga Dualies Deco",
+                             "Dualie Squelchers", "Custom Dualie Squelchers", "Dark Tetra Dualies",
+                             "Light Tetra Dualies",
 
-                           "Splat Brella", "Sorella Brella", "Hero Brella Replica", "Tenta Brella",
-                           "Tenta Sorella Brella", "Undercover Brella", "Undercover Sorella Brella"]
+                             "Splat Brella", "Sorella Brella", "Hero Brella Replica", "Tenta Brella",
+                             "Tenta Sorella Brella", "Undercover Brella", "Undercover Sorella Brella"]
+                        }
+
+        with open(self.file) as jsonfile:
+            self.weapons = json.load(jsonfile)
 
         self.lang = weaponlang
         self.RUN = True
@@ -5918,20 +5928,20 @@ class SplatoonC:
             return self.RoundOverF()
 
     def randomWP(self, printweapon=False, lang=None):
-        number = random.randint(0, len(self.weaponsEng) - 1)
+        number = random.randint(0, len(self.weapons["eng"]) - 1)
 
         if not lang:
             if self.lang == "eng":
-                weapon = self.weaponsEng[number]
+                weapon = self.weapons["eng"][number]
             else:  # German
-                weapon = self.weaponsGer[number]
+                weapon = self.weapons["ger"][number]
         else:
             if lang == "eng":
-                weapon = self.weaponsEng[number]
+                weapon = self.weapons["eng"][number]
             elif lang == "both":
-                weapon = (self.weaponsEng[number], self.weaponsGer[number])
+                weapon = (self.weapons["eng"][number], self.weapons["ger"][number])
             else:  # German
-                weapon = self.weaponsGer[number]
+                weapon = self.weapons["ger"][number]
 
         if printweapon:
             if lang == "both":
@@ -6045,6 +6055,7 @@ class ToolsC:
     def __init__(self):
         self.EnergyPlan = self.EnergyPlanC()
         self.Run = True
+        self.ScreenSaverSettings = self.ScreenSaverSettingsC()
     class EnergyPlanC:
         def __init__(self):
             self.cEP = None
@@ -6100,6 +6111,29 @@ class ToolsC:
                 self.Change(0)
             elif self.cEP_id == 2:
                 self.Change(1)
+    class ScreenSaverSettingsC:
+        def __init__(self):
+            self.file = "data" + path_seg + "Config" + path_seg + "deacSS"
+            self.status = True
+            self.refresh()
+        def refresh(self):
+            # the status
+            if os.path.exists(self.file):
+                self.status = False
+            else:
+                self.status = True
+
+        def switchStatus(self):
+            if self.status:
+                self.disable()
+            else:
+                self.enable()
+        def enable(self):
+            with open(self.file, "w") as file:
+                file.write("\n")
+            return True
+        def disable(self):
+            return os.remove(self.file)
 
     def Shutdown(self, wait=0):
         self.Run = False
@@ -6110,6 +6144,7 @@ class ToolsC:
     def Reboot(self, wait=0):
         self.Run = False
         subprocess.call(["shutdown", "/r", "/t", str(wait)])
+
 
 Tools = ToolsC()
 
@@ -6683,10 +6718,15 @@ class NheeC:
 
             user_input = input()
 
-            thistime_read += 1
+            if user_input == "p":
+                thistime_timeC.pause()
+                input("Pause END?")
+                thistime_timeC.unpause()
+            else:
+                thistime_read += 1
 
-            if user_input.lower() == "fin":
-                break
+                if user_input.lower() == "fin":
+                    break
 
         thistime_timeC.stop()
 
