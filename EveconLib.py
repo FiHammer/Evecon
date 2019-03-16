@@ -39,7 +39,7 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
-code_version = "0.9.5.1"
+code_version = "0.9.5.2"
 
 pyglet.options['search_local_libs'] = True
 
@@ -53,7 +53,8 @@ browser = "vivaldi"
 startmain = False
 Alphabet = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 musicrandom = True
-enable_foxi = True
+enable_FoxNhe = True
+foxORnhe = "nhee"
 cores = 2
 console_data = {"lenx": 120, "leny": 30, "posx": 0, "posy": 0, "pixx": 120, "pixy": 30}
 thisHWND = 0
@@ -92,14 +93,15 @@ def readConfig():
     config = configparser.ConfigParser()
     config.read("data"+path_seg+"Config"+path_seg+"config.ini")
 
-    global browser, musicrandom, enable_foxi, thisIP, cores
+    global browser, musicrandom, enable_FoxNhe, thisIP, cores, foxORnhe
 
     try:
-        enable_foxi_tmp = config["Notepad"]["enable_foxi"]
-        if enable_foxi_tmp == "True":
-            enable_foxi = True
-        elif enable_foxi_tmp == "False":
-            enable_foxi = False
+        enable_FoxNhe_tmp = config["FoxNhe"]["enable_FoxNhe"]
+        if enable_FoxNhe_tmp == "True":
+            enable_FoxNhe = True
+        elif enable_FoxNhe_tmp == "False":
+            enable_FoxNhe = False
+        foxORnhe = config["FoxNhe"]["foxORnhe"]
 
         musicrandom_tmp = config["Music"]["random"]
         if musicrandom_tmp == "True":
@@ -5252,7 +5254,8 @@ class ServerJava(threading.Thread):
         self.Running = False
         self.End = True
         self.Connected = False
-        self.con.close()
+        if self.con:
+            self.con.close()
 
     def send(self, data):
         if self.Running and self.Connected and not self.End:
@@ -6589,6 +6592,163 @@ class Notie:
         if read:
             self._read()
         return self.name
+
+
+class NheeC:
+    def __init__(self, browser_type=browser):
+        if browser_type == "firefox":
+            self.browser = Firefox()
+        elif browser_type == "vivaldi":
+            self.browser = Vivaldi()
+        else:
+            self.browser = Firefox()
+
+        self.pageurl = ""
+        self.working_dir = "data"+path_seg+"Data"+path_seg+"Nhee"+path_seg
+
+        if enable_FoxNhe:
+            with open(self.working_dir+"website.txt") as file:
+                self.pageurl = file.readline().rstrip()
+
+            with open(self.working_dir+"data.json") as jsonfile:
+                self.data = json.load(jsonfile)
+
+    def readJson(self):
+        with open(self.working_dir+"website.txt") as file:
+            self.pageurl = file.readline().rstrip()
+        with open(self.working_dir+"data.json") as jsonfile:
+            self.data = json.load(jsonfile)
+
+    def writeJson(self):
+        with open(self.working_dir+"data.json", "w") as jsonfile:
+            json.dump(self.data, jsonfile, indent=4, sort_keys=True)
+
+    def open_nhee(self):
+        if not enable_FoxNhe:
+            self.readJson()
+        self.browser.refresh()
+        self.browser.open_win(self.data["Last"]["last_name_url"])
+        if self.browser.running:
+            time.sleep(4)
+        else:
+            time.sleep(8)
+        self.browser.open_tab(self.data["Last"]["last_page_url"])
+
+    def open_nheename(self):
+        if not enable_FoxNhe:
+            self.readJson()
+        self.browser.open_win(self.data["Last"]["last_name_url"])
+
+    def open_nheepage(self):
+        if not enable_FoxNhe:
+            self.readJson()
+        self.browser.open_win(self.data["Last"]["last_page_url"])
+
+    def fap(self, opentype="nhee"):
+        if not enable_FoxNhe:
+            self.readJson()
+        cls()
+        print("Loading ...")
+        self.readJson()
+        if opentype == "nhee":
+            self.open_nhee()
+        elif opentype == "nheename":
+            self.open_nheename()
+        elif opentype == "nheepage":
+            self.open_nheepage()
+        else:
+            return False
+
+        thistime_read = 0
+        thistime_time = datetime.datetime.now().strftime("%H:%S:%M")
+        thistime_date = datetime.datetime.now().strftime("%d.%m.%Y")
+
+        idstart = int(self.data["Last"]["last_name_url"].split("/")[-2])
+
+        cls()
+        print("Which is your startpage? (Begin: %s, Search for: %s)" % (self.data["Last"]["last_page"], idstart))
+        pagestart = int(input())
+
+        thistime_timeC = TimerC()
+        thistime_timeC.start()
+
+        fapping = True
+        while fapping:
+            cls()
+            print("Foxi:\n")
+            print("You read: %s" % thistime_read)
+            print("You are fapping: %s\n" % thistime_timeC.getTimeFor())
+
+            print("Everything for Next, Finish (FIN)")
+
+            user_input = input()
+
+            thistime_read += 1
+
+            if user_input.lower() == "fin":
+                break
+
+        thistime_timeC.stop()
+
+        cls()
+        print("End Hanga: (Name)")
+        hangaend_name = input()
+
+        print("End Hanga: (URL)")
+        hangaend_url = input()
+
+        print("End Page: ")
+        pageend = int(input())
+
+        pageend_url = self.pageurl + str(pageend)
+        pageprogress = pagestart - pageend
+
+
+        idend = int(hangaend_url.split("/")[-2])
+        idprogress = idend - idstart
+        skipped = idprogress - thistime_read
+        startname = self.data["Last"]["last_name"]
+        starturl = self.data["Last"]["last_name_url"]
+
+        self.data["Stats"] = {"fapped": self.data["Stats"]["fapped"] + 1,
+                              "all_pages": self.data["Stats"]["all_pages"] + pageprogress,
+                              "all_hangas": self.data["Stats"]["all_hangas"] + thistime_read}
+
+        self.data["Last"] = {"last_page": pageend, "last_page_url": pageend_url,
+                             "last_name": hangaend_name, "last_name_url": hangaend_url}
+
+        self.data[str(self.data["Stats"]["fapped"])] = {"number": self.data["Stats"]["fapped"],
+                                                   "date": thistime_date,
+                                                   "starttime": thistime_time,
+                                                   "time": thistime_timeC.getTimeFor(),
+                                                   "foxi": {"read": thistime_read,
+                                                            "skipped": skipped,
+                                                            "pagestart": pagestart,
+                                                            "pageend": pageend,
+                                                            "pageprogress": pageprogress,
+                                                            "idstart": idstart,
+                                                            "idend": idend,
+                                                            "idprogress": idprogress,
+                                                            "start_Hanga": {
+                                                                "page": pagestart,
+                                                                "name": startname,
+                                                                "id": idstart,
+                                                                "url": starturl
+                                                            },
+                                                            "end_Hanga": {
+                                                                "page": pageend,
+                                                                "name": hangaend_name,
+                                                                "id": idend,
+                                                                "url": hangaend_url
+                                                            }
+                                                            }}
+
+        self.writeJson()
+        print("Finished")
+        time.sleep(0.85)
+
+
+Nhee = NheeC()
 
 
 def exit_now(killmex = False):

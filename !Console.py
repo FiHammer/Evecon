@@ -141,7 +141,7 @@ class FoxiC:
         self.pageurl = ""
         self.working_dir = "data"+path_seg+"Data"+path_seg+"Foxi"+path_seg
 
-        if enable_foxi:
+        if enable_FoxNhe:
             with open(self.working_dir+"website.txt") as file:
                 self.pageurl = file.readline().rstrip()
 
@@ -159,7 +159,7 @@ class FoxiC:
             json.dump(self.data, jsonfile, indent=4, sort_keys=True)
 
     def open_fox(self):
-        if not enable_foxi:
+        if not enable_FoxNhe:
             self.readJson()
         self.browser.refresh()
         self.browser.open_win(self.data["Last"]["last_name_url"])
@@ -170,17 +170,17 @@ class FoxiC:
         self.browser.open_tab(self.data["Last"]["last_page_url"])
 
     def open_foxname(self):
-        if not enable_foxi:
+        if not enable_FoxNhe:
             self.readJson()
         self.browser.open_win(self.data["Last"]["last_name_url"])
 
     def open_foxpage(self):
-        if not enable_foxi:
+        if not enable_FoxNhe:
             self.readJson()
         self.browser.open_win(self.data["Last"]["last_page_url"])
 
     def fap(self, opentype="fox"):
-        if not enable_foxi:
+        if not enable_FoxNhe:
             self.readJson()
         cls()
         print("Loading ...")
@@ -1957,12 +1957,21 @@ def main():
 
     user_input = input("\n\n")
 
-    if user_input.lower() == "fox" or user_input.lower() == "fap" or user_input.lower() == "foxi":
-        Foxi.fap()
+    if user_input.lower() == "fap":
+        if foxORnhe == "foxi":
+            Foxi.fap()
+        elif foxORnhe == "nhee":
+            Nhee.fap()
     elif user_input.lower() == "foxpage":
         Foxi.open_foxpage()
     elif user_input.lower() == "foxname":
         Foxi.open_foxname()
+    elif user_input.lower() == "nhee" or user_input.lower() == "nhe":
+        Nhee.fap()
+    elif user_input.lower() == "nheepage":
+        Nhee.open_foxpage()
+    elif user_input.lower() == "nheename":
+        Nhee.open_foxname()
     elif user_input.lower() == "l":
         color.Man()
     elif user_input.lower() == "debug":
@@ -2011,6 +2020,16 @@ def Arg():
         if sys.argv[x] == "--l_bright":
             title("Load Argument", "Argument: Bright")
             color.change("F0")
+
+        if sys.argv[x] == "-fap":
+            title("Load Argument", "Foxi")
+            ttime.deac()
+            if foxORnhe == "foxi":
+                Foxi.fap()
+            elif foxORnhe == "nhee":
+                Nhee.fap()
+            exit_now()
+
         if sys.argv[x] == "--foxi" or sys.argv[x] == "-fap":
             title("Load Argument", "Foxi")
             ttime.deac()
@@ -2026,6 +2045,22 @@ def Arg():
             ttime.deac()
             Foxi.open_foxname()
             exit_now()
+        if sys.argv[x] == "--nhee":
+            title("Load Argument", "Nhee")
+            ttime.deac()
+            Nhee.fap()
+            exit_now()
+        if sys.argv[x] == "--nhee_page":
+            title("Load Argument", "Nhee: NHEEPAGE")
+            ttime.deac()
+            Nhee.open_nheepage()
+            exit_now()
+        if sys.argv[x] == "--nhee_name":
+            title("Load Argument", "Nhee: NHEENAME")
+            ttime.deac()
+            Nhee.open_nheename()
+            exit_now()
+
         if sys.argv[x] == "--nc_stdsize":
             title("Load Argument", "Nircmd: Standard size")
             nircmd("setsize", 1000, 520)
