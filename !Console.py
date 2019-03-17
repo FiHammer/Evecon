@@ -1905,29 +1905,61 @@ def startStartupServer(serverport: int, ballonTIP=True):
         StartupServerJava.stop()
     def switchEP(x):
         Tools.EnergyPlan.Switch()
+        msg = "Änderte EP zu: " + Tools.EnergyPlan.cEP
+        print(msg)
         if ballonTIP:
             Tools.EnergyPlan.getEP(False)
-            balloon_tip("Evecon: StartupServer", "Änderte EP zu: " + Tools.EnergyPlan.cEP)
+            balloon_tip("Evecon: StartupServer", msg)
     def setEP_energysaver(x):
         Tools.EnergyPlan.Change(1)
+        msg = "Änderte EP zu: Stromsparen"
+        print(msg)
         if ballonTIP:
             Tools.EnergyPlan.getEP(False)
-            balloon_tip("Evecon: StartupServer", "Änderte EP zu: Stromsparen")
+            balloon_tip("Evecon: StartupServer", msg)
     def setEP_fastmode(x):
         Tools.EnergyPlan.Change(0)
+        msg = "Änderte EP zu: Ausbalanciert"
+        print(msg)
         if ballonTIP:
             Tools.EnergyPlan.getEP(False)
-            balloon_tip("Evecon: StartupServer", "Änderte EP zu: Ausbalanciert")
+            balloon_tip("Evecon: StartupServer", msg)
     def switchSS(x):
+        print("HI")
         Tools.ScreenSaverSettings.switchStatus()
+        if Tools.ScreenSaverSettings.status:
+            msg = "Schaltete SreenSaver: AN"
+        else:
+            msg = "Schaltete SreenSaver: AUS"
+        print(msg)
         if ballonTIP:
             Tools.EnergyPlan.getEP(False)
-            balloon_tip("Evecon: StartupServer", "Schaltete SreenSaver: " + Tools.ScreenSaverSettings.status)
+            balloon_tip("Evecon: StartupServer", msg)
+    def switchKlakumLight(x):
+        balloon_tip("OK", "HIER")
+        """
+        TODO: HIER WEGMACHEN WENN LAMPE AN
+        Klakum.connect()
+        Klakum.relays[4].switch()
+        Klakum.disconnect()
+        if ballonTIP:
+            Tools.EnergyPlan.getEP(False)
+            if Klakum.relay[4].value == 1:
+                msg =  "Schaltete die Lampe: AN"
+            else:
+                msg = "Schaltete die Lampe: AUS"
+            balloon_tip("Evecon: StartupServer", msg)
+        """
+    def shutdown(x):
+        Tools.shutdown()
+        if ballonTIP:
+            Tools.EnergyPlan.getEP(False)
+            balloon_tip("Evecon: StartupServer", "Fahre herrunter")
 
     sub_menu1 = {"Ausbalanciert": setEP_fastmode, "Energiesparen": setEP_energysaver}
-
+    main_menu = {"SS wechseln": switchSS, "EP wechseln": switchEP, "Schreibtischlicht wechseln": switchKlakumLight, "Herrunterfahren": shutdown}
     sysTray = SysTray("data"+path_seg+"ico"+path_seg+"PC.ico", "Evecon: StartupServer",
-                      {"EP wechseln": switchEP}, sub_menu1=sub_menu1, sub_menu_name1="EPs", quitFunc=quitFunc)
+                      main_menu, sub_menu1=sub_menu1, sub_menu_name1="EPs", quitFunc=quitFunc)
 
     sysTray.start()
 
