@@ -3207,42 +3207,67 @@ class MusicPlayerC(threading.Thread):
             if self.exitn:
                 self.stop()
 
-    def print_head(self):
+
+    def return_head1(self):
         # Info-Container
 
-        print("Musicplayer:\n")
+        outputList = ["Musicplayer:\n"]
 
         if self.getCur()["antype"]:
-            print("Playing: \n%s \nFrom %s" % (self.getCur()["andata"]["title"], self.getCur()["andata"]["animeName"]))
+            outputList.append("Playing: \n%s \nFrom %s" % (self.getCur()["andata"]["title"], self.getCur()["andata"]["animeName"]))
         else:
-            print("Playing: \n%s" % self.getCur()["name"])
+            outputList.append("Playing: \n%s" % self.getCur()["name"])
 
-        print("Time: %s\\%s" % (self.timer.getTimeFor(), TimeFor(self.getCur()["loaded"].duration)))
+            outputList.append("Time: %s\\%s" % (self.timer.getTimeFor(), TimeFor(self.getCur()["loaded"].duration)))
         if self.muted:
-            #print(int((console_data["pixx"]/2)-3)*"|"+"Muted"+int((console_data["pixx"]/2)-2)*"|")
+            # output.append(int((console_data["pixx"]/2)-3)*"|"+"Muted"+int((console_data["pixx"]/2)-2)*"|")
             l1 = ""
             l2 = ""
             pre = ""
-            print(pre + int((console_data["pixx"] / 2) - 3) * l1 + "Muted" + int((console_data["pixx"] / 2) - 2) * l2)
+            outputList.append(pre + int((console_data["pixx"] / 2) - 3) * l1 + "Muted" + int((console_data["pixx"] / 2) - 2) * l2)
         if self.remoteAddress:
-            print("Remoteaccess: " + self.remoteAddress)
-            print("Last remoteaction: " + self.remoteAction)
+            outputList.append("Remoteaccess: " + self.remoteAddress)
+            outputList.append("Last remoteaction: " + self.remoteAction)
 
+        return outputList
+
+    def return_head2(self):
+        pass
+
+    def return_head(self):
+        return self.return_head1() + self.return_head2()
+
+
+
+    def print_head1(self):
+        for line in self.return_head1():
+            print(line)
+
+    def print_head2(self):
+        for line in self.return_head2():
+            print(line)
+
+    def print_head(self):
+        # Info-Container
+        for line in self.return_head():
+            print(line)
 
         #sys.stdout.write(console_data[0]*"-")
 
 
-    def print_body(self):
+    def return_body(self):
+
+        outputList = []
+
         # Main-Container
 
         if self.con_main == "pl":
-            print("Playlist: (%s)\n" % str(len(self.playlist)))
-
+            outputList.append("Playlist: (%s)\n" % str(len(self.playlist)))
 
             search_done = False
             for now in range(self.expandRange):
                 if not search_done:
-                    if self.cur_Pos  == now:
+                    if self.cur_Pos == now:
                         if self.expandRange >= len(self.playlist) - 1:
                             for word_num in range(0, len(self.playlist)):
                                 if word_num + 1 < 10:
@@ -3252,22 +3277,26 @@ class MusicPlayerC(threading.Thread):
                                 else:
                                     word_num_str = str(word_num + 1)
 
-                                if self.cur_Pos  == word_num:
+                                if self.cur_Pos == word_num:
                                     if not self.debug:
                                         if len(self.music[self.playlist[word_num]]["name"]) > 108:
-                                            print(" " + word_num_str + " * " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                            outputList.append(" " + word_num_str + " * " + getPartStr(
+                                                self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
                                         else:
-                                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                            outputList.append(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                                     else:
-                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 0, self.playlist[word_num])
+                                        outputList.append(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"] + "0" +
+                                              self.playlist[word_num])
                                 else:
                                     if not self.debug:
                                         if len(self.music[self.playlist[word_num]]["name"]) > 108:
-                                            print(" " + word_num_str + "   " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                            outputList.append(" " + word_num_str + "   " + getPartStr(
+                                                self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
                                         else:
-                                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                            outputList.append(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                                     else:
-                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 1, self.playlist[word_num])
+                                        outputList.append(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"] + "1" +
+                                              self.playlist[word_num])
                         elif 2 * self.expandRange + 1 >= len(self.playlist):
                             for word_num in range(0, 2 * self.expandRange + 1):  # + 1?
                                 if word_num + 1 < 10:
@@ -3277,26 +3306,30 @@ class MusicPlayerC(threading.Thread):
                                 else:
                                     word_num_str = str(word_num + 1)
 
-                                if self.cur_Pos  == word_num:
+                                if self.cur_Pos == word_num:
                                     try:
                                         if not self.debug:
                                             if len(self.music[self.playlist[word_num]]["name"]) > 108:
-                                                print(" " + word_num_str + " * " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                                outputList.append(" " + word_num_str + " * " + getPartStr(
+                                                    self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
                                             else:
-                                                print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                                outputList.append(" " + word_num_str + " * " + self.music[self.playlist[word_num]][
+                                                    "name"])
                                         else:
-                                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 2, self.playlist[word_num])
+                                            outputList.append(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"] + "2" + self.playlist[word_num])
                                     except IndexError:
                                         pass
                                 else:
                                     try:
                                         if not self.debug:
                                             if len(self.music[self.playlist[word_num]]["name"]) > 108:
-                                                print(" " + word_num_str + "   " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                                outputList.append(" " + word_num_str + "   " + getPartStr(
+                                                    self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
                                             else:
-                                                print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                                outputList.append(" " + word_num_str + "   " + self.music[self.playlist[word_num]][
+                                                    "name"])
                                         else:
-                                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 3, self.playlist[word_num])
+                                            outputList.append(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"] + "3" + self.playlist[word_num])
                                     except IndexError:
                                         pass
                         else:
@@ -3310,27 +3343,31 @@ class MusicPlayerC(threading.Thread):
                                 if self.cur_Pos == word_num:
                                     if not self.debug:
                                         if len(self.music[self.playlist[word_num]]["name"]) > 108:
-                                            print(" " + word_num_str + " * " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                            outputList.append(" " + word_num_str + " * " + getPartStr(
+                                                self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
                                         else:
-                                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                            outputList.append(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                                     else:
-                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 4, self.playlist[word_num])
+                                        outputList.append(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"] + "4" +
+                                              self.playlist[word_num])
                                 else:
                                     if not self.debug:
                                         if len(self.music[self.playlist[word_num]]["name"]) > 108:
-                                            print(" " + word_num_str + "   " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                            outputList.append(" " + word_num_str + "   " + getPartStr(
+                                                self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
                                         else:
-                                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                            outputList.append(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                                     else:
-                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 5, self.playlist[word_num])
+                                        outputList.append(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"] + "5" +
+                                              self.playlist[word_num])
                         search_done = True
                         break
 
-                    elif self.cur_Pos == len(self.playlist) - now - 1 and self.cur_Pos >= self.expandRange: # Ende
+                    elif self.cur_Pos == len(self.playlist) - now - 1 and self.cur_Pos >= self.expandRange:  # Ende
                         for word_num in range(self.cur_Pos - self.expandRange - 2 + now, self.cur_Pos + 1 + now):
                             if word_num < 0:
                                 continue
-                            #print(word_num, self.curPos, now, self.expandRange)
+                            # outputList.append(word_num, self.curPos, now, self.expandRange)
                             if word_num + 1 < 10:
                                 word_num_str = str(word_num + 1) + "  "
                             elif word_num + 1 < 100:
@@ -3340,23 +3377,27 @@ class MusicPlayerC(threading.Thread):
                             if self.cur_Pos == word_num:
                                 if not self.debug:
                                     if len(self.music[self.playlist[word_num]]["name"]) > 108:
-                                        print(" " + word_num_str + " * " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                        outputList.append(" " + word_num_str + " * " + getPartStr(
+                                            self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
                                     else:
-                                        print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                        outputList.append(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                                 else:
-                                    print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 6, self.playlist[word_num])
+                                    outputList.append(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"] + "6" +
+                                          self.playlist[word_num])
                             else:
                                 if not self.debug:
                                     if len(self.music[self.playlist[word_num]]["name"]) > 108:
-                                        print(" " + word_num_str + "   " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                        outputList.append(" " + word_num_str + "   " + getPartStr(
+                                            self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
                                     else:
-                                        print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                        outputList.append(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                                 else:
-                                    print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 7, self.playlist[word_num])
+                                    outputList.append(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"] + "7" +
+                                          self.playlist[word_num])
                         search_done = True
                         break
 
-            if not search_done: # Mitte
+            if not search_done:  # Mitte
                 for word_num in range(self.cur_Pos - self.expandRange, self.cur_Pos + self.expandRange + 1):
                     if word_num + 1 < 10:
                         word_num_str = str(word_num + 1) + "  "
@@ -3367,80 +3408,86 @@ class MusicPlayerC(threading.Thread):
                     if self.cur_Pos == word_num:
                         if not self.debug:
                             if len(self.music[self.playlist[word_num]]["name"]) > 108:
-                                print(
-                                    " " + word_num_str + " * " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                outputList.append(
+                                    " " + word_num_str + " * " + getPartStr(self.music[self.playlist[word_num]]["name"], 0,
+                                                                            108) + "...")
                             else:
-                                print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                outputList.append(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
                         else:
-                            print(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"], 10, self.playlist[word_num])
+                            outputList.append(" " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"] + "10" +
+                                  self.playlist[word_num])
                     else:
                         if not self.debug:
                             if len(self.music[self.playlist[word_num]]["name"]) > 108:
-                                print(" " + word_num_str + "   " + getPartStr(self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                outputList.append(
+                                    " " + word_num_str + "   " + getPartStr(self.music[self.playlist[word_num]]["name"], 0,
+                                                                            108) + "...")
                             else:
-                                print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                outputList.append(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
                         else:
-                            print(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"], 11, self.playlist[word_num])
+                            outputList.append(" " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"] + "11" +
+                                  self.playlist[word_num])
 
         elif self.con_main == "details":
-            print("Details:\n")
-            print("Duration: " + str(TimeFor(self.music["file1"]["loaded"].duration)))
+            outputList.append("Details:\n")
+            outputList.append("Duration: " + str(TimeFor(self.music["file1"]["loaded"].duration)))
 
             if self.music[self.playlist[self.cur_Pos]]["antype"]:
-                print("Title: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["title"]))
-                print("Interpreter: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["interpreter"]))
-                print("Musictype: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["musictype"]))
-                print("Animename: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeName"]))
-                print("Season: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeSeason"]))
-                print("Type: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeType"]) +
+                outputList.append("Title: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["title"]))
+                outputList.append("Interpreter: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["interpreter"]))
+                outputList.append("Musictype: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["musictype"]))
+                outputList.append("Animename: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeName"]))
+                outputList.append("Season: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeSeason"]))
+                outputList.append("Type: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeType"]) +
                       str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeTypeNum"]))
             else:
-                print("Filename: " + self.music[self.playlist[self.cur_Pos]]["name"])
-                print("Album: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.album.decode())
-                print("Author: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.author.decode())
-                print("Comment: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.comment.decode())
-                print("Copyright: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.copyright.decode())
-                print("Genre: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.genre.decode())
-                print("Title: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.title.decode())
-                print("Track: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.track))
-                print("Year: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.year))
+                outputList.append("Filename: " + self.music[self.playlist[self.cur_Pos]]["name"])
+                outputList.append("Album: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.album.decode())
+                outputList.append("Author: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.author.decode())
+                outputList.append("Comment: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.comment.decode())
+                outputList.append("Copyright: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.copyright.decode())
+                outputList.append("Genre: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.genre.decode())
+                outputList.append("Title: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.title.decode())
+                outputList.append("Track: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.track))
+                outputList.append("Year: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.year))
 
             if self.debug:
-                print("\nDebugging Details:\n")
+                outputList.append("\nDebugging Details:\n")
 
-                print("Cur-Pos: " + str(self.cur_Pos))
-                print("Autorefresh: " + str(self.autorefresh))
+                outputList.append("Cur-Pos: " + str(self.cur_Pos))
+                outputList.append("Autorefresh: " + str(self.autorefresh))
 
-                print("File:\n")
-                print("Filename: " + self.music[self.playlist[self.cur_Pos]]["file"])
-                print("Path: " + self.music[self.playlist[self.cur_Pos]]["path"])
+                outputList.append("File:\n")
+                outputList.append("Filename: " + self.music[self.playlist[self.cur_Pos]]["file"])
+                outputList.append("Path: " + self.music[self.playlist[self.cur_Pos]]["path"])
 
-                print("\nPlayer:\n")
+                outputList.append("\nPlayer:\n")
 
-                print("Vol: " + str(Volume.getVolume()))
-                print("Volplayer: " + str(self.volumep))
-                print("Muted: " + str(self.muted))
-                print("Playing: " + str(self.playing))
-                print("Paused: " + str(self.paused))
-                print("Loaded-Key: " + str(self.music["active"]))
+                outputList.append("Vol: " + str(Volume.getVolume()))
+                outputList.append("Volplayer: " + str(self.volumep))
+                outputList.append("Muted: " + str(self.muted))
+                outputList.append("Playing: " + str(self.playing))
+                outputList.append("Paused: " + str(self.paused))
+                outputList.append("Loaded-Key: " + str(self.music["active"]))
 
-                print("\nOther:\n")
+                outputList.append("\nOther:\n")
 
-                print("Scanner-Status: " + str(self.scanner.is_alive()))
-                print("Timer direct: " + str(self.timer.getTime()))
-                print("Last print: " + str(self.last_print))
+                outputList.append("Scanner-Status: " + str(self.scanner.is_alive()))
+                outputList.append("Timer direct: " + str(self.timer.getTime()))
+                outputList.append("Last print: " + str(self.last_print))
 
             if self.server:
-                print("\nPort: " + str(self.server.port))
-                print("Port-Java: " + str(self.server_java.port))
+                outputList.append("\nPort: " + str(self.server.port))
+                outputList.append("Port-Java: " + str(self.server_java.port))
 
         elif self.con_main == "spl":
-            self.spl.printit(False)
+            outputList += self.spl.returnmain()
+            #self.spl.printit(False)
 
 
         elif self.con_main == "search":
-            #print(self.searchlist)
-            print("Search: (%s)\n" % str(len(self.searchlist)))
+            # outputList.append(self.searchlist)
+            outputList.append("Search: (%s)\n" % str(len(self.searchlist)))
 
             search_done = False
             for now in range(self.expandRange):
@@ -3458,25 +3505,23 @@ class MusicPlayerC(threading.Thread):
                                 if self.cur_Pos == word_num:
                                     if not self.debug:
                                         if len(self.music[self.searchlist[word_num]]["name"]) > 108:
-                                            print(" " + word_num_str + " * " + getPartStr(
+                                            outputList.append(" " + word_num_str + " * " + getPartStr(
                                                 self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
                                         else:
-                                            print(" " + word_num_str + " * " + self.music[self.searchlist[word_num]][
+                                            outputList.append(" " + word_num_str + " * " + self.music[self.searchlist[word_num]][
                                                 "name"])
                                     else:
-                                        print(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"],
-                                              0, self.searchlist[word_num])
+                                        outputList.append(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"] + "0" + self.searchlist[word_num])
                                 else:
                                     if not self.debug:
                                         if len(self.music[self.searchlist[word_num]]["name"]) > 108:
-                                            print(" " + word_num_str + "   " + getPartStr(
+                                            outputList.append(" " + word_num_str + "   " + getPartStr(
                                                 self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
                                         else:
-                                            print(" " + word_num_str + "   " + self.music[self.searchlist[word_num]][
+                                            outputList.append(" " + word_num_str + "   " + self.music[self.searchlist[word_num]][
                                                 "name"])
                                     else:
-                                        print(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"],
-                                              1, self.searchlist[word_num])
+                                        outputList.append(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"] + "1" + self.searchlist[word_num])
                         elif 2 * self.expandRange + 1 >= len(self.searchlist):
                             for word_num in range(0, 2 * self.expandRange + 1):  # + 1?
                                 if word_num + 1 < 10:
@@ -3490,28 +3535,26 @@ class MusicPlayerC(threading.Thread):
                                     try:
                                         if not self.debug:
                                             if len(self.music[self.searchlist[word_num]]["name"]) > 108:
-                                                print(" " + word_num_str + " * " + getPartStr(
+                                                outputList.append(" " + word_num_str + " * " + getPartStr(
                                                     self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
                                             else:
-                                                print(" " + word_num_str + " * " + self.music[self.searchlist[word_num]][
+                                                outputList.append(" " + word_num_str + " * " + self.music[self.searchlist[word_num]][
                                                     "name"])
                                         else:
-                                            print(" " + word_num_str + " * " + self.music[self.searchlist[word_num]][
-                                                "name"], 2, self.searchlist[word_num])
+                                            outputList.append(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"] + "2" + self.searchlist[word_num])
                                     except IndexError:
                                         pass
                                 else:
                                     try:
                                         if not self.debug:
                                             if len(self.music[self.searchlist[word_num]]["name"]) > 108:
-                                                print(" " + word_num_str + "   " + getPartStr(
+                                                outputList.append(" " + word_num_str + "   " + getPartStr(
                                                     self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
                                             else:
-                                                print(" " + word_num_str + "   " + self.music[self.searchlist[word_num]][
+                                                outputList.append(" " + word_num_str + "   " + self.music[self.searchlist[word_num]][
                                                     "name"])
                                         else:
-                                            print(" " + word_num_str + "   " + self.music[self.searchlist[word_num]][
-                                                "name"], 3, self.searchlist[word_num])
+                                            outputList.append(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"] + "3" + self.searchlist[word_num])
                                     except IndexError:
                                         pass
                         else:
@@ -3525,25 +3568,23 @@ class MusicPlayerC(threading.Thread):
                                 if self.cur_Pos == word_num:
                                     if not self.debug:
                                         if len(self.music[self.searchlist[word_num]]["name"]) > 108:
-                                            print(" " + word_num_str + " * " + getPartStr(
+                                            outputList.append(" " + word_num_str + " * " + getPartStr(
                                                 self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
                                         else:
-                                            print(" " + word_num_str + " * " + self.music[self.searchlist[word_num]][
+                                            outputList.append(" " + word_num_str + " * " + self.music[self.searchlist[word_num]][
                                                 "name"])
                                     else:
-                                        print(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"],
-                                              4, self.searchlist[word_num])
+                                        outputList.append(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"] + "4" + self.searchlist[word_num])
                                 else:
                                     if not self.debug:
                                         if len(self.music[self.searchlist[word_num]]["name"]) > 108:
-                                            print(" " + word_num_str + "   " + getPartStr(
+                                            outputList.append(" " + word_num_str + "   " + getPartStr(
                                                 self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
                                         else:
-                                            print(" " + word_num_str + "   " + self.music[self.searchlist[word_num]][
+                                            outputList.append(" " + word_num_str + "   " + self.music[self.searchlist[word_num]][
                                                 "name"])
                                     else:
-                                        print(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"],
-                                              5, self.searchlist[word_num])
+                                        outputList.append(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"] + "5" + self.searchlist[word_num])
                         search_done = True
                         break
 
@@ -3551,7 +3592,7 @@ class MusicPlayerC(threading.Thread):
                         for word_num in range(self.cur_Pos - self.expandRange - 2 + now, self.cur_Pos + 1 + now):
                             if word_num < 0:
                                 continue
-                            # print(word_num, self.curPos, now, self.expandRange)
+                            # outputList.append(word_num, self.curPos, now, self.expandRange)
                             if word_num + 1 < 10:
                                 word_num_str = str(word_num + 1) + "  "
                             elif word_num + 1 < 100:
@@ -3561,23 +3602,21 @@ class MusicPlayerC(threading.Thread):
                             if self.cur_Pos == word_num:
                                 if not self.debug:
                                     if len(self.music[self.searchlist[word_num]]["name"]) > 108:
-                                        print(" " + word_num_str + " * " + getPartStr(
+                                        outputList.append(" " + word_num_str + " * " + getPartStr(
                                             self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
                                     else:
-                                        print(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"])
+                                        outputList.append(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"])
                                 else:
-                                    print(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"], 6,
-                                          self.searchlist[word_num])
+                                    outputList.append(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"] + "6" + self.searchlist[word_num])
                             else:
                                 if not self.debug:
                                     if len(self.music[self.searchlist[word_num]]["name"]) > 108:
-                                        print(" " + word_num_str + "   " + getPartStr(
+                                        outputList.append(" " + word_num_str + "   " + getPartStr(
                                             self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
                                     else:
-                                        print(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"])
+                                        outputList.append(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"])
                                 else:
-                                    print(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"], 7,
-                                          self.searchlist[word_num])
+                                    outputList.append(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"] + "7" + self.searchlist[word_num])
                         search_done = True
                         break
 
@@ -3592,83 +3631,90 @@ class MusicPlayerC(threading.Thread):
                     if self.cur_Pos == word_num:
                         if not self.debug:
                             if len(self.music[self.searchlist[word_num]]["name"]) > 108:
-                                print(
+                                outputList.append(
                                     " " + word_num_str + " * " + getPartStr(self.music[self.searchlist[word_num]]["name"],
                                                                             0, 108) + "...")
                             else:
-                                print(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"])
+                                outputList.append(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"])
                         else:
-                            print(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"], 10,
+                            outputList.append(" " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"] + "10" +
                                   self.searchlist[word_num])
                     else:
                         if not self.debug:
                             if len(self.music[self.searchlist[word_num]]["name"]) > 108:
-                                print(
+                                outputList.append(
                                     " " + word_num_str + "   " + getPartStr(self.music[self.searchlist[word_num]]["name"],
                                                                             0, 108) + "...")
                             else:
-                                print(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"])
+                                outputList.append(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"])
                         else:
-                            print(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"], 11,
-                                  self.searchlist[word_num])
+                            outputList.append(" " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"] + "11" + self.searchlist[word_num])
+        return outputList
 
+    def print_body(self):
 
+        for line in self.return_body():
+            print(line)
 
-
-
-
-    def print_foot(self):
+    def return_foot(self):
+        outputList = []
 
 
         if self.con_cont == "set":
-            print("Commands:\n")
+            outputList.append("Commands:\n")
 
             if not self.paused:
-                print("Pause (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT), Queue this (QU), Details (DEA)")
+                outputList.append("Pause (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT), Queue this (QU), Details (DEA)")
             elif self.paused:
-                print("Play (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT), Queue this (QU), Details (DEA)")
+                outputList.append("Play (P), Delthis (DEL), Next (N), Reroll all (RE), Reroll this (RT), Queue this (QU), Details (DEA)")
 
             if self.con_main == "spl":
-                self.spl.printcom()
+                outputList += self.spl.returncom()
+                #self.spl.printcom()
 
-            print("\nInput:\n%s" % self.cur_Input)
+            outputList.append("\nInput:\n%s" % self.cur_Input)
 
         elif self.con_cont == "search":
-            print("Commands: (with UPPER LETTERs)\n")
+            outputList.append("Commands: (with UPPER LETTERs)\n")
 
-            print("Play this (P), Delthis (DEL), Queue this (QU)")
+            outputList.append("Play this (P), Delthis (DEL), Queue this (QU)")
 
-            print("\nInput: %s" % self.cur_Input.upper())
+            outputList.append("\nInput: %s" % self.cur_Input.upper())
 
-            print("\nSearch: (with lower letters)\n")
-            print("Input: %s" % self.cur_Search)
+            outputList.append("\nSearch: (with lower letters)\n")
+            outputList.append("Input: %s" % self.cur_Search)
 
         elif self.con_cont == "conf":
-            print("Confirm\n")
-            print("Y/N")
+            outputList.append("Confirm\n")
+            outputList.append("Y/N")
 
         elif self.con_cont == "cont":
-            print("Continue?\n")
-            print("Press something")
+            outputList.append("Continue?\n")
+            outputList.append("Press something")
 
         elif self.con_cont == "volp":
-            print("Change Volume (Player):\n")
-            print("Current: " + str(self.volumep))
+            outputList.append("Change Volume (Player):\n")
+            outputList.append("Current: " + str(self.volumep))
 
-            print("\n" + self.cur_Input)
+            outputList.append("\n" + self.cur_Input)
 
         elif self.con_cont == "volw":
             self.volume = Volume.getVolume()
-            print("Change Volume (Windows):\n")
-            print("Current: " + str(self.volume))
+            outputList.append("Change Volume (Windows):\n")
+            outputList.append("Current: " + str(self.volume))
 
-            print("\n" + self.cur_Input)
+            outputList.append("\n" + self.cur_Input)
 
         elif self.con_cont == "spe":
-            print("Change Effectduration (Spl):\n")
-            print("Current: " + str(self.spl.Effect))
+            outputList.append("Change Effectduration (Spl):\n")
+            outputList.append("Current: " + str(self.spl.Effect))
 
-            print("\n" + self.cur_Input)
+            outputList.append("\n" + self.cur_Input)
+        return outputList
+
+    def print_foot(self):
+        for line in self.return_foot():
+            print(line)
 
     def printit(self):
         self.last_print = time.time()
@@ -3815,6 +3861,11 @@ class MusicPlayerC(threading.Thread):
         elif inp == "strg_backspace" and not self.searching:
             self.cur_Input = ""
 
+        elif self.con_main != "pl" and inp == "escape": # !! EXIT IN EVERYTHING WITH ESC
+            self.con_main = "pl"
+            self.cur_Input = ""
+            self.cur_Pos = 0
+            self.change = ""
 
         elif self.change and inp == "escape":
             self.cur_Input = ""
@@ -5569,6 +5620,17 @@ class Firefox(Browser):
 
 
 class MusicPlayerRemote:
+
+    """
+    DATEN ÜBERTRAGUNG
+
+    import pickle
+    pickle.dumps({'foo': 'bar'})
+    pickle.loads()
+    {'foo': 'bar'}
+
+    """
+
     def __init__(self, ip="127.0.0.1", port=0, showLog=False):
         """
         :type ip: str
@@ -6156,8 +6218,8 @@ class SplatoonC:
             return True
         else:
             return False
-
-    def printit(self, printcom=True):
+    def returnmain(self):
+        outputList = []
         self.TimeLeft = self.RoundTime - self.TimeLeftC.getTime()
         self.TimeLeft = self.RoundTime - round(time.time() - self.TimeLeftStart)
 
@@ -6183,35 +6245,43 @@ class SplatoonC:
         if self.TimeLeft <= 0:
             self.RoundOver = True
 
-
-        print("Splatoon 2\n")
-        print("Time:\t\t %s" % TimeLeftFor)
-        print("Round:\t\t %s" % self.Rounds)
+        outputList.append("Splatoon 2\n")
+        outputList.append("Time:\t\t %s" % TimeLeftFor)
+        outputList.append("Round:\t\t %s" % self.Rounds)
 
         if self.Effect is not None and self.Effect != 0:
-            print("Effect:\t\t %s" % self.Effect)
+            outputList.append("Effect:\t\t %s" % self.Effect)
         elif self.Effect == 0:
-            print("Effect:\t\t No Effect Active")
+            outputList.append("Effect:\t\t No Effect Active")
 
-        print("Playtime:\t %s" % PlaytimeFor)
+        outputList.append("Playtime:\t %s" % PlaytimeFor)
         if self.WR:
-            print("\nWeapon Randomizer:")
-            print("This Round:\t %s (%s)" % self.WRthis)
-            print("Next Round:\t %s (%s)" % self.WRnext)
-        if printcom:
-            if self.WR:
-                print("\nWeapon Randomizer (WR), Effect ('E'+number), Reroll Next Weapon (REROLL)")
-            else:
-                print("\nWeapon Randomizer (WR), Effect ('E'+number)")
+            outputList.append("\nWeapon Randomizer:")
+            outputList.append("This Round:\t %s (%s)" % self.WRthis)
+            outputList.append("Next Round:\t %s (%s)" % self.WRnext)
 
         if self.RoundOver:
-            print("\nStart Next Round?")
+            outputList.append("\nStart Next Round?")
+        return outputList
+
+    def printit(self, printcom=True):
+        for line in self.returnmain():
+            print(line)
+        if printcom:
+            for line in self.returncom():
+                print(line)
+
+    def returncom(self):
+        outputList = []
+        if self.WR:
+            outputList.append("Weapon Randomizer (spWR), Effect (spE), Next Round (spN), Reroll Next Weapon (spR)")
+        else:
+            outputList.append("Weapon Randomizer (spWR), Effect (spE), Next Round (spN)")
+        return outputList
 
     def printcom(self):
-        if self.WR:
-            print("Weapon Randomizer (spWR), Effect (spE), Next Round (spN), Reroll Next Weapon (spR)")
-        else:
-            print("Weapon Randomizer (spWR), Effect (spE), Next Round (spN)")
+        for line in self.returncom():
+            print(line)
 
 class ToolsC:
     def __init__(self):
