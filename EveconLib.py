@@ -2372,7 +2372,7 @@ class MusicPlayerC(threading.Thread):
 
         return content
 
-    def addMusic(self, key, cusPath=False, genre=False, noList=False, printStaMSG=True, printEndMSG=True, makeNoti=True):  # key (AN, LIS)
+    def addMusic(self, key, cusPath=False, genre=False, noList=False, printStaMSG=True, printEndMSG=True, makeNoti=False):  # key (AN, LIS)
 
         """
         :param key: the key of the id (normal id, mpl id)
@@ -2795,6 +2795,8 @@ class MusicPlayerC(threading.Thread):
                 self.playlist.append("file" + str(x))
             self.searchlist = self.playlist.copy()
 
+        if self.randomizer:
+            self.shufflePL()
         self.resetInterface()
 
     def shufflePL(self, first=False):
