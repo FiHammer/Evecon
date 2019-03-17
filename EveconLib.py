@@ -2202,7 +2202,7 @@ class MusicPlayerC(threading.Thread):
             self.server_java = None
 
         self.volume = Volume.getVolume()
-        self.volumep = 1
+        self.volumep = 0.5
 
         # stop the musicplayer while hovering over file 1 and pressing 'del'-button
         self.stop_del = stop_del
@@ -2372,7 +2372,7 @@ class MusicPlayerC(threading.Thread):
 
         return content
 
-    def addMusic(self, key, cusPath=False, genre=False, noList=False, printStaMSG=True, printEndMSG=True):  # key (AN, LIS)
+    def addMusic(self, key, cusPath=False, genre=False, noList=False, printStaMSG=True, printEndMSG=True, makeNoti=True):  # key (AN, LIS)
 
         """
         :param key: the key of the id (normal id, mpl id)
@@ -2381,6 +2381,7 @@ class MusicPlayerC(threading.Thread):
         :param noList: only allows key to be a normal id
         :param printStaMSG: clears the screen and prints the start msg
         :param printEndMSG: prints the finished msg
+        :param makeNoti: make a notification after finishing
         :return: success
         """
         self.read_musiclist()
@@ -2400,6 +2401,9 @@ class MusicPlayerC(threading.Thread):
         if type(key) == str:
             key = key.lower()
 
+        if Search(key, self.music["active"]):
+            return False
+
         if cusPath:
             key = "cus"
         elif genre:
@@ -2407,12 +2411,12 @@ class MusicPlayerC(threading.Thread):
                 if isinstance(key, str):
                     for aDir in self.musiclist["keys"]:
                         if Search(key, self.musiclist[aDir]["genre"], exact=True):
-                            self.addMusic(aDir, printStaMSG=False)
+                            self.addMusic(aDir, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
                 elif isinstance(key, list):
                     for aGenre in key:
                         for aDir in self.musiclist["keys"]:
                             if Search(aGenre, self.musiclist[aDir]["genre"], exact=True):
-                                self.addMusic(aDir, printStaMSG=False)
+                                self.addMusic(aDir, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
                 return True
             else:
                 return False
@@ -2428,7 +2432,7 @@ class MusicPlayerC(threading.Thread):
             for x in self.musiclist["keys"]:
                 for y in key:
                     if x == y:
-                        self.addMusic(x, printStaMSG=False)
+                        self.addMusic(x, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
                         break
             return True
 
@@ -2440,20 +2444,20 @@ class MusicPlayerC(threading.Thread):
             self.findMusic(cusPath)
         elif key == "all":
             for x in self.musiclist["keys"]:
-                self.addMusic(x, printStaMSG=False)
+                self.addMusic(x, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
             return True
         elif Search(key, list(self.multiplaylists["keys"]), exact=True):
-            self.addMusic(self.multiplaylists[key]["content"]["all_ids"], printStaMSG=False)
+            self.addMusic(self.multiplaylists[key]["content"]["all_ids"], printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
         elif Search(key, self.genre, exact=True):
             if isinstance(key, str):
                 for aDir in self.musiclist["keys"]:
                     if Search(key, self.musiclist[aDir]["genre"], exact=True):
-                        self.addMusic(aDir, printStaMSG=False)
+                        self.addMusic(aDir, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
             elif isinstance(key, list):
                 for aGenre in key:
                     for aDir in self.musiclist["keys"]:
                         if Search(aGenre, self.musiclist[aDir]["genre"], exact=True):
-                            self.addMusic(aDir, printStaMSG=False)
+                            self.addMusic(aDir, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
             else:
                 pass
             return True
@@ -2505,6 +2509,8 @@ class MusicPlayerC(threading.Thread):
         self.music["active"].append(key)
         if printEndMSG:
             print("Finished: " + key)
+        if makeNoti:
+            self.notificate(key.title(), title="Finished loading", screentime=2.5)
         return True
 
     def read_musiclist(self):
@@ -2758,6 +2764,12 @@ class MusicPlayerC(threading.Thread):
 
         """
 
+    def resetInterface(self):
+        self.con_main = "pl"
+        self.cur_Input = ""
+        self.cur_Pos = 0
+        self.change = ""
+        self.notifications = []
 
     def reloadMusic(self, tracknum):
         if type(tracknum) == int:
@@ -2766,10 +2778,24 @@ class MusicPlayerC(threading.Thread):
             self.music[tracknum]["loaded"] = pyglet.media.load(self.music[tracknum]["fullname"])
 
     def make_playlist(self):
-        self.playlist = []
-        for x in range(1, self.music["all_files"] + 1):
-            self.playlist.append("file" + str(x))
-        self.searchlist = self.playlist.copy()
+        if self.playing:
+            newPlaylist = []
+            for x in range(1, self.music["all_files"] + 1):
+                newPlaylist.append("file" + str(x))
+
+            ourID = Search(self.playlist[0], newPlaylist, exact=True, lower=False)
+            del newPlaylist[ourID[0]]
+            newPlaylist = [self.playlist[0]] + newPlaylist
+
+            self.playlist = newPlaylist.copy()
+            self.searchlist = self.playlist.copy()
+        else:
+            self.playlist = []
+            for x in range(1, self.music["all_files"] + 1):
+                self.playlist.append("file" + str(x))
+            self.searchlist = self.playlist.copy()
+
+        self.resetInterface()
 
     def shufflePL(self, first=False):
         if first:
@@ -2802,6 +2828,10 @@ class MusicPlayerC(threading.Thread):
         WindowsBalloonTip.ShowWindow("Evecon: MusicPlayer", "Now playing: " + name)
 
     def getCur(self):
+        #if len(self.playlist) == 0 and self.music["all_files"] > 0:
+        #    self.make_playlist()
+        #elif len(self.playlist) == 0 and self.music["all_files"] == 0:
+        #    self.stop()
         if len(self.playlist) == 0:
             self.stop()
         return self.music[self.playlist[0]]
@@ -3219,15 +3249,18 @@ class MusicPlayerC(threading.Thread):
                 self.stop()
 
     def notificate(self, msg, title=None, screentime=5, maxTime=None):
+        found = False
         if title:
             for noti in self.notifications:
                 if noti["title"] == title:
+                    found = True
                     noti["msgs"].append({
                         "msg": msg,
-                        "screentime": screentime,
+                        "screentime": screentime + 100,
                         "starttime": time.time()
                     })
-        else:
+                    break
+        if not found:
             self.notifications.append({
                 "msgs": [{
                     "msg": msg,
@@ -3236,8 +3269,10 @@ class MusicPlayerC(threading.Thread):
                     }],
                 "maxTime": maxTime,
                 "maxTimestart": time.time(),
-                "title": None
+                "title": title
             })
+        if self.autorefresh and self.running:
+            self.printit()
 
     def return_head_info(self):
         # Info-Container
@@ -3274,23 +3309,46 @@ class MusicPlayerC(threading.Thread):
         outputList = []
 
         oldNoti = self.notifications.copy()
-        for notiID in range(0, len(oldNoti)):
+        delMSG = []
+        delNOT = []
+        titleUsed = False
+
+        def workAmsg(msgID):
+            nonlocal titleUsed
+            if oldNoti[notiID]["msgs"][msgID]["starttime"] + oldNoti[notiID]["msgs"][msgID][
+                "screentime"] < time.time():  # invalid msg time
+                delMSG.append((notiID, msgID))
+            else:
+                if oldNoti[notiID]["title"] and not titleUsed:
+                    titleUsed = True
+                    outputList.append(oldNoti[notiID]["title"] + ":")
+                outputList.append(oldNoti[notiID]["msgs"][msgID]["msg"])
+
+        def workANote(notiID):
+            nonlocal titleUsed
             if oldNoti[notiID]["maxTime"]:
                 if time.time() > oldNoti[notiID]["maxTime"] + oldNoti[notiID]["maxTimestart"]:  # invalid: MAXTIME
-                    del self.notifications[notiID]
+                    delNOT.append(notiID)
             else:
                 titleUsed = False
+                #if len(oldNoti[notiID]["msgs"]) == 1:
+                #    workAmsg(0)
                 for msgID in range(0, len(oldNoti[notiID]["msgs"])):
-                    if oldNoti[notiID]["msgs"][msgID]["starttime"] + oldNoti[notiID]["msgs"][msgID][
-                        "screentime"] < time.time():  # invalid msg time
-                        del oldNoti[notiID]["msgs"][msgID]
-                    else:
-                        if oldNoti[notiID]["title"] and not titleUsed:
-                            titleUsed = True
-                            outputList.append(oldNoti[notiID]["title"] + ":")
-                        outputList.append(oldNoti[notiID]["msgs"][msgID]["msg"])
+                    workAmsg(msgID)
+
                 if len(oldNoti[notiID]["msgs"]) == 0:
-                    del self.notifications[notiID]
+                    delNOT.append(notiID)
+
+        #if len(oldNoti) == 0:
+        #    workANote(0)
+        for notiID in range(0, len(oldNoti)):
+            workANote(notiID)
+
+        for x in range(-1, -len(delMSG) - 1, -1):
+            del self.notifications[delMSG[x][0]]["msgs"][delMSG[x][1]]
+        for x in range(-1, -len(delNOT) - 1, -1):
+            del self.notifications[delNOT[x]]
+
 
         return outputList
 
@@ -3556,8 +3614,6 @@ class MusicPlayerC(threading.Thread):
                 outputList.append("Timer direct: " + str(self.timer.getTime()))
                 outputList.append("Last print: " + str(self.last_print))
 
-            if self.server:
-                outputList.append("\nPort: " + str(self.server.port))
 
 
         elif self.con_main == "spl":
@@ -3790,6 +3846,19 @@ class MusicPlayerC(threading.Thread):
             outputList.append("Current: " + str(self.spl.Effect))
 
             outputList.append("\n" + self.cur_Input)
+
+        elif self.con_cont == "add":
+            outputList.append("Add new Music:\n")
+
+            cur = ""
+            for mus in self.music["active"]:
+                cur += mus + ", "
+            cur = cur.rstrip(", ")
+
+            outputList.append("Current: " + cur)
+
+            outputList.append("\n" + self.cur_Input)
+
         return outputList
 
     def print_foot(self):
@@ -3816,7 +3885,7 @@ class MusicPlayerC(threading.Thread):
         while self.starttime + 1.5 >= time.time() and self.hardworktime + 0.65 >= time.time():
             time.sleep(0.25)
 
-        if self.con_main == "details":
+        if self.con_main == "details" or self.con_main == "info" or self.con_cont == "cont":
             self.con_main = self.con_main_last
             self.con_cont = "set"
 
@@ -3925,11 +3994,12 @@ class MusicPlayerC(threading.Thread):
         elif inp == " ":
             self.switch()
 
+
         elif len(inp) == 1 and not self.searching: #MAIN give to next method
             self.cur_Input += inp
-            if self.input(self.cur_Input):
-                self.cur_Input = ""
-
+            if not self.change:
+                if self.input(self.cur_Input):
+                    self.cur_Input = ""
 
         elif inp == "backspace" and not self.searching:
             if len(self.cur_Input) > 0:
@@ -3941,11 +4011,9 @@ class MusicPlayerC(threading.Thread):
         elif inp == "strg_backspace" and not self.searching:
             self.cur_Input = ""
 
+
         elif self.con_main != "pl" and inp == "escape": # !! EXIT IN EVERYTHING WITH ESC
-            self.con_main = "pl"
-            self.cur_Input = ""
-            self.cur_Pos = 0
-            self.change = ""
+            self.resetInterface()
 
         elif self.change and inp == "escape":
             self.cur_Input = ""
@@ -3975,6 +4043,17 @@ class MusicPlayerC(threading.Thread):
                 self.change = ""
                 self.con_cont = "set"
 
+        elif self.change == "add":
+            if inp == "return":
+                theKEY = self.cur_Input
+                def addMe():
+                    self.addMusic(theKEY, printStaMSG=False, printEndMSG=False, makeNoti=True)
+                    self.make_playlist()
+                t = threading.Thread(target=addMe)
+                t.start()
+                self.cur_Input = ""
+                self.change = ""
+                self.con_cont = "set"
 
         elif inp == "arrowup" and self.cur_Pos > 0 and self.con_main == "pl":
             self.cur_Pos -= 1
@@ -4056,6 +4135,10 @@ class MusicPlayerC(threading.Thread):
         elif i == "del":
             self.DelById(self.cur_Pos)
 
+        elif i == "add":
+            self.cur_Input = ""
+            self.change = "add"
+            self.con_cont = "add"
         elif i == "volw":
             self.cur_Input = ""
             self.change = "volw"
