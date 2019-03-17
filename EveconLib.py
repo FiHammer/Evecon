@@ -2176,7 +2176,7 @@ class MPlayerC:
 
 # noinspection PyTypeChecker
 class MusicPlayerC(threading.Thread):
-    def __init__(self, systray=True, random=True, expandRange=2, stop_del=False, scanner_active=True, balloonTip=True, killMeAfterEnd=True, remote=True, remotePort=4554):
+    def __init__(self, systray=True, random=True, expandRange=2, stop_del=False, scanner_active=True, balloonTip=True, killMeAfterEnd=True, remote=True, remotePort=4554, selfprint=False):
         super().__init__()
 
         self.debug = False
@@ -2190,6 +2190,7 @@ class MusicPlayerC(threading.Thread):
         self.killMeAfterEnd = killMeAfterEnd
         self.remote = True
         self.remotePort = remotePort
+        self.selfprint = selfprint
 
         self.remoteAddress = ""
         self.remoteAction = ""
@@ -2249,6 +2250,7 @@ class MusicPlayerC(threading.Thread):
         self.searchlist = []
         self.cur_Search = ""
 
+        self.notifications = []
 
         self.tmp_pl_input_1 = []
         self.tmp_pl_input_2 = []
@@ -2786,6 +2788,12 @@ class MusicPlayerC(threading.Thread):
         else:
             title("OLD", self.getCur()["name"], "Now Playing")
 
+    def refresh(self, title=False, printme=True):
+        if title:
+            self.refreshTitle()
+        elif printme:
+            self.printit()
+
     def showBalloonTip(self):
         if self.getCur()["antype"]:
             name = self.getCur()["andata"]["title"]
@@ -3176,6 +3184,8 @@ class MusicPlayerC(threading.Thread):
                         self.playing = False
                     time.sleep(0.1)
 
+                    self.refresh(title=False, printme=self.selfprint)
+
                 while self.paused:
                     self.timer.pause()
                     # Vll. hier spl pause command einfügen
@@ -3184,12 +3194,13 @@ class MusicPlayerC(threading.Thread):
                         time.sleep(0.25)
 
                     self.timer.unpause()
-                    self.refreshTitle()
+                    self.refresh(title=True, printme=self.selfprint)
 
                     #if self.spl:
                     #    self.splmp.PlaytimeStart += time.time() - music_time_wait
                     #    self.splmp.TimeLeftStart += time.time() - music_time_wait
 
+            self.timer.reset()
             self.player.next()
 
             if self.skip_del:
@@ -3207,8 +3218,28 @@ class MusicPlayerC(threading.Thread):
             if self.exitn:
                 self.stop()
 
+    def notificate(self, msg, title=None, screentime=5, maxTime=None):
+        if title:
+            for noti in self.notifications:
+                if noti["title"] == title:
+                    noti["msgs"].append({
+                        "msg": msg,
+                        "screentime": screentime,
+                        "starttime": time.time()
+                    })
+        else:
+            self.notifications.append({
+                "msgs": [{
+                    "msg": msg,
+                    "screentime": screentime,
+                    "starttime": time.time()
+                    }],
+                "maxTime": maxTime,
+                "maxTimestart": time.time(),
+                "title": None
+            })
 
-    def return_head1(self):
+    def return_head_info(self):
         # Info-Container
 
         outputList = ["Musicplayer:\n"]
@@ -3231,26 +3262,51 @@ class MusicPlayerC(threading.Thread):
 
         return outputList
 
-    def return_head2(self):
-        pass
+    def return_head_noti(self):
+        # notification
 
-    def return_head(self):
-        return self.return_head1() + self.return_head2()
+        outputList = []
 
+        oldNoti = self.notifications.copy()
+        for notiID in range(0, len(oldNoti)):
+            if oldNoti[notiID]["maxTime"]:
+                if time.time() > oldNoti[notiID]["maxTime"] + oldNoti[notiID]["maxTimestart"]:  # invalid: MAXTIME
+                    del self.notifications[notiID]
+            else:
+                titleUsed = False
+                for msgID in range(0, len(oldNoti[notiID]["msgs"])):
+                    if oldNoti[notiID]["msgs"][msgID]["starttime"] + oldNoti[notiID]["msgs"][msgID][
+                        "screentime"] < time.time():  # invalid msg time
+                        del oldNoti[notiID]["msgs"][msgID]
+                    else:
+                        if oldNoti[notiID]["title"] and not titleUsed:
+                            titleUsed = True
+                            outputList.append(oldNoti[notiID]["title"] + ":")
+                        outputList.append(oldNoti[notiID]["msgs"][msgID]["msg"])
+                if len(oldNoti[notiID]["msgs"]) == 0:
+                    del self.notifications[notiID]
 
+        return outputList
 
-    def print_head1(self):
-        for line in self.return_head1():
+    def print_head_info(self):
+        for line in self.return_head_info():
             print(line)
 
-    def print_head2(self):
-        for line in self.return_head2():
+    def print_head_noti(self):
+        for line in self.return_head_noti():
             print(line)
 
     def print_head(self):
         # Info-Container
-        for line in self.return_head():
-            print(line)
+
+        self.print_head_info()
+
+        if self.return_head_noti():
+            print("\n" + console_data["pixx"] * "-" + "\n")
+            self.print_head_noti()
+
+
+
 
         #sys.stdout.write(console_data[0]*"-")
 
@@ -3720,7 +3776,7 @@ class MusicPlayerC(threading.Thread):
         self.last_print = time.time()
         cls()
 
-        # Info-Container
+        # Head-Container (Info + Noti)
         self.print_head()
 
         print("\n" + console_data["pixx"]*"-" + "\n")
