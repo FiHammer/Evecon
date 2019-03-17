@@ -4527,8 +4527,8 @@ class Client(threading.Thread):
 
         self.Seculevel = Seculevel
 
-        self.tmp_longMSG = False
-        self.tmp_longMSGs = []
+        self.tmp_longMSG_rec = False
+        self.tmp_longMSGs_rec = []
         self.tmp_longMSG_sen = False
         self.tmp_longMSGs_sen = []
 
@@ -4786,10 +4786,10 @@ class Client(threading.Thread):
                 noByte = False
                 data_form = str(data)
             data_form_split = data_form.split("!")
+            self.writeLog("Receive: " + data_form)
 
-            if not self.tmp_longMSG:
+            if not self.tmp_longMSG_rec:
                 self.Logrece.append(data)
-                self.writeLog("Receive: " + data_form)
 
                 if data_form_split[0] == "#C" and len(data_form_split) > 1:
                     if data_form_split[1] == "exit":
@@ -4801,7 +4801,8 @@ class Client(threading.Thread):
 
                     elif data_form_split[1] == "longMSGinc":
                         self.writeLog("Long Message incoming!")
-                        self.tmp_longMSG = True
+                        self.tmp_longMSG_rec = True
+                        self.tmp_longMSGs_rec = []
                 else:
                     if noByte:
                         self.react(data_form)
@@ -4809,21 +4810,37 @@ class Client(threading.Thread):
                         self.react(data)
             else:  # LONG MESSAGE
                 if data_form_split[0] == "#T" and len(data_form_split) > 1:
-                    if data_form_split[1] == "longMSGfin":
+                    if data_form_split[1] == "longMSGend":
                         self.writeLog("Long Message finished!")
                         # LONG MSG WIRD AUS GEWERTET
-                        self.tmp_longMSG = False
+                        self.tmp_longMSG_rec = False
 
-                        if noByte:
+                        if type(self.tmp_longMSGs_rec[0]) == str:
                             msg = ""
                         else:
                             msg = b""
 
                         for partOfMsg in self.Logrece_long:
                             msg += partOfMsg
-                        self.writeLog("Long Message: " + msg)
+                        if type(self.tmp_longMSGs_rec[0]) == str:
+                            self.writeLog("Long Message: " + msg)
+                        else:
+                            self.writeLog("Long (Byte) Message: " + str(msg))
+
                         self.Logrece.append(msg)
+                        #self.tmp_longMSGs_rec = []
                         self.react(msg)
+
+                else:
+                    if noByte:
+                        self.tmp_longMSGs_rec.append(data_form)
+                        self.Logrece_long.append(data_form)
+                        self.writeLog("Long Message Part " + str(len(self.tmp_longMSGs_rec)) + ": " + data_form)
+                    else:
+                        self.tmp_longMSGs_rec.append(data)
+                        self.Logrece_long.append(data)
+                        self.writeLog("Long Message (Byte) Part " + str(len(self.tmp_longMSGs_rec)) + ": " + data_form)
+
 
     def save(self, directory:str):
         file_log_raw = open("Log.txt", "w")
@@ -5217,6 +5234,7 @@ class Server(threading.Thread):
 
                 self.tmp_longMSG_sen = False
                 self.tmp_longMSGs_sen = []
+                time.sleep(1)
                 self.send("#T!longMSGend")
 
             else:
@@ -5241,9 +5259,9 @@ class Server(threading.Thread):
                         self.writeLog("Sent something uncodeable!: " + str(data_send))
                 else:
                     try:
-                        self.writeLog("Long Message: " + data_send.decode("UTF-8"))
+                        self.writeLog("Sent long Message: " + data_send.decode("UTF-8"))
                     except UnicodeDecodeError:
-                        self.writeLog("Long Message (uncodeable): " + str(data_send))
+                        self.writeLog("Sent long Message (uncodeable): " + str(data_send))
 
                 self.con.send(data_send_de)
 
@@ -5256,10 +5274,10 @@ class Server(threading.Thread):
                 data_form = str(data)
                 noByte = False
             data_form_split = data_form.split("!")
+            self.writeLog("Receive: " + data_form)
 
             if not self.tmp_longMSG_rec:
                 self.Logrece.append(data)
-                self.writeLog("Receive: " + data_form)
 
                 if data_form_split[0] == "#C" and len(data_form_split) > 1:
                     if data_form_split[1] == "getTimeRaw":
@@ -5292,7 +5310,7 @@ class Server(threading.Thread):
                         # LONG MSG WIRD AUS GEWERTET
                         self.tmp_longMSG_rec = False
 
-                        if noByte:
+                        if type(self.tmp_longMSGs_rec[0]) == str:
                             msg = ""
                         else:
                             msg = b""
@@ -5301,7 +5319,7 @@ class Server(threading.Thread):
                             msg += partOfMsg
                         self.writeLog("Long Message: " + msg)
                         self.Logrece.append(msg)
-                        self.tmp_longMSGs_rec = []
+                        #self.tmp_longMSGs_rec = []
                         self.react(msg)
 
                 else:
@@ -5312,7 +5330,7 @@ class Server(threading.Thread):
                     else:
                         self.tmp_longMSGs_rec.append(data)
                         self.Logrece_long.append(data)
-                        self.writeLog("Long Message (Byte) Part " + str(len(self.tmp_longMSGs_rec)) + ": " + data)
+                        self.writeLog("Long Message (Byte) Part " + str(len(self.tmp_longMSGs_rec)) + ": " + data_form)
 
 
     def writeLog(self, data):
