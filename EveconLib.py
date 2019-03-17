@@ -4527,8 +4527,15 @@ class Client(threading.Thread):
 
         self.Seculevel = Seculevel
 
+        self.tmp_longMSG = False
+        self.tmp_longMSGs = []
+        self.tmp_longMSG_sen = False
+        self.tmp_longMSGs_sen = []
+
         self.Logsend = []
+        self.Logsend_long = []
         self.Logrece = []
+        self.Logrece_long = []
 
         self.s = socket.socket()
 
@@ -4716,49 +4723,107 @@ class Client(threading.Thread):
             else:
                 data_send = data
 
-            if encrypt is None:
-                if self.Info["secu"]["status"] == 1:
+            if len(data_send) > 1000:  # LONG MSG!!!
+                self.send("#T!longMSGinc")
+
+                self.tmp_longMSG_sen = True
+                self.tmp_longMSGs_sen = []
+                for i in range(0, len(data) - 1, 1000):
+                    self.tmp_longMSGs_sen.append(data_send[i:i + 1000])
+                    self.Logsend_long.append(data_send[i:i + 1000])
+
+                for partData in self.tmp_longMSGs_sen:
+                    self.send(partData)
+
+                self.tmp_longMSG_sen = False
+                self.tmp_longMSGs_sen = []
+                self.send("#T!longMSGend")
+
+            else:
+                if encrypt is None:
+                    if self.Info["secu"]["status"] == 1:
+                        data_send_de = simplecrypt.encrypt(self.Info["secu"]["key"], data_send)
+                    else:
+                        data_send_de = data_send
+                elif encrypt:
                     data_send_de = simplecrypt.encrypt(self.Info["secu"]["key"], data_send)
                 else:
                     data_send_de = data_send
-            elif encrypt:
-                data_send_de = simplecrypt.encrypt(self.Info["secu"]["key"], data_send)
-            else:
-                data_send_de = data_send
 
-            self.s.send(data_send_de)
+                if type(data) == str:
+                    data_str = data
+                elif type(data) == bytes:
+                    try:
+                        data_str = data.decode("UTF-8")
+                    except UnicodeDecodeError:
+                        data_str = str(data)
+                else:
+                    data_str = str(data)
+                if not self.tmp_longMSG_sen:
+                    self.Logsend.append(data_str)
 
-            if type(data) == str:
-                data_str = data
-            elif type(data) == bytes:
-                data_str = data.decode("UTF-8")
-            else:
-                data_str = str(data)
+                    try:
+                        self.writeLog("Sent: " + data_send.decode("UTF-8"))
+                    except UnicodeDecodeError:
+                        self.writeLog("Sent something uncodeable!: " + str(data_send))
+                else:
+                    try:
+                        self.writeLog("Long Message: " + data_send.decode("UTF-8"))
+                    except UnicodeDecodeError:
+                        self.writeLog("Long Message (uncodeable): " + str(data_send))
 
-            self.Logsend.append(data_str)
-            self.writeLog("Send: " + data_str)
+                self.s.send(data_send_de)
+
         else:
             return False
 
     def receive(self, data):
         if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
-            data_form = data.decode("UTF-8")
+            noByte = True
+            try:
+                data_form = data.decode("UTF-8")
+            except UnicodeDecodeError:
+                noByte = False
+                data_form = str(data)
             data_form_split = data_form.split("!")
 
-            self.Logrece.append(data)
-            self.writeLog("Receive: " + data_form)
+            if not self.tmp_longMSG:
+                self.Logrece.append(data)
+                self.writeLog("Receive: " + data_form)
 
-            if data_form_split[0] == "#C" and len(data_form_split) > 1:
-                if data_form_split[1] == "exit":
-                    self.exit()
-            elif data_form_split[0] == "#T" and len(data_form_split) > 1:
-                if data_form_split[1] == "exit":
+                if data_form_split[0] == "#C" and len(data_form_split) > 1:
+                    if data_form_split[1] == "exit":
+                        self.exit()
+                elif data_form_split[0] == "#T" and len(data_form_split) > 1:
                     if data_form_split[1] == "exit":
                         self.exit(sendM=False)
                         self.writeLog("Server disconnected")
 
-            else:
-                self.react(data_form)
+                    elif data_form_split[1] == "longMSGinc":
+                        self.writeLog("Long Message incoming!")
+                        self.tmp_longMSG = True
+                else:
+                    if noByte:
+                        self.react(data_form)
+                    else:
+                        self.react(data)
+            else:  # LONG MESSAGE
+                if data_form_split[0] == "#T" and len(data_form_split) > 1:
+                    if data_form_split[1] == "longMSGfin":
+                        self.writeLog("Long Message finished!")
+                        # LONG MSG WIRD AUS GEWERTET
+                        self.tmp_longMSG = False
+
+                        if noByte:
+                            msg = ""
+                        else:
+                            msg = b""
+
+                        for partOfMsg in self.Logrece_long:
+                            msg += partOfMsg
+                        self.writeLog("Long Message: " + msg)
+                        self.Logrece.append(msg)
+                        self.react(msg)
 
     def save(self, directory:str):
         file_log_raw = open("Log.txt", "w")
@@ -4911,6 +4976,11 @@ class Server(threading.Thread):
 
         self.Seculevel = Seculevel
 
+        self.tmp_longMSG_rec = False
+        self.tmp_longMSGs_rec = []
+        self.tmp_longMSG_sen = False
+        self.tmp_longMSGs_sen = []
+
         self.Timer = TimerC()
 
         self.BigServerBuffersize = BigServerBuffersize
@@ -4927,7 +4997,9 @@ class Server(threading.Thread):
             self.BigServer = None
 
         self.Logsend = []
+        self.Logsend_long = []
         self.Logrece = []
+        self.Logrece_long = []
 
         self.s = socket.socket()
         try:
@@ -5131,45 +5203,117 @@ class Server(threading.Thread):
             else:
                 data_send = data
 
-            if encrypt is None:
-                if self.conInfo["secu"]["status"] == 1:
+            if len(data_send) > 1000: #LONG MSG!!!
+                self.send("#T!longMSGinc")
+
+                self.tmp_longMSG_sen = True
+                self.tmp_longMSGs_sen = []
+                for i in range(0, len(data) - 1, 1000):
+                    self.tmp_longMSGs_sen.append(data_send[i:i+1000])
+                    self.Logsend_long.append(data_send[i:i+1000])
+
+                for partData in self.tmp_longMSGs_sen:
+                    self.send(partData)
+
+                self.tmp_longMSG_sen = False
+                self.tmp_longMSGs_sen = []
+                self.send("#T!longMSGend")
+
+            else:
+
+                if encrypt is None:
+                    if self.conInfo["secu"]["status"] == 1:
+                        data_send_de = simplecrypt.encrypt(self.conInfo["secu"]["key"], data_send)
+                    else:
+                        data_send_de = data_send
+                elif encrypt:
                     data_send_de = simplecrypt.encrypt(self.conInfo["secu"]["key"], data_send)
                 else:
                     data_send_de = data_send
-            elif encrypt:
-                data_send_de = simplecrypt.encrypt(self.conInfo["secu"]["key"], data_send)
-            else:
-                data_send_de = data_send
 
-            # print(encrypt, self.conInfo["secu"]["status"])
-            # print(data, data_send, data_send_de)
-            self.Logsend.append(data)
-            self.writeLog("Sended: " + data_send.decode("UTF-8"))
-            self.con.send(data_send_de)
+                # print(encrypt, self.conInfo["secu"]["status"])
+                # print(data, data_send, data_send_de)
+                if not self.tmp_longMSG_sen:
+                    self.Logsend.append(data)
+                    try:
+                        self.writeLog("Sent: " + data_send.decode("UTF-8"))
+                    except UnicodeDecodeError:
+                        self.writeLog("Sent something uncodeable!: " + str(data_send))
+                else:
+                    try:
+                        self.writeLog("Long Message: " + data_send.decode("UTF-8"))
+                    except UnicodeDecodeError:
+                        self.writeLog("Long Message (uncodeable): " + str(data_send))
+
+                self.con.send(data_send_de)
 
     def receive(self, data):
         if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
-            data_form = data.decode("UTF-8")
+            noByte = True
+            try:
+                data_form = data.decode("UTF-8")
+            except UnicodeDecodeError:
+                data_form = str(data)
+                noByte = False
             data_form_split = data_form.split("!")
 
-            self.Logrece.append(data)
-            self.writeLog("Receive: " + data_form)
+            if not self.tmp_longMSG_rec:
+                self.Logrece.append(data)
+                self.writeLog("Receive: " + data_form)
 
-            if data_form_split[0] == "#C" and len(data_form_split) > 1:
-                if data_form_split[1] == "getTimeRaw":
-                    self.send("#R!" + str(self.getRunTime()))
-                elif data_form_split[1] == "getTime":
-                    self.send("#R!" + str(self.getRunTime(False)))
-                elif data_form_split[1] == "exit":
-                    self.exit()
-            elif data_form_split[0] == "#T" and len(data_form_split) > 1:
-                if data_form_split[1] == "exit":
-                    self.exit(sendM=False)
-                    self.writeLog("Client disconnected")
-            elif data_form_split[0] == "#B" and len(data_form_split) > 1:
-                pass
-            else:
-                self.react(data_form)
+                if data_form_split[0] == "#C" and len(data_form_split) > 1:
+                    if data_form_split[1] == "getTimeRaw":
+                        self.send("#R!" + str(self.getRunTime()))
+                    elif data_form_split[1] == "getTime":
+                        self.send("#R!" + str(self.getRunTime(False)))
+                    elif data_form_split[1] == "exit":
+                        self.exit()
+                elif data_form_split[0] == "#T" and len(data_form_split) > 1:
+                    if data_form_split[1] == "exit":
+                        self.exit(sendM=False)
+                        self.writeLog("Client disconnected")
+
+                    elif data_form_split[1] == "longMSGinc":
+                        self.writeLog("Long Message incoming!")
+                        self.tmp_longMSG_rec = True
+                        self.tmp_longMSGs_rec = []
+
+                elif data_form_split[0] == "#B" and len(data_form_split) > 1:
+                    pass
+                else:
+                    if noByte:
+                        self.react(data_form)
+                    else:
+                        self.react(data)
+            else: # LONG MESSAGE
+                if data_form_split[0] == "#T" and len(data_form_split) > 1:
+                    if data_form_split[1] == "longMSGend":
+                        self.writeLog("Long Message finished!")
+                        # LONG MSG WIRD AUS GEWERTET
+                        self.tmp_longMSG_rec = False
+
+                        if noByte:
+                            msg = ""
+                        else:
+                            msg = b""
+
+                        for partOfMsg in self.tmp_longMSGs_rec:
+                            msg += partOfMsg
+                        self.writeLog("Long Message: " + msg)
+                        self.Logrece.append(msg)
+                        self.tmp_longMSGs_rec = []
+                        self.react(msg)
+
+                else:
+                    if noByte:
+                        self.tmp_longMSGs_rec.append(data_form)
+                        self.Logrece_long.append(data_form)
+                        self.writeLog("Long Message Part " + str(len(self.tmp_longMSGs_rec)) + ": " + data_form)
+                    else:
+                        self.tmp_longMSGs_rec.append(data)
+                        self.Logrece_long.append(data)
+                        self.writeLog("Long Message (Byte) Part " + str(len(self.tmp_longMSGs_rec)) + ": " + data)
+
 
     def writeLog(self, data):
         write = "(" + datetime.datetime.now().strftime("%H:%M:%S:%f") + ") " + "(" + self.Status + ") " + data
