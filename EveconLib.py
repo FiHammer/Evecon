@@ -3242,7 +3242,16 @@ class MusicPlayerC(threading.Thread):
     def return_head_info(self):
         # Info-Container
 
-        outputList = ["Musicplayer:\n"]
+        outputList = []
+
+        if not self.remoteAddress:
+            outputList.append("Musicplayer: \n")
+        else:
+            if self.remoteAddress == "192.168.2.103":
+                con = "FP2"
+            else:
+                con = self.remoteAddress
+            outputList.append("Musicplayer: (%s connected)\n" % con)
 
         if self.getCur()["antype"]:
             outputList.append("Playing: \n%s \nFrom %s" % (self.getCur()["andata"]["title"], self.getCur()["andata"]["animeName"]))
@@ -3256,9 +3265,6 @@ class MusicPlayerC(threading.Thread):
             l2 = ""
             pre = ""
             outputList.append(pre + int((console_data["pixx"] / 2) - 3) * l1 + "Muted" + int((console_data["pixx"] / 2) - 2) * l2)
-        if self.remoteAddress:
-            outputList.append("Remoteaccess: " + self.remoteAddress)
-            outputList.append("Last remoteaction: " + self.remoteAction)
 
         return outputList
 
@@ -3496,16 +3502,43 @@ class MusicPlayerC(threading.Thread):
                 outputList.append("Season: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeSeason"]))
                 outputList.append("Type: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeType"]) +
                       str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeTypeNum"]))
+
+            outputList.append("Filename: " + self.music[self.playlist[self.cur_Pos]]["name"])
+            outputList.append("Album: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.album.decode())
+            outputList.append("Author: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.author.decode())
+            outputList.append("Comment: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.comment.decode())
+            outputList.append("Copyright: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.copyright.decode())
+            outputList.append("Genre: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.genre.decode())
+            outputList.append("Title: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.title.decode())
+            outputList.append("Track: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.track))
+            outputList.append("Year: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.year))
+
+
+
+        elif self.con_main == "info":
+            outputList.append("Infos:\n")
+
+            if self.server:
+                outputList.append("Server: Alive %s, Port %s" % (str(self.server.is_alive()), str(self.server.port)))
             else:
-                outputList.append("Filename: " + self.music[self.playlist[self.cur_Pos]]["name"])
-                outputList.append("Album: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.album.decode())
-                outputList.append("Author: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.author.decode())
-                outputList.append("Comment: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.comment.decode())
-                outputList.append("Copyright: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.copyright.decode())
-                outputList.append("Genre: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.genre.decode())
-                outputList.append("Title: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.title.decode())
-                outputList.append("Track: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.track))
-                outputList.append("Year: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.year))
+                outputList.append("Server: Alive False, Port None")
+            if self.server_java:
+                outputList.append("Server-Java: Alive %s, Port %s" % (str(self.server_java.is_alive()), str(self.server_java.port)))
+            else:
+                outputList.append("Server-Java: Alive False, Port None")
+
+            if self.remoteAddress:
+                outputList.append("Remote address: " + self.remoteAddress)
+                outputList.append("Remote action: " + self.remoteAction)
+
+            outputList.append("\nPlayer:\n")
+
+            outputList.append("Vol: " + str(Volume.getVolume()))
+            outputList.append("Volplayer: " + str(self.volumep))
+            outputList.append("Muted: " + str(self.muted))
+            outputList.append("Playing: " + str(self.playing))
+            outputList.append("Paused: " + str(self.paused))
+            outputList.append("Loaded-Key: " + str(self.music["active"]))
 
             if self.debug:
                 outputList.append("\nDebugging Details:\n")
@@ -3517,15 +3550,6 @@ class MusicPlayerC(threading.Thread):
                 outputList.append("Filename: " + self.music[self.playlist[self.cur_Pos]]["file"])
                 outputList.append("Path: " + self.music[self.playlist[self.cur_Pos]]["path"])
 
-                outputList.append("\nPlayer:\n")
-
-                outputList.append("Vol: " + str(Volume.getVolume()))
-                outputList.append("Volplayer: " + str(self.volumep))
-                outputList.append("Muted: " + str(self.muted))
-                outputList.append("Playing: " + str(self.playing))
-                outputList.append("Paused: " + str(self.paused))
-                outputList.append("Loaded-Key: " + str(self.music["active"]))
-
                 outputList.append("\nOther:\n")
 
                 outputList.append("Scanner-Status: " + str(self.scanner.is_alive()))
@@ -3534,7 +3558,7 @@ class MusicPlayerC(threading.Thread):
 
             if self.server:
                 outputList.append("\nPort: " + str(self.server.port))
-                outputList.append("Port-Java: " + str(self.server_java.port))
+
 
         elif self.con_main == "spl":
             outputList += self.spl.returnmain()
@@ -4049,6 +4073,10 @@ class MusicPlayerC(threading.Thread):
         elif i == "dea":
             self.con_main_last = self.con_main
             self.con_main = "details"
+            self.con_cont = "cont"
+        elif i == "info":
+            self.con_main_last = self.con_main
+            self.con_main = "info"
             self.con_cont = "cont"
         elif i == "sortfile":
             self.sortPL()
