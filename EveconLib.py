@@ -480,7 +480,7 @@ class Findus:
         :param autoSort: enables autoSorting after 'every' (with enableInput) keypus
         :type autoSort: bool
 
-        :param enableCommands: enables (other) commands (than search (is active with autoSerach))
+        :param enableCommands: enables (other) commands (than search (is active with autoSearch))
         :type enableCommands: bool
         """
 
@@ -2303,6 +2303,7 @@ class MusicPlayerC(threading.Thread):
         self.hardworktime = 0
         self.musicrun = True
         self.playlist = []
+        self.startlist = [] # all files which are loaded are in here!
         self.pershuffel = False
 
         self.running = False
@@ -2338,6 +2339,8 @@ class MusicPlayerC(threading.Thread):
         self.cur_Search = ""
 
         self.notifications = []
+
+        self.last_backspace = False
 
         self.tmp_pl_input_1 = []
         self.tmp_pl_input_2 = []
@@ -2875,13 +2878,13 @@ class MusicPlayerC(threading.Thread):
             newPlaylist = [self.playlist[0]] + newPlaylist
 
             self.playlist = newPlaylist.copy()
-            self.searchlist = self.playlist.copy()
         else:
             self.playlist = []
             for x in range(1, self.music["all_files"] + 1):
                 self.playlist.append("file" + str(x))
-            self.searchlist = self.playlist.copy()
 
+        self.searchlist = self.playlist.copy()
+        self.startlist = self.playlist.copy()
         if self.randomizer:
             self.shufflePL()
         self.resetInterface()
@@ -3127,29 +3130,31 @@ class MusicPlayerC(threading.Thread):
         self.hardworktime = time.time()
 
     def refreshSearch(self):
-
-
         self.cur_Pos = 0
 
         if self.cur_Search != "":
             namelist = []
 
-            for x in self.playlist:
-                namelist.append(self.music[x]["name"])
+            #for x in self.startlist:
+            if self.last_backspace:
+                for x in self.startlist:
+                    namelist.append(self.music[x]["name"])
+            else:
+                for x in self.searchlist:
+                    namelist.append(self.music[x]["name"])
 
             found = Search(self.cur_Search, namelist)
 
             searchlist_name = []
             for x in found:
                 searchlist_name.append(namelist[x])
-
             searchlist_name.sort()
 
-            music_dir = self.music.copy()
+            #music_dir = self.music.copy()
 
         else:
             searchlist_name = []
-            for fileX in self.playlist:
+            for fileX in self.startlist:
                 searchlist_name.append(self.music[fileX]["name"])
             searchlist_name.sort()
 
@@ -3160,18 +3165,6 @@ class MusicPlayerC(threading.Thread):
                 self.tmp_pl_input_1.append(name)
             else:
                 self.tmp_pl_input_2.append(name)
-
-
-        """
-        for num_file in range(1, music_dir["all_files"] + 1):
-            try:
-                if name == music_dir["file" + str(num_file)]["name"]:
-                    new_playlist.append("file" + str(num_file))
-                    del music_dir["file" + str(num_file)]
-                    break
-            except KeyError:
-                pass
-        """
 
         def work1():
             music_dir = self.music.copy()
@@ -4022,6 +4015,7 @@ class MusicPlayerC(threading.Thread):
         elif len(inp) == 1 and self.searching:
             if inp == inp.lower(): # SEARCH
                 self.cur_Search += inp
+                self.last_backspace = False
                 self.refreshSearch()
 
             else: # COMMANDS
@@ -4030,7 +4024,7 @@ class MusicPlayerC(threading.Thread):
                 i = self.cur_Input.lower()
 
                 # Search commands
-                if i == "play" or i == "pau" or i == "pause" or i == "p":
+                if i == "p":
                     oldPL = self.playlist.copy()
                     del oldPL[Search(self.searchlist[self.cur_Pos], self.playlist)[0]]
                     self.playlist = [self.searchlist[self.cur_Pos]] + oldPL
@@ -4054,6 +4048,9 @@ class MusicPlayerC(threading.Thread):
                     self.cur_Input = ""
 
                 # Musicplayer commands
+                elif i == "pla" or i == "pau":
+                    self.switch()
+                    self.cur_Input = ""
                 elif i == "next" or i == "n":
                     self.next()
                     self.cur_Input = ""
@@ -4092,7 +4089,7 @@ class MusicPlayerC(threading.Thread):
                 for x in range(len(self.cur_Search) - 1):
                     new_Search += self.cur_Search[x]
                 self.cur_Search = new_Search
-
+                self.last_backspace = True
                 self.refreshSearch()
 
         elif inp == "strg_backspace" and self.searching: # COMMANDS
@@ -4114,6 +4111,7 @@ class MusicPlayerC(threading.Thread):
 
         elif len(inp) == 1 and not self.searching: #MAIN give to next method
             self.cur_Input += inp
+            self.last_backspace = False
             if not self.change:
                 if self.input(self.cur_Input):
                     self.cur_Input = ""
@@ -4123,6 +4121,7 @@ class MusicPlayerC(threading.Thread):
                 new_Input = ""
                 for x in range(len(self.cur_Input) - 1):
                     new_Input += self.cur_Input[x]
+                self.last_backspace = True
                 self.cur_Input = new_Input
 
         elif inp == "strg_backspace" and not self.searching:
