@@ -140,6 +140,9 @@ class TimerC:
 
     def getTime(self):
         self.reload()
+        if not self.Running:
+            return 0
+
         return self._time
 
     time = property(getTime)

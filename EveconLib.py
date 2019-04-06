@@ -1,24 +1,111 @@
 from EveconTools import *
-import ctypes
-import socket
+
 import pycaw
 import pycaw.pycaw
-import getpass
-import comtypes
+
+import socket
 import simplecrypt
 import configparser
 import webbrowser
-import pyglet
-import click
-import queue
 import json
 import shutil
 
-import win32api
-import win32gui
-import win32con
-import win32gui_struct
-import win32process
+#import getpass
+from getpass import getuser as getpass_getuser
+
+#import comtypes
+from comtypes import CLSCTX_ALL as comtypes_CLSCTX_ALL
+
+#import ctypes
+from ctypes import windll as ctypes_windll
+from ctypes import cast as ctypes_cast
+from ctypes import POINTER as ctypes_POINTER
+
+#import pyglet
+from pyglet import media as pyglet_media
+from pyglet import options as pyglet_options
+
+#import click
+from click import getchar as click_getchar
+
+#import queue
+from queue import Queue as queue_Queue
+
+#import win32api
+from win32api import GetModuleHandle as win32api_GetModuleHandle
+from win32api import PostQuitMessage as win32api_PostQuitMessage
+from win32api import GetSystemMetrics as win32api_GetSystemMetrics
+
+#import win32gui
+from win32gui import GetWindowRect as win32gui_GetWindowRect
+from win32gui import GetWindowText as win32gui_GetWindowText
+from win32gui import WNDCLASS as win32gui_WNDCLASS
+from win32gui import RegisterClass as win32gui_RegisterClass
+from win32gui import CreateWindow as win32gui_CreateWindow
+from win32gui import UpdateWindow as win32gui_UpdateWindow
+from win32gui import LoadImage as win32gui_LoadImage
+from win32gui import LoadIcon as win32gui_LoadIcon
+from win32gui import NIF_ICON as win32gui_NIF_ICON
+from win32gui import NIF_MESSAGE as win32gui_NIF_MESSAGE
+from win32gui import NIF_TIP as win32gui_NIF_TIP
+from win32gui import Shell_NotifyIcon as win32gui_Shell_NotifyIcon
+from win32gui import NIM_ADD as win32gui_NIM_ADD
+from win32gui import NIM_MODIFY as win32gui_NIM_MODIFY
+from win32gui import NIF_INFO as win32gui_NIF_INFO
+from win32gui import DestroyWindow as win32gui_DestroyWindow
+from win32gui import RegisterWindowMessage as win32gui_RegisterWindowMessage
+from win32gui import GetModuleHandle as win32gui_GetModuleHandle
+from win32gui import LoadCursor as win32gui_LoadCursor
+from win32gui import PumpMessages as win32gui_PumpMessages
+from win32gui import NIM_DELETE as win32gui_NIM_DELETE
+from win32gui import PostQuitMessage as win32gui_PostQuitMessage
+from win32gui import CreatePopupMenu as win32gui_CreatePopupMenu
+from win32gui import GetCursorPos as win32gui_GetCursorPos
+from win32gui import SetForegroundWindow as win32gui_SetForegroundWindow
+from win32gui import TrackPopupMenu as win32gui_TrackPopupMenu
+from win32gui import PostMessage as win32gui_PostMessage
+from win32gui import InsertMenuItem as win32gui_InsertMenuItem
+from win32gui import CreateCompatibleDC as win32gui_CreateCompatibleDC
+from win32gui import GetDC as win32gui_GetDC
+from win32gui import CreateCompatibleBitmap as win32gui_CreateCompatibleBitmap
+from win32gui import SelectObject as win32gui_SelectObject
+from win32gui import GetSysColorBrush as win32gui_GetSysColorBrush
+from win32gui import FillRect as win32gui_FillRect
+from win32gui import DrawIconEx as win32gui_DrawIconEx
+from win32gui import DeleteDC as win32gui_DeleteDC
+from win32gui import LOWORD as win32gui_LOWORD
+from win32gui import EnumWindows as win32gui_EnumWindows
+
+#import win32con
+from win32con import WM_DESTROY as win32con_WM_DESTROY
+from win32con import WS_OVERLAPPED as win32con_WS_OVERLAPPED
+from win32con import WS_SYSMENU as win32con_WS_SYSMENU
+from win32con import CW_USEDEFAULT as win32con_CW_USEDEFAULT
+from win32con import LR_LOADFROMFILE as win32con_LR_LOADFROMFILE
+from win32con import LR_DEFAULTSIZE as win32con_LR_DEFAULTSIZE
+from win32con import IMAGE_ICON as win32con_IMAGE_ICON
+from win32con import IDI_APPLICATION as win32con_IDI_APPLICATION
+from win32con import WM_USER as win32con_WM_USER
+from win32con import COLOR_WINDOW as win32con_COLOR_WINDOW
+from win32con import IDC_ARROW as win32con_IDC_ARROW
+from win32con import CS_VREDRAW as win32con_CS_VREDRAW
+from win32con import CS_HREDRAW as win32con_CS_HREDRAW
+from win32con import WM_COMMAND as win32con_WM_COMMAND
+from win32con import WM_LBUTTONDBLCLK as win32con_WM_LBUTTONDBLCLK
+from win32con import WM_RBUTTONUP as win32con_WM_RBUTTONUP
+from win32con import WM_LBUTTONUP as win32con_WM_LBUTTONUP
+from win32con import TPM_LEFTALIGN as win32con_TPM_LEFTALIGN
+from win32con import WM_NULL as win32con_WM_NULL
+from win32con import SM_CXSMICON as win32con_SM_CXSMICON
+from win32con import SM_CYSMICON as win32con_SM_CYSMICON
+from win32con import COLOR_MENU as win32con_COLOR_MENU
+from win32con import DI_NORMAL as win32con_DI_NORMAL
+
+#import win32gui_struct
+from win32gui_struct import PackMENUITEMINFO as win32gui_struct_PackMENUITEMINFO
+
+#import win32process
+from win32process import GetWindowThreadProcessId as win32process_GetWindowThreadProcessId
 
 import itertools
 import glob
@@ -41,7 +128,7 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
 
 code_version = "0.9.6.0"
 
-pyglet.options['search_local_libs'] = True
+pyglet_options['search_local_libs'] = True
 
 ss_active = False
 exitnow = 0
@@ -66,23 +153,23 @@ title_dead = False
 
 def loadHWND(newTitle=None):
     def findIT(hwnd, extra):
-        rect = win32gui.GetWindowRect(hwnd)
+        rect = win32gui_GetWindowRect(hwnd)
         global thisHWND, console_data
         console_data["posx"] = x = rect[0]
         console_data["posy"] = y = rect[1]
         console_data["lenx"] = rect[2] - x
         console_data["leny"] = rect[3] - y
 
-        if newTitle is None and lsame(win32gui.GetWindowText(hwnd), gettitle("left")):
-            thisHWND = win32gui.GetWindowText(hwnd)
-        elif newTitle is not None and win32gui.GetWindowText(hwnd) == newTitle:
-            thisHWND = win32gui.GetWindowText(hwnd)
+        if newTitle is None and lsame(win32gui_GetWindowText(hwnd), gettitle("left")):
+            thisHWND = win32gui_GetWindowText(hwnd)
+        elif newTitle is not None and win32gui_GetWindowText(hwnd) == newTitle:
+            thisHWND = win32gui_GetWindowText(hwnd)
 
-    win32gui.EnumWindows(findIT, None)
+    win32gui_EnumWindows(findIT, None)
 
-ctypes.windll.kernel32.SetConsoleTitleW("EVECON: Loading HWND")
+ctypes_windll.kernel32.SetConsoleTitleW("EVECON: Loading HWND")
 loadHWND("EVECON: Loading HWND")
-ctypes.windll.kernel32.SetConsoleTitleW("EVECON: Loading...")
+ctypes_windll.kernel32.SetConsoleTitleW("EVECON: Loading...")
 
 
 def killme():
@@ -261,7 +348,7 @@ class Scanner(threading.Thread):
 
     def run(self):
         while self.running:
-            char = click.getchar()
+            char = click_getchar()
             if self.running:
                 if self.raw:
                     self.action(char)
@@ -1245,7 +1332,7 @@ def title(status="OLD", something="OLD", versionX="OLD", deac=False):
         space_time = 1 * " "
 
     if not title_dead:
-        ctypes.windll.kernel32.SetConsoleTitleW("EVECON: %s%s%s%s%s%s%sTime: %s" %
+        ctypes_windll.kernel32.SetConsoleTitleW("EVECON: %s%s%s%s%s%s%sTime: %s" %
                                                 (status, space_status, versionX, space_pc, something, space_something, space_time, nowtime))
 
 class title_time(threading.Thread):
@@ -1300,12 +1387,12 @@ ttime = title_time(2.5)
 def killConsoleWin():
     ttime.deac()
     title(deac=True)
-    hwnd = ctypes.windll.kernel32.GetConsoleWindow()
-    ctypes.windll.user32.ShowWindow(hwnd, 0)
+    hwnd = ctypes_windll.kernel32.GetConsoleWindow()
+    ctypes_windll.user32.ShowWindow(hwnd, 0)
 
     # Why?
-    ctypes.windll.kernel32.CloseHandle(hwnd)
-    _, pid = win32process.GetWindowThreadProcessId(hwnd)
+    ctypes_windll.kernel32.CloseHandle(hwnd)
+    _, pid = win32process_GetWindowThreadProcessId(hwnd)
     #print(pid)
     #os.system('taskkill /PID ' + str(pid) + ' /f')
     #input()
@@ -1345,31 +1432,31 @@ def gettitle(part="all"):
 class WindowsBalloonTipC:
     def __init__(self):
         message_map = {
-                win32con.WM_DESTROY: self.OnDestroy,
+                win32con_WM_DESTROY: self.OnDestroy,
         }
-        wc = win32gui.WNDCLASS()
-        self.hinst = wc.hInstance = win32api.GetModuleHandle(None)
+        wc = win32gui_WNDCLASS()
+        self.hinst = wc.hInstance = win32api_GetModuleHandle(None)
         wc.lpszClassName = "PythonTaskbar"
         wc.lpfnWndProc = message_map
-        self.classAtom = win32gui.RegisterClass(wc)
+        self.classAtom = win32gui_RegisterClass(wc)
         self.hwnd = None
         self.normList = []
     def ShowWindow(self, title, msg):
-        style = win32con.WS_OVERLAPPED | win32con.WS_SYSMENU
-        self.hwnd = win32gui.CreateWindow( self.classAtom, "Taskbar", style, 0, 0, win32con.CW_USEDEFAULT, win32con.CW_USEDEFAULT, 0, 0, self.hinst, None)
-        win32gui.UpdateWindow(self.hwnd)
+        style = win32con_WS_OVERLAPPED | win32con_WS_SYSMENU
+        self.hwnd = win32gui_CreateWindow( self.classAtom, "Taskbar", style, 0, 0, win32con_CW_USEDEFAULT, win32con_CW_USEDEFAULT, 0, 0, self.hinst, None)
+        win32gui_UpdateWindow(self.hwnd)
         iconPathName = os.path.abspath(os.path.join( sys.path[0], "balloontip.ico" ))
-        icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
+        icon_flags = win32con_LR_LOADFROMFILE | win32con_LR_DEFAULTSIZE
         # noinspection PyBroadException
         try:
-           hicon = win32gui.LoadImage(self.hinst, iconPathName, win32con.IMAGE_ICON, 0, 0, icon_flags)
+           hicon = win32gui_LoadImage(self.hinst, iconPathName, win32con_IMAGE_ICON, 0, 0, icon_flags)
         except:
-          hicon = win32gui.LoadIcon(0, win32con.IDI_APPLICATION)
-        flags = win32gui.NIF_ICON | win32gui.NIF_MESSAGE | win32gui.NIF_TIP
-        nid = (self.hwnd, 0, flags, win32con.WM_USER+20, hicon, "tooltip")
-        win32gui.Shell_NotifyIcon(win32gui.NIM_ADD, nid)
-        win32gui.Shell_NotifyIcon(win32gui.NIM_MODIFY, (self.hwnd, 0, win32gui.NIF_INFO, win32con.WM_USER+20, hicon, "Balloon  tooltip", msg, 200, title))
-        win32gui.DestroyWindow(self.hwnd)
+          hicon = win32gui_LoadIcon(0, win32con_IDI_APPLICATION)
+        flags = win32gui_NIF_ICON | win32gui_NIF_MESSAGE | win32gui_NIF_TIP
+        nid = (self.hwnd, 0, flags, win32con_WM_USER+20, hicon, "tooltip")
+        win32gui_Shell_NotifyIcon(win32gui_NIM_ADD, nid)
+        win32gui_Shell_NotifyIcon(win32gui_NIM_MODIFY, (self.hwnd, 0, win32gui_NIF_INFO, win32con_WM_USER+20, hicon, "Balloon  tooltip", msg, 200, title))
+        win32gui_DestroyWindow(self.hwnd)
 
     def OnDestroy(self, hwnd, msg, wparam, lparam):
         self.normList.append(hwnd)
@@ -1378,8 +1465,8 @@ class WindowsBalloonTipC:
         self.normList.append(lparam)
 
         nid = (self.hwnd, 0)
-        win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
-        win32api.PostQuitMessage(0)
+        win32gui_Shell_NotifyIcon(win32gui_NIM_DELETE, nid)
+        win32api_PostQuitMessage(0)
 
 WindowsBalloonTip = WindowsBalloonTipC()
 
@@ -1423,35 +1510,35 @@ class SysTrayIcon(object):
         self.default_menu_index = (default_menu_index or 0)
         self.window_class_name = window_class_name or "SysTrayIconPy"
 
-        message_map = {win32gui.RegisterWindowMessage("TaskbarCreated"): self.restart,
-                       win32con.WM_DESTROY: self.destroy,
-                       win32con.WM_COMMAND: self.command,
-                       win32con.WM_USER+20 : self.notify}
-        window_class = win32gui.WNDCLASS()
-        hinst = window_class.hInstance = win32gui.GetModuleHandle(None)
+        message_map = {win32gui_RegisterWindowMessage("TaskbarCreated"): self.restart,
+                       win32con_WM_DESTROY: self.destroy,
+                       win32con_WM_COMMAND: self.command,
+                       win32con_WM_USER+20 : self.notify}
+        window_class = win32gui_WNDCLASS()
+        hinst = window_class.hInstance = win32gui_GetModuleHandle(None)
         window_class.lpszClassName = self.window_class_name
-        window_class.style = win32con.CS_VREDRAW | win32con.CS_HREDRAW
-        window_class.hCursor = win32gui.LoadCursor(0, win32con.IDC_ARROW)
-        window_class.hbrBackground = win32con.COLOR_WINDOW
+        window_class.style = win32con_CS_VREDRAW | win32con_CS_HREDRAW
+        window_class.hCursor = win32gui_LoadCursor(0, win32con_IDC_ARROW)
+        window_class.hbrBackground = win32con_COLOR_WINDOW
         window_class.lpfnWndProc = message_map
-        classAtom = win32gui.RegisterClass(window_class)
-        style = win32con.WS_OVERLAPPED | win32con.WS_SYSMENU
-        self.hwnd = win32gui.CreateWindow(classAtom,
+        classAtom = win32gui_RegisterClass(window_class)
+        style = win32con_WS_OVERLAPPED | win32con_WS_SYSMENU
+        self.hwnd = win32gui_CreateWindow(classAtom,
                                           self.window_class_name,
                                           style,
                                           0,
                                           0,
-                                          win32con.CW_USEDEFAULT,
-                                          win32con.CW_USEDEFAULT,
+                                          win32con_CW_USEDEFAULT,
+                                          win32con_CW_USEDEFAULT,
                                           0,
                                           0,
                                           hinst,
                                           None)
-        win32gui.UpdateWindow(self.hwnd)
+        win32gui_UpdateWindow(self.hwnd)
         self.notify_id = None
         self.refresh_icon()
 
-        win32gui.PumpMessages()
+        win32gui_PumpMessages()
 
     def _add_ids_to_menu_options(self, menu_options):
         result = []
@@ -1471,28 +1558,28 @@ class SysTrayIcon(object):
         return result
 
     def refresh_icon(self):
-        hinst = win32gui.GetModuleHandle(None)
+        hinst = win32gui_GetModuleHandle(None)
         if os.path.isfile(self.icon):
-            icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
-            hicon = win32gui.LoadImage(hinst,
+            icon_flags = win32con_LR_LOADFROMFILE | win32con_LR_DEFAULTSIZE
+            hicon = win32gui_LoadImage(hinst,
                                        self.icon,
-                                       win32con.IMAGE_ICON,
+                                       win32con_IMAGE_ICON,
                                        0,
                                        0,
                                        icon_flags)
         else:
             print("Can't find icon file - using default.")
-            hicon = win32gui.LoadIcon(0, win32con.IDI_APPLICATION)
+            hicon = win32gui_LoadIcon(0, win32con_IDI_APPLICATION)
 
-        if self.notify_id: message = win32gui.NIM_MODIFY
-        else: message = win32gui.NIM_ADD
+        if self.notify_id: message = win32gui_NIM_MODIFY
+        else: message = win32gui_NIM_ADD
         self.notify_id = (self.hwnd,
                           0,
-                          win32gui.NIF_ICON | win32gui.NIF_MESSAGE | win32gui.NIF_TIP,
-                          win32con.WM_USER+20,
+                          win32gui_NIF_ICON | win32gui_NIF_MESSAGE | win32gui_NIF_TIP,
+                          win32con_WM_USER+20,
                           hicon,
                           self.hover_text)
-        win32gui.Shell_NotifyIcon(message, self.notify_id)
+        win32gui_Shell_NotifyIcon(message, self.notify_id)
 
     def restart(self, hwnd, msg, wparam, lparam):
         self.refresh_icon()
@@ -1505,8 +1592,8 @@ class SysTrayIcon(object):
     def destroy(self, hwnd, msg, wparam, lparam):
         if self.on_quit: self.on_quit(self)
         nid = (self.hwnd, 0)
-        win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
-        win32gui.PostQuitMessage(0)
+        win32gui_Shell_NotifyIcon(win32gui_NIM_DELETE, nid)
+        win32gui_PostQuitMessage(0)
 
         self.unerrorl.append(hwnd)
         self.unerrorl.append(msg)
@@ -1518,28 +1605,28 @@ class SysTrayIcon(object):
         self.unerrorl.append(msg)
         self.unerrorl.append(wparam)
 
-        if lparam == win32con.WM_LBUTTONDBLCLK:
+        if lparam == win32con_WM_LBUTTONDBLCLK:
             self.execute_menu_option(self.default_menu_index + self.FIRST_ID)
-        elif lparam==win32con.WM_RBUTTONUP:
+        elif lparam==win32con_WM_RBUTTONUP:
             self.show_menu()
-        elif lparam==win32con.WM_LBUTTONUP:
+        elif lparam==win32con_WM_LBUTTONUP:
             pass
         return True
 
     def show_menu(self):
-        menu = win32gui.CreatePopupMenu()
+        menu = win32gui_CreatePopupMenu()
         self.create_menu(menu, self.menu_options)
 
-        pos = win32gui.GetCursorPos()
-        win32gui.SetForegroundWindow(self.hwnd)
-        win32gui.TrackPopupMenu(menu,
-                                win32con.TPM_LEFTALIGN,
+        pos = win32gui_GetCursorPos()
+        win32gui_SetForegroundWindow(self.hwnd)
+        win32gui_TrackPopupMenu(menu,
+                                win32con_TPM_LEFTALIGN,
                                 pos[0],
                                 pos[1],
                                 0,
                                 self.hwnd,
                                 None)
-        win32gui.PostMessage(self.hwnd, win32con.WM_NULL, 0, 0)
+        win32gui_PostMessage(self.hwnd, win32con_WM_NULL, 0, 0)
 
     def create_menu(self, menu, menu_options):
         for option_text, option_icon, option_action, option_id in menu_options[::-1]:
@@ -1547,38 +1634,38 @@ class SysTrayIcon(object):
                 option_icon = self.prep_menu_icon(option_icon)
 
             if option_id in self.menu_actions_by_id:
-                item, extras = win32gui_struct.PackMENUITEMINFO(text=option_text,
+                item, extras = win32gui_struct_PackMENUITEMINFO(text=option_text,
                                                                 hbmpItem=option_icon,
                                                                 wID=option_id)
-                win32gui.InsertMenuItem(menu, 0, 1, item)
+                win32gui_InsertMenuItem(menu, 0, 1, item)
             else:
-                submenu = win32gui.CreatePopupMenu()
+                submenu = win32gui_CreatePopupMenu()
                 self.create_menu(submenu, option_action)
-                item, extras = win32gui_struct.PackMENUITEMINFO(text=option_text,
+                item, extras = win32gui_struct_PackMENUITEMINFO(text=option_text,
                                                                 hbmpItem=option_icon,
                                                                 hSubMenu=submenu)
-                win32gui.InsertMenuItem(menu, 0, 1, item)
+                win32gui_InsertMenuItem(menu, 0, 1, item)
 
     def prep_menu_icon(self, icon):
         self.unerror += 1
-        ico_x = win32api.GetSystemMetrics(win32con.SM_CXSMICON)
-        ico_y = win32api.GetSystemMetrics(win32con.SM_CYSMICON)
-        hicon = win32gui.LoadImage(0, icon, win32con.IMAGE_ICON, ico_x, ico_y, win32con.LR_LOADFROMFILE)
+        ico_x = win32api_GetSystemMetrics(win32con_SM_CXSMICON)
+        ico_y = win32api_GetSystemMetrics(win32con_SM_CYSMICON)
+        hicon = win32gui_LoadImage(0, icon, win32con_IMAGE_ICON, ico_x, ico_y, win32con_LR_LOADFROMFILE)
 
-        hdcBitmap = win32gui.CreateCompatibleDC(0)
-        hdcScreen = win32gui.GetDC(0)
-        hbm = win32gui.CreateCompatibleBitmap(hdcScreen, ico_x, ico_y)
-        hbmOld = win32gui.SelectObject(hdcBitmap, hbm)
-        brush = win32gui.GetSysColorBrush(win32con.COLOR_MENU)
-        win32gui.FillRect(hdcBitmap, (0, 0, 16, 16), brush)
-        win32gui.DrawIconEx(hdcBitmap, 0, 0, hicon, ico_x, ico_y, 0, 0, win32con.DI_NORMAL)
-        win32gui.SelectObject(hdcBitmap, hbmOld)
-        win32gui.DeleteDC(hdcBitmap)
+        hdcBitmap = win32gui_CreateCompatibleDC(0)
+        hdcScreen = win32gui_GetDC(0)
+        hbm = win32gui_CreateCompatibleBitmap(hdcScreen, ico_x, ico_y)
+        hbmOld = win32gui_SelectObject(hdcBitmap, hbm)
+        brush = win32gui_GetSysColorBrush(win32con_COLOR_MENU)
+        win32gui_FillRect(hdcBitmap, (0, 0, 16, 16), brush)
+        win32gui_DrawIconEx(hdcBitmap, 0, 0, hicon, ico_x, ico_y, 0, 0, win32con_DI_NORMAL)
+        win32gui_SelectObject(hdcBitmap, hbmOld)
+        win32gui_DeleteDC(hdcBitmap)
 
         return hbm
 
     def command(self, hwnd, msg, wparam, lparam):
-        idt = win32gui.LOWORD(wparam)
+        idt = win32gui_LOWORD(wparam)
         self.execute_menu_option(idt)
         self.unerrorl.append(hwnd)
         self.unerrorl.append(msg)
@@ -1587,7 +1674,7 @@ class SysTrayIcon(object):
     def execute_menu_option(self, idt):
         menu_action = self.menu_actions_by_id[idt]
         if menu_action == self.QUIT:
-            win32gui.DestroyWindow(self.hwnd)
+            win32gui_DestroyWindow(self.hwnd)
         else:
             menu_action(self)
 
@@ -2224,7 +2311,7 @@ class MusicPlayerC(threading.Thread):
         self.allowPrint = False
         self.autorefresh = True
 
-        self.player = pyglet.media.Player()
+        self.player = pyglet_media.Player()
         self.timer = TimerC()
         self.scanner = Scanner(self.react)
         self.spl = SplatoonC()
@@ -2467,13 +2554,13 @@ class MusicPlayerC(threading.Thread):
 
 
 
-        q = queue.Queue()
+        q = queue_Queue()
         num_workers = cores*2
 
         def do_work(data):
             #cls()
             #print("Loading (%s/%s)" % (data[0], self.find_music_out["all_files"]))
-            self.music["file" + str(data[1] + data[0])]["loaded"] = pyglet.media.load(
+            self.music["file" + str(data[1] + data[0])]["loaded"] = pyglet_media.load(
                 self.music["file" + str(data[1] + data[0])]["fullname"])
 
         def worker():
@@ -2773,9 +2860,9 @@ class MusicPlayerC(threading.Thread):
 
     def reloadMusic(self, tracknum):
         if type(tracknum) == int:
-            self.music["file" + str(tracknum)]["loaded"] = pyglet.media.load(self.music["file" + str(tracknum)]["fullname"])
+            self.music["file" + str(tracknum)]["loaded"] = pyglet_media.load(self.music["file" + str(tracknum)]["fullname"])
         elif type(tracknum) == str:
-            self.music[tracknum]["loaded"] = pyglet.media.load(self.music[tracknum]["fullname"])
+            self.music[tracknum]["loaded"] = pyglet_media.load(self.music[tracknum]["fullname"])
 
     def make_playlist(self):
         if self.playing:
@@ -3295,7 +3382,7 @@ class MusicPlayerC(threading.Thread):
         else:
             outputList.append("Playing: \n%s" % self.getCur()["name"])
 
-            outputList.append("Time: %s\\%s" % (self.timer.getTimeFor(), TimeFor(self.getCur()["loaded"].duration)))
+        outputList.append("Time: %s\\%s" % (self.timer.getTimeFor(), TimeFor(self.getCur()["loaded"].duration)))
         if self.muted:
             # output.append(int((console_data["pixx"]/2)-3)*"|"+"Muted"+int((console_data["pixx"]/2)-2)*"|")
             l1 = ""
@@ -4642,8 +4729,8 @@ color = colorC()
 class VolumeC:
     def __init__(self):
         self.devices = pycaw.pycaw.AudioUtilities.GetSpeakers()
-        self.interface = self.devices.Activate(pycaw.pycaw.IAudioEndpointVolume._iid_, comtypes.CLSCTX_ALL, None)
-        self.volume = ctypes.cast(self.interface, ctypes.POINTER(pycaw.pycaw.IAudioEndpointVolume))
+        self.interface = self.devices.Activate(pycaw.pycaw.IAudioEndpointVolume._iid_, comtypes_CLSCTX_ALL, None)
+        self.volume = ctypes_cast(self.interface, ctypes_POINTER(pycaw.pycaw.IAudioEndpointVolume))
 
         self.volumes = {0: -65.25, 0.01: -56.992191314697266, 0.02: -51.671180725097656, 0.03: -47.73759078979492,
                         0.04: -44.61552047729492, 0.05: -42.026729583740234, 0.06: -39.81534194946289,
@@ -6119,7 +6206,7 @@ class MusicPlayerBetterRemoteControl(threading.Thread):
         self.allowPrint = False
         self.autorefresh = True
 
-        self.player = pyglet.media.Player()
+        self.player = pyglet_media.Player()
         self.timer = TimerC()
         self.scanner = Scanner(self.react)
         self.spl = SplatoonC()
@@ -7241,7 +7328,7 @@ def Status(printit=True):
 
         print("\nComputer:\n")
         print("Computername: " + Computername)
-        print("Username: " + getpass.getuser())
+        print("Username: " + getpass_getuser())
         print("Computer synonymous: " + computer)
         if thisIP:
             print("IP address: " + str(thisIP))
@@ -7252,7 +7339,7 @@ def Status(printit=True):
 
     status = {
         "version": {"version": versionFind()[1], "codeversion": versionFind()[2], "versionnumber": versionFind()[0]},
-        "evecontype": version, "pid": os.getpid(), "computername": Computername, "username": getpass.getuser(),
+        "evecontype": version, "pid": os.getpid(), "computername": Computername, "username": getpass_getuser(),
         "computersyn": computer, "ip": thisIP, "homepc": HomePC}
 
     return status #[versionFind()[1], versionFind()[2], versionFind()[0], version, os.getpid(),Computername, getpass.getuser(), computer, thisIP, HomePC]
@@ -8176,7 +8263,8 @@ class NheeC:
         idstart = int(self.data["Last"]["last_name_url"].split("/")[-2])
 
         cls()
-        print("Which is your startpage? (Begin: %s, Search for: %s)" % (self.data["Last"]["last_page"], idstart))
+        firstID = int(input("First ID of page:\n"))
+        print("Which is your startpage (around %s)? (Begin: %s, Search for: %s)" % ((round((firstID - idstart) / 25) + self.data["Last"]["last_page"]), self.data["Last"]["last_page"], idstart))
         pagestart = int(input())
 
         thistime_timeC = TimerC()
