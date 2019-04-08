@@ -126,7 +126,7 @@ if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
 
 
-code_version = "0.9.6.0"
+code_version = "0.9.6.1"
 
 pyglet_options['search_local_libs'] = True
 
@@ -2303,6 +2303,7 @@ class MusicPlayerC(threading.Thread):
         self.hardworktime = 0
         self.musicrun = True
         self.playlist = []
+        self.last_playlist = []
         self.startlist = [] # all files which are loaded are in here!
         self.pershuffel = False
 
@@ -2868,6 +2869,7 @@ class MusicPlayerC(threading.Thread):
             self.music[tracknum]["loaded"] = pyglet_media.load(self.music[tracknum]["fullname"])
 
     def make_playlist(self):
+        #self.last_playlist = self.playlist.copy()
         if self.playing:
             newPlaylist = []
             for x in range(1, self.music["all_files"] + 1):
@@ -2887,9 +2889,11 @@ class MusicPlayerC(threading.Thread):
         self.startlist = self.playlist.copy()
         if self.randomizer:
             self.shufflePL()
+        self.last_playlist = self.playlist.copy()
         self.resetInterface()
 
     def shufflePL(self, first=False):
+        self.last_playlist = self.playlist.copy()
         if first:
             random.shuffle(self.playlist)
         else:
@@ -2899,6 +2903,20 @@ class MusicPlayerC(threading.Thread):
             self.playlist = [self.playlist[0]] + oldPL
 
         self.hardworktime = time.time() + 0.1
+
+    def restoreLPL(self):
+        """
+        restores the last (pl saved in self.last_playlist) playlist
+        :return: success
+        """
+
+        if self.last_playlist == self.playlist:
+            return False
+        else:
+            lpl = self.playlist.copy()
+            self.playlist = self.last_playlist.copy()
+            self.last_playlist = lpl.copy()
+
 
     def refreshTitle(self):
         if self.getCur()["antype"]:
@@ -4233,6 +4251,11 @@ class MusicPlayerC(threading.Thread):
         self.last_print_auto = time.time()
 
     def input(self, i):
+        if i == i.upper():
+            upper = True
+        else:
+            upper = False
+
         i = i.lower()
         if i ==  "play" or i == "pau" or i == "pause" or i == "p":
             self.switch()
@@ -4264,7 +4287,12 @@ class MusicPlayerC(threading.Thread):
             self.change = "volp"
             self.con_cont = "volp"
         elif i == "re":
-            self.shufflePL()
+            if not upper:
+                self.shufflePL()
+            else:
+                self.restoreLPL()
+        elif i == "lpl":
+            self.restoreLPL()
         elif i == "rt":
             self.rerollThis()
         elif i == "exin":
