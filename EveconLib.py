@@ -31,6 +31,9 @@ from click import getchar as click_getchar
 #import queue
 from queue import Queue as queue_Queue
 
+#import urllib
+import urllib.request
+
 #import win32api
 from win32api import GetModuleHandle as win32api_GetModuleHandle
 from win32api import PostQuitMessage as win32api_PostQuitMessage
@@ -122,8 +125,20 @@ firefox_path = "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
 vivaldi_path = "C:\\Program Files (x86)\\Vivaldi\\Application\\vivaldi.exe"
 
 if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
+    #urDir = os.getcwd()
     os.chdir("..")
     os.chdir("..")
+if os.getcwd().split(path_seg)[-2] == "!Evecon":
+    if len(sys.argv) > 1:
+        if not sys.argv[1] == "--setup":
+            if os.getcwd().split(path_seg)[-1] == "dev" or os.getcwd().split(path_seg)[-1] == "!Console" or \
+                    os.getcwd().split(path_seg)[-1] == "Exe":
+                os.chdir("..")
+                os.chdir("..")
+    elif os.getcwd().split(path_seg)[-1] == "dev" or os.getcwd().split(path_seg)[-1] == "!Console" or os.getcwd().split(path_seg)[-1] == "Exe":
+        os.chdir("..")
+        os.chdir("..")
+
 
 
 code_version = "0.9.6.1"
@@ -172,9 +187,357 @@ loadHWND("EVECON: Loading HWND")
 ctypes_windll.kernel32.SetConsoleTitleW("EVECON: Loading...")
 
 
+
 def killme():
     subprocess.call(["taskkill", "/F", "/PID", str(os.getpid())])
     os.system("taskkill /PID /F %s" % str(os.getpid()))
+
+
+def exit_now(killmex = False):
+    try:
+        ttime.deac()
+    except NameError:
+        pass
+    # noinspection PyGlobalUndefined
+    global exitnow, startmain
+    exitnow = 1
+    startmain = False
+    #if version_PC != 1:
+    #    exit()
+
+    if killmex:
+        time.sleep(0.5)
+        killme()
+
+    sys.exit()
+
+def setup():
+
+    # am I .exe or .py
+    print("Evecon Setup:\nInitializing")
+    print("Path: " + os.getcwd())
+    if os.path.exists("!Console.py") and os.path.exists("EveconLib.py") and os.path.exists("EveconTools.py") and os.path.exists("EveconExceptions.py"):
+        myType = "python"
+    elif os.path.exists("!Console.exe") and not os.path.exists("!Console.exe.manifest"):
+        myType = "standalone_exe"
+    elif os.path.exists("!Console.exe") and os.path.exists("!Console.exe.manifest"):
+        myType = "lib_exe"
+    else:
+        print("ERROR: Evecon FILE NOT FOUND")
+        print("Change the file name to !Console.exe or .py (with EveconLib & Tools & Exception & MiniDebug)")
+        exit_now()
+        return
+
+    existFile = open("selfstart", "w")
+    existFile.write("Hello File!")
+    existFile.close()
+
+    curDir = os.getcwd()
+    last = curDir.split(path_seg)[-1]
+    selfBuild = os.path.exists("selfbuild")
+
+    if len(sys.argv) > 2:
+        if os.path.exists(sys.argv[2]):
+            os.chdir(sys.argv[2])
+
+    selfStart = os.path.exists("selfstart")
+
+
+    os.chdir(curDir)
+
+    print("Started as " + myType)
+
+    if last == "dev" and myType == "python" and selfBuild and selfStart:
+        stepOne = True
+    elif last == "!Console" and myType == "lib_exe" and selfBuild and selfStart:
+        stepOne = True
+    elif last == "Exe" and myType == "standalone_exe" and selfBuild and selfStart:
+        stepOne = True
+    else:
+        print("Start copying")
+        try:
+            shutil.rmtree("!Evecon")
+        except FileNotFoundError:
+            pass
+        if myType == "python":
+            os.mkdir("!Evecon")
+            dst = "!Evecon" + path_seg + "dev"
+            os.mkdir(dst)
+            shutil.copy("!Console.py", dst)
+            shutil.copy("EveconLib.py", dst)
+            shutil.copy("EveconTools.py", dst)
+            shutil.copy("EveconExceptions.py", dst)
+            shutil.copy("EveconMiniDebug.py", dst)
+
+            if os.path.exists("EveconLogListener.py"):
+                shutil.copy("EveconLogListener.py", dst)
+            if os.path.exists("ss_time.py"):
+                shutil.copy("ss_time.py", dst)
+            if os.path.exists("updater.py"):
+                shutil.copy("updater.py", dst)
+
+            existFile = open(dst + path_seg + "selfbuild", "w")
+            existFile.write("Hello File!")
+            existFile.close()
+
+            print("Start from new Location")
+            #input(dst + path_seg + "!Console.py")
+            #subprocess.Popen(["python.exe", dst + path_seg + "!Console.py", "--setup", curDir], creationflags=subprocess.CREATE_NEW_CONSOLE, cwd=dst)
+            subprocess.Popen(["python.exe", os.getcwd() + path_seg + dst + path_seg + "!Console.py", "--setup", curDir], cwd=dst)
+
+        elif myType == "standalone_exe":
+            os.mkdir("!Evecon")
+            dst = "!Evecon" + path_seg + "Exe"
+            os.mkdir(dst)
+            shutil.copy("!Console.exe", dst)
+
+
+            existFile = open(dst + path_seg + "selfbuild", "w")
+            existFile.write("Hello File!")
+            existFile.close()
+
+            print("Start from new Location")
+            subprocess.Popen([os.getcwd() + path_seg + dst + path_seg + "!Console.exe", "--setup", curDir], creationflags=subprocess.CREATE_NEW_CONSOLE, cwd=dst)
+
+        elif myType == "lib_exe":
+            #os.mkdir("!Evecon" + path_seg + "!Console")
+            os.chdir("..")
+            os.mkdir("EveconEnv")
+            os.mkdir("EveconEnv" + path_seg + "!Evecon")
+            dst = "EveconEnv" + path_seg + "!Evecon"
+            shutil.copytree(last, dst)
+            os.rename(dst + path_seg + last, dst + path_seg + "!Console")
+
+            existFile = open(dst + path_seg + "!Console" + path_seg + "selfbuild", "w")
+            existFile.write("Hello File!")
+            existFile.close()
+
+            print("Start from new Location")
+            subprocess.Popen([os.getcwd() + path_seg + dst + path_seg + "!Console" + path_seg + "!Console.exe", "--setup", curDir], creationflags=subprocess.CREATE_NEW_CONSOLE, cwd=dst + path_seg + "!Console")
+
+        exit_now()
+        sys.exit()
+
+    print("Started in the right dir!")
+    print("Deleting old files (no Console-Lib)")
+
+    os.remove("selfbuild")
+
+    os.chdir("..")
+    os.chdir("..")
+
+
+    if myType == "python":
+        os.remove("!Console.py")
+        os.remove("EveconLib.py")
+        os.remove("EveconTools.py")
+        os.remove("EveconExceptions.py")
+
+        if os.path.exists("EveconLogListener.py"):
+            os.remove("EveconLogListener.py")
+        if os.path.exists("EveconMiniDebug.py"):
+            os.remove("EveconMiniDebug.py")
+        if os.path.exists("ss_time.py"):
+            os.remove("ss_time.py")
+        if os.path.exists("updater.py"):
+            os.remove("updater.py")
+
+        os.remove("selfstart")
+
+    elif myType == "standalone_exe":
+        os.remove("!Console.exe")
+
+        os.remove("selfstart")
+    else:
+        os.remove("selfstart")
+
+    print("Finished Deleting\nGeneration !Evecon/Music/Program Dirs")
+
+    if not os.path.exists("!Evecon" + path_seg + "!Console"):
+        os.mkdir("!Evecon" + path_seg + "!Console")
+    if not os.path.exists("!Evecon" + path_seg + "dev"):
+        os.mkdir("!Evecon" + path_seg + "dev")
+    if not os.path.exists("!Evecon" + path_seg + "Exe"):
+        os.mkdir("!Evecon" + path_seg + "Exe")
+
+    os.mkdir("Music")
+    os.mkdir("Music" + path_seg + "Presets")
+    os.mkdir("Music" + path_seg + "User")
+
+    os.mkdir("Programs")
+
+    print("Generation data!")
+
+    os.mkdir("data")
+    stdDir = os.getcwd()
+    os.chdir("data")
+
+    print("Generating Backup-Files")
+
+    os.mkdir("Backup")
+    os.chdir("Backup")
+    bckDir = os.getcwd()
+
+    file = open("backup.txt", "w")
+    file.write("backup.txt")
+    file.close()
+
+    with open("Music.json", "w") as jsonfile:
+        json.dump({'version': '1.0', 'pc': 'global', 'musicDir': 'Music\\Presets', 'directories': {}, 'multiplaylists': {}}, jsonfile, indent=4, sort_keys=True)
+
+    os.mkdir("!Evecon")
+    os.mkdir("!Evecon" + path_seg + "!Console")
+    os.mkdir("!Evecon" + path_seg + "dev")
+    os.chdir("!Evecon" + path_seg + "dev")
+
+    file = open("!Console.py", "w")
+    file.write("a.py-file")
+    file.close()
+    file = open("EveconExceptions.py", "w")
+    file.write("a.py-file")
+    file.close()
+    file = open("EveconLib.py", "w")
+    file.write("a.py-file")
+    file.close()
+    file = open("EveconMiniDebug.py", "w")
+    file.write("a.py-file")
+    file.close()
+    file = open("ss_time.py", "w")
+    file.write("a.py-file")
+    file.close()
+    file = open("updater.py", "w")
+    file.write("a.py-file")
+    file.close()
+
+    os.chdir(bckDir)
+
+    os.mkdir("data")
+    os.mkdir("data" + path_seg + "Info")
+    file = open("data" + path_seg + "Info" + path_seg + "version", "w")
+    file.write("aVERSION")
+    file.close()
+    file = open("data" + path_seg + "Info" + path_seg + "Changelog.txt", "w")
+    file.write("thingsChanged!")
+    file.close()
+
+    os.chdir("..")
+
+    print("Generating Config-Files")
+
+    os.mkdir("Config")
+    os.chdir("Config")
+
+    file = open("config.ini", "w")
+    file.write("[Notepad]\nbrowser = firefox\n[ScreenSaver]\nstarttimer = 180\n[FoxNhe]\nenable_FoxNhe = True\nfoxORnhe = nhee\n[Music]\nrandom = True\n[PC]\nthisIP = 127.0.0.1\ncores = 2")
+    file.close()
+
+    with open("Music.json", "w") as jsonfile:
+        json.dump({'version': '1.0', 'pc': 'global', 'musicDir': 'Music\\Presets', 'directories': {}, 'multiplaylists': {}}, jsonfile, indent=4, sort_keys=True)
+    with open("splWeap.json", "w") as jsonfile:
+        json.dump({"eng": ["Hallo"], "ger": ["Hello"]}, jsonfile, indent=4, sort_keys=True)
+
+    os.chdir("..")
+
+    print("Generating Data-Files")
+
+    os.mkdir("Data")
+    os.chdir("Data")
+    
+    os.mkdir("Nhee")
+    os.chdir("Nhee")
+
+    file = open("website.txt", "w")
+    file.write("https://XXXX.net/?page=")
+    file.close()
+
+    with open("data.json", "w") as jsonfile:
+        json.dump({'Stats': {'fapped': 0, 'all_pages': 0, 'all_hangas': 0}, 'Last': {'last_page': '0', 'last_page_url': 'https://XXXX.net/?page=0', 'last_name': 'None', 'last_name_url': 'https://XXXX.net/g/0/'}}, jsonfile, indent=4, sort_keys=True)
+
+    os.chdir("..")
+    os.mkdir("Foxi")
+    os.chdir("Foxi")
+
+    file = open("website.txt", "w")
+    file.write("https://XXXX.com/pag/")
+    file.close()
+
+    with open("data.json", "w") as jsonfile:
+        json.dump({'Stats': {'fapped': 0, 'all_pages': 0, 'all_hangas': 0}, 'Last': {'last_page': '0', 'last_page_url': 'https://XXXX.com/pag/0/', 'last_name': 'None', 'last_name_url': 'https://XXXX.com/gallery/0/'}}, jsonfile, indent=4, sort_keys=True)
+
+    os.chdir("..")
+    os.chdir("..")
+
+    print("DOWNLOADING ICONS")
+
+    os.mkdir("Ico")
+    os.chdir("Ico")
+
+
+    link = "https://github.com/FiHammer/Evecon/releases/download/0.9.X/working.ico"
+
+    urllib.request.urlretrieve(link, "working.ico")
+    shutil.copy("working.ico", "PC.ico")
+    shutil.copy("working.ico", "Radio.ico")
+    shutil.copy("working.ico", "RadioWhite.ico")
+
+    os.chdir("..")
+
+    print("Generating Info-files")
+
+    os.mkdir("Info")
+    os.chdir("Info")
+
+    file = open("Changelog.txt", "w")
+    file.write("something Changed")
+    file.close()
+    file = open("exist", "w")
+    file.write("Hi")
+    file.close()
+    file = open("ProgramVersion", "w")
+    file.write("PC-Version")
+    file.close()
+    file = open("updater_megalogin", "w")
+    file.write("sorry")
+    file.close()
+    file = open("version", "w")
+    file.write("0\n0.0.0.0")
+    file.close()
+
+    os.chdir("..")
+
+    print("Generating Log-dir")
+    os.mkdir("Log")
+
+    print("Generating Notie-dir")
+    os.mkdir("Noties")
+
+    print("Generating Output-dir")
+    os.mkdir("Output")
+
+    print("Generating tmp-dir&files")
+    os.mkdir("tmp")
+
+    print("Generating Update-dir")
+    os.mkdir("Update")
+
+    print("finishing")
+    os.chdir(stdDir)
+
+    file = open("data" + path_seg + "Info" + path_seg + "env", "w")
+    file.write("Hi")
+    file.close()
+
+    os.remove("!Evecon" + path_seg + "dev" + path_seg + "selfstart")
+
+    print("END")
+
+if len(sys.argv) > 1:
+    if sys.argv[1] == "--setup":
+        setup()
+#if not os.path.exists("data" + path_seg + "Info" + path_seg + "env"):
+#    setup()
+#if not os.path.exists(".." + path_seg + ".." + path_seg + "data" + path_seg + "Info" + path_seg + "env") and not os.path.exists("data" + path_seg + "Info" + path_seg + "env"):
+#    setup()
 
 def readConfig():
     config = configparser.ConfigParser()
@@ -207,6 +570,7 @@ def readConfig():
 
 
 readConfig()
+
 
 
 
@@ -880,32 +1244,32 @@ class Findus:
         elif inpt == "arrowdown" and self.curPos < len(self.workList) - 1:  # up
             self.curPos += 1
 
-        elif inpt == "arrowup" and self.cur_Pos > 0 and self.workList:
+        elif inpt == "arrowup" and self.curPos > 0 and self.workList:
             done = False
             for aS in self.arrowSetting:
                 if aS[0] < mulPress < aS[1] != -1 and not done or aS[0] < mulPress and aS[1] == -1 and not done:
                     done = True
-                    if self.cur_Pos - aS[2] >= 0:
-                        self.cur_Pos -= aS[2]
+                    if self.curPos - aS[2] >= 0:
+                        self.curPos -= aS[2]
                     else:
-                        self.cur_Pos = 0
+                        self.curPos = 0
                     break
 
             if not done:
-                self.cur_Pos -= 1
+                self.curPos -= 1
 
-        elif inpt == "arrowdown" and self.cur_Pos < len(self.workList) - 1:
+        elif inpt == "arrowdown" and self.curPos < len(self.workList) - 1:
             done = False
             for aS in self.arrowSetting:
                 if aS[0] < mulPress < aS[1] != -1 and not done or aS[0] < mulPress and aS[1] == -1 and not done:
                     done = True
-                    if self.cur_Pos + aS[2] <= len(self.workList) - 1:
-                        self.cur_Pos += aS[2]
+                    if self.curPos + aS[2] <= len(self.workList) - 1:
+                        self.curPos += aS[2]
                     else:
-                        self.cur_Pos = len(self.workList) - 1
+                        self.curPos = len(self.workList) - 1
                     break
             if not done:
-                self.cur_Pos += 1
+                self.curPos += 1
 
 
         elif self.enableInput and not lsame(inpt, "arrow"):
@@ -1735,18 +2099,21 @@ class UsedPortsC:
             self.resetFile()
 
         else:
-            with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt") as file:
-                lines = file.readlines()
-                for x in range(len(lines)):
-                    if x == 0: # first Line
-                        self.programs = int(lines[x].rstrip())
-                    else:
-                        try:
-                            int(x)
-                            self.ports.append(lines[x].rstrip())
-                        except ValueError:
-                            self.resetFile()
-                            break
+            if os.path.exists("data" + path_seg + "tmp" + path_seg + "usedPorts.txt"):
+                with open("data" + path_seg + "tmp" + path_seg + "usedPorts.txt") as file:
+                    lines = file.readlines()
+                    for x in range(len(lines)):
+                        if x == 0: # first Line
+                            self.programs = int(lines[x].rstrip())
+                        else:
+                            try:
+                                int(x)
+                                self.ports.append(lines[x].rstrip())
+                            except ValueError:
+                                self.resetFile()
+                                break
+            else:
+                self.resetFile()
 
     def readFile(self):
         self.ports = []
@@ -1855,18 +2222,21 @@ class globalMPportsC:
             self.resetFile()
 
         else:
-            with open("data" + path_seg + "tmp" + path_seg + self.file) as file:
-                lines = file.readlines()
-                for x in range(len(lines)):
-                    if x == 0: # first Line
-                        self.programs = int(lines[x].rstrip())
-                    else:
-                        try:
-                            int(x)
-                            self.ports.append(lines[x].rstrip())
-                        except ValueError:
-                            self.resetFile()
-                            break
+            if os.path.exists("data" + path_seg + "tmp" + path_seg + self.file):
+                with open("data" + path_seg + "tmp" + path_seg + self.file) as file:
+                    lines = file.readlines()
+                    for x in range(len(lines)):
+                        if x == 0: # first Line
+                            self.programs = int(lines[x].rstrip())
+                        else:
+                            try:
+                                int(x)
+                                self.ports.append(lines[x].rstrip())
+                            except ValueError:
+                                self.resetFile()
+                                break
+            else:
+                self.resetFile()
 
     def readFile(self):
         python = 0
@@ -8494,18 +8864,4 @@ class NheeC:
 
 Nhee = NheeC()
 
-
-def exit_now(killmex = False):
-    ttime.deac()
-    # noinspection PyGlobalUndefined
-    global exitnow, startmain
-    exitnow = 1
-    startmain = False
-    #if version_PC != 1:
-    #    exit()
-
-    if killmex:
-        time.sleep(0.5)
-        killme()
-
-    sys.exit()
+#os.chdir(urDir)

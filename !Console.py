@@ -1,9 +1,5 @@
 import os
 
-if __name__ == "__main__":
-    cdir = os.getcwd()
-    os.chdir("..")
-    os.chdir("..")
 
 startmain = False
 exitnow = 0
@@ -12,8 +8,12 @@ thisIP = None
 StartupServerJava = None
 
 from EveconLib import *
-
-
+"""
+if __name__ == "__main__":
+    cdir = os.getcwd()
+    os.chdir("..")
+    os.chdir("..")
+"""
 ttime.start()
 
 title("Load first Programs")
