@@ -1972,7 +1972,8 @@ def startStartupServer(serverport: int, ballonTIP=True):
 
 def main():
     versionFind()
-    title("Waiting for Input")
+
+    title("Waiting for Input", something="Logport: " + str(logServer.port))
 
     cls()
 

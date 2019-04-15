@@ -208,23 +208,6 @@ def readConfig():
 
 readConfig()
 
-def Log(functioni, info, typei = "Normal"):
-    log_file = open("data"+path_seg+"Log"+"Log.txt", "a+")
-    part_time = "[" + datetime.datetime.now().strftime("%H:%M:%S") + "]"
-    if typei == "Normal":
-        part_type = "[Info]"
-    elif typei == "Warning":
-        part_type = "[Warning]"
-    elif typei == "Error":
-        part_type = "[Error]"
-    else:
-        part_type = ""
-    part_func = "[" + functioni + "]"
-
-    log_write = part_time + " " + part_type + " " + part_func + ": " + info + "\n"
-
-    log_file.write(log_write)
-    log_file.close()
 
 
 
@@ -437,7 +420,9 @@ class Scanner(threading.Thread):
 
 
 class Findus:
-    def __init__(self, workList: list, reactUser=None, prefix=None, suffix=None, startPos=0, expandRange=2, scanner=None, autoPrint=False, afterPrint=True, autoSearch=False, onlyReturn=True, autoSort=False, enableCommands=False):
+    def __init__(self, workList: list, reactUser=None, prefix=None, suffix=None, startPos=0, expandRange=2,
+                 scanner=None, autoPrint=False, afterPrint=True, autoSearch=False, onlyReturn=True, autoSort=False,
+                 enableCommands=False, arrowSettings=None):
         """
         :param workList: the list with the content with witch the user can play
         :type workList: list
@@ -482,8 +467,13 @@ class Findus:
 
         :param enableCommands: enables (other) commands (than search (is active with autoSearch))
         :type enableCommands: bool
+
+        :param arrowSettings: Settings for multiple pressing of arrow up and down: [(minPress, maxPress (-1 = infinite), Plus), ...]
+        :type arrowSettings: array
         """
 
+        if arrowSettings is None:
+            arrowSettings = [(3, 10, 3), (11, -1, 6)]
         if startPos >= len(workList):
             startPos = 0
 
@@ -499,6 +489,9 @@ class Findus:
         self.autoSort = autoSort
         self.afterPrint = afterPrint
         self.enableCommands = enableCommands
+
+        self.arrowSetting = arrowSettings  # (minPress, maxPress (-1 = infinite), Plus)
+        self.lastPresses = [0, time.time(), "None"]
 
         self.prefix = {}
         if isinstance(prefix, str):
@@ -873,11 +866,47 @@ class Findus:
         :return: success
         """
         self.lastInput = inpt
+
+        if self.lastPresses[1] + 0.2 >= time.time() and self.lastPresses[2] == inpt:  # DOUBLE PRESS
+            mulPress = self.lastPresses[0] + 1
+            self.lastPresses = [mulPress, time.time(), inpt]
+        else:
+            mulPress = 1
+            self.lastPresses = [mulPress, time.time(), inpt]
+
         if inpt == "arrowup" and self.curPos > 0:  # down
             self.curPos -= 1
 
         elif inpt == "arrowdown" and self.curPos < len(self.workList) - 1:  # up
             self.curPos += 1
+
+        elif inpt == "arrowup" and self.cur_Pos > 0 and self.workList:
+            done = False
+            for aS in self.arrowSetting:
+                if aS[0] < mulPress < aS[1] != -1 and not done or aS[0] < mulPress and aS[1] == -1 and not done:
+                    done = True
+                    if self.cur_Pos - aS[2] >= 0:
+                        self.cur_Pos -= aS[2]
+                    else:
+                        self.cur_Pos = 0
+                    break
+
+            if not done:
+                self.cur_Pos -= 1
+
+        elif inpt == "arrowdown" and self.cur_Pos < len(self.workList) - 1:
+            done = False
+            for aS in self.arrowSetting:
+                if aS[0] < mulPress < aS[1] != -1 and not done or aS[0] < mulPress and aS[1] == -1 and not done:
+                    done = True
+                    if self.cur_Pos + aS[2] <= len(self.workList) - 1:
+                        self.cur_Pos += aS[2]
+                    else:
+                        self.cur_Pos = len(self.workList) - 1
+                    break
+            if not done:
+                self.cur_Pos += 1
+
 
         elif self.enableInput and not lsame(inpt, "arrow"):
             if inpt == "escape" and self.searching:
@@ -2339,6 +2368,8 @@ class MusicPlayerC(threading.Thread):
         self.searchlist = []
         self.cur_Search = ""
 
+        self.arrowSetting = [(3, 10, 3), (11, -1, 6)] # (minPress, maxPress (-1 = infinite), Plus)
+
         self.notifications = []
 
         self.last_backspace = False
@@ -2348,6 +2379,7 @@ class MusicPlayerC(threading.Thread):
         self.tmp_pl_output_1 = []
         self.tmp_pl_output_2 = []
 
+        self.lastPresses = [0, time.time(), "None"]
 
         self.musiclist = {"names": []}
         self.multiplaylists = {}
@@ -3225,7 +3257,9 @@ class MusicPlayerC(threading.Thread):
 
         new_playlist = self.tmp_pl_output_1 + self.tmp_pl_output_2
 
-        self.searchlist = new_playlist.copy()
+        np = DelDouble(new_playlist)
+
+        self.searchlist = np.copy()
 
 
 
@@ -4009,8 +4043,15 @@ class MusicPlayerC(threading.Thread):
             print(line)
 
     def react(self, inp):
+        if self.lastPresses[1] + 0.2 >= time.time() and self.lastPresses[2] == inp:  # DOUBLE PRESS
+            mulPress = self.lastPresses[0] + 1
+            self.lastPresses = [mulPress, time.time(), inp]
+        else:
+            mulPress = 1
+            self.lastPresses = [mulPress, time.time(), inp]
         while self.starttime + 1.5 >= time.time() and self.hardworktime + 0.65 >= time.time():
             time.sleep(0.25)
+
 
         if self.con_main == "details" or self.con_main == "info" or self.con_cont == "cont":
             self.con_main = self.con_main_last
@@ -4118,10 +4159,31 @@ class MusicPlayerC(threading.Thread):
                 self.cur_Input = new_Input
 
         elif inp == "arrowup" and self.cur_Pos > 0 and self.searching:
-            self.cur_Pos -= 1
-        elif inp == "arrowdown" and self.cur_Pos < len(self.searchlist) - 1 and self.searching:
-            self.cur_Pos += 1
+            done = False
+            for aS in self.arrowSetting:
+                if aS[0] < mulPress < aS[1] != -1 and not done or aS[0] < mulPress and aS[1] == -1 and not done:
+                    done = True
+                    if self.cur_Pos - aS[2] >= 0:
+                        self.cur_Pos -= aS[2]
+                    else:
+                        self.cur_Pos = 0
+                    break
 
+            if not done:
+                self.cur_Pos -= 1
+
+        elif inp == "arrowdown" and self.cur_Pos < len(self.playlist) - 1 and self.searching:
+            done = False
+            for aS in self.arrowSetting:
+                if aS[0] < mulPress < aS[1] != -1 and not done or aS[0] < mulPress and aS[1] == -1 and not done:
+                    done = True
+                    if self.cur_Pos + aS[2] <= len(self.playlist) - 1:
+                        self.cur_Pos += aS[2]
+                    else:
+                        self.cur_Pos = len(self.playlist) - 1
+                    break
+            if not done:
+                self.cur_Pos += 1
 
         elif inp == " ":
             self.switch()
@@ -4190,9 +4252,32 @@ class MusicPlayerC(threading.Thread):
                 self.con_cont = "set"
 
         elif inp == "arrowup" and self.cur_Pos > 0 and self.con_main == "pl":
-            self.cur_Pos -= 1
+            done = False
+            for aS in self.arrowSetting:
+                if aS[0] < mulPress < aS[1] != -1 and not done or aS[0] < mulPress and aS[1] == -1 and not done:
+                    done = True
+                    if self.cur_Pos - aS[2] >= 0:
+                        self.cur_Pos -= aS[2]
+                    else:
+                        self.cur_Pos = 0
+                    break
+
+            if not done:
+                self.cur_Pos -= 1
+
         elif inp == "arrowdown" and self.cur_Pos < len(self.playlist) - 1 and self.con_main == "pl":
-            self.cur_Pos += 1
+            done = False
+            for aS in self.arrowSetting:
+                if aS[0] < mulPress < aS[1] != -1 and not done or aS[0] < mulPress and aS[1] == -1 and not done:
+                    done = True
+                    if self.cur_Pos + aS[2] <= len(self.playlist) - 1:
+                        self.cur_Pos += aS[2]
+                    else:
+                        self.cur_Pos = len(self.playlist) - 1
+                    break
+            if not done:
+                self.cur_Pos += 1
+
 
         elif inp == "strg_arrowup" and self.cur_Pos > 0 and self.con_main == "pl" or \
                 inp == "num8" and self.cur_Pos > 0 and self.con_main == "pl":
@@ -5832,6 +5917,35 @@ class ServerJava(threading.Thread):
     def bind(self):
         self.s.bind((self.host, self.port))
 
+def test(y):
+    pass
+
+
+# noinspection PyTypeChecker
+logServer = Server(react=test, ip=thisIP, port=4222, printLog=False)
+logServer.start()
+
+def Log(functioni, info, typei = "Normal"):
+    part_time = "[" + datetime.datetime.now().strftime("%H:%M:%S") + "]"
+    if typei == "Normal":
+        part_type = "[Info]"
+    elif typei == "Warning":
+        part_type = "[Warning]"
+    elif typei == "Error":
+        part_type = "[Error]"
+    else:
+        part_type = ""
+    part_func = "[" + functioni + "]"
+
+    log_write = part_time + " " + part_type + " " + part_func + ": " + str(info) + "\n"
+
+    if logServer.Connected:
+        logServer.send(log_write)
+
+    log_file = open("data"+path_seg+"Log"+"Log.txt", "a+")
+    log_file.write(log_write)
+    log_file.close()
+
 
 class BrowserOld:
     def __init__(self, path):
@@ -6445,6 +6559,7 @@ class MusicPlayerBetterRemoteControl(threading.Thread):
     def refreshSearch(self):
         """
         refresh the search (CLIENT)
+        TODO remake from org server code
         :return:
         """
 
@@ -7860,9 +7975,9 @@ class Notie:
         if self.started and self.autosave:
             self.save()
 
-    def len(self):
+    def _len(self):
         return len(self.getLines())
-    len = property(len)
+    len = property(_len)
 
     def _read(self):
         """
@@ -7885,8 +8000,6 @@ class Notie:
             for num in range(lineLen):
                 with open(self.dir+str(num)+".byte", "rb") as bytefile:
                     self.lines_en.append(bytefile.read())
-
-
 
         else:
             self.lines_en = data["lines"]
@@ -7922,15 +8035,16 @@ class Notie:
                 with open(self.dir+str(x)+".byte", "wb") as bytefile:
                     bytefile.write(self.lines_en[x])
 
-
-            output = {"config": {"encryption": self.encryption, "saveEnKey": self.saveEnKey, "autosave": self.autosave},
-                      "lines": [],
-                      "encryptionKey": enKey, "len": self.len, "name": self.name}
+            output = {
+                "config": {"encryption": self.encryption, "saveEnKey": self.saveEnKey, "autosave": self.autosave},
+                "lines": [],
+                "encryptionKey": enKey, "len": self._len(), "name": self.name}
 
         else:
-            output = {"config": {"encryption": self.encryption, "saveEnKey": self.saveEnKey, "autosave": self.autosave},
-                      "lines": self.lines,
-                      "encryptionKey": enKey, "len": self.len, "name": self.name}
+            output = {
+                "config": {"encryption": self.encryption, "saveEnKey": self.saveEnKey, "autosave": self.autosave},
+                "lines": self.lines,
+                "encryptionKey": enKey, "len": self._len(), "name": self.name}
 
 
 

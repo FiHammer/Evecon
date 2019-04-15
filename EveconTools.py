@@ -124,32 +124,31 @@ class TimerC:
             self.unpause()
 
     def reload(self):
+        if self.Running:
+            if self.Paused:
+                self.curPause = time.time() - self.startcurPause
+            else:
+                self.curPause = 0
+                self.startcurPause = 0
 
-        if self.Paused:
-            self.curPause = time.time() - self.startcurPause
+            self.Pause = self.stoppausetime - self.startpausetime
+
+            if self.End:
+                self._time = self.stoptime - self.starttime - self.Pause
+            else:
+                self._time = time.time() - self.starttime - self.Pause - self.curPause
         else:
-            self.curPause = 0
-            self.startcurPause = 0
-
-        self.Pause = self.stoppausetime - self.startpausetime
-
-        if self.End:
-            self._time = self.stoptime - self.starttime - self.Pause
-        else:
-            self._time = time.time() - self.starttime - self.Pause - self.curPause
+            self._time = 0
 
     def getTime(self):
         self.reload()
-        if not self.Running:
-            return 0
 
         return self._time
 
     time = property(getTime)
 
     def getTimeFor(self):
-        self.reload()
-        return TimeFor(self._time)
+        return TimeFor(self.time)
 
 def TimeFor(Time):
     if (round(Time) % 60) == 0:
