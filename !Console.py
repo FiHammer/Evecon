@@ -2167,7 +2167,12 @@ def Arg():
             Klakum.relays[4].switch()
             Klakum.disconnect()
             exit_now()
-
+        if sys.argv[x] == "--vp":
+            title("Load Argument", "Video Player")
+            print(sys.argv)
+            vp = VideoPlayer(sys.argv[x + 1])
+            vp.start()
+            exit_now()
 
 def debug_startup():
     """
