@@ -1,6 +1,3 @@
-import os
-
-
 startmain = False
 exitnow = 0
 pausetime = 180
@@ -43,11 +40,11 @@ def InteractiveClient(host, port):
     time.sleep(1)
     x = input()
 
-    while x != "q" and not cl.Status == "Ended":
+    while x != "q" and not cl.running:
         cl.send(x)
         #sys.stdout.write("-> ")
         time.sleep(0.2)
-        if not cl.Status == "Ended":
+        if not cl.running:
             x = input()
 
     cl.exit()
@@ -67,7 +64,7 @@ def StartupServerTasks(data):
     elif data == "ep_energysave":
         print("Evecon Server", "ep_energysave")
         balloon_tip("Evecon Server", "ep_energysave")
-        StartupServer.send("Changed Energyplan to Energysaveplan")
+        StartupServer.sendToAll("Changed Energyplan to Energysaveplan")
         Tools.EnergyPlan.Change(1)
     elif data == "reboot":
         print("Evecon Server", "reboot")
@@ -76,7 +73,7 @@ def StartupServerTasks(data):
     elif data == "mp_setup":
         print("Evecon Server", "mp_setup")
         balloon_tip("Evecon Server", "mp_setup")
-        StartupServer.send("MusicPlayer is ready")
+        StartupServer.sendToAll("MusicPlayer is ready")
         SST_mp = MusicPlayerC()
         SST_mp_Ac = True
     elif data[0] == "m" and data[1] == "p" and data[2] == "_" and data[3] == "a" and data[4] == "d" and data[5] == "d" and SST_mp_Ac:
@@ -84,40 +81,40 @@ def StartupServerTasks(data):
         balloon_tip("Evecon Server", "mp_add " + data.lstrip("mp_").lstrip("add").lstrip("_"))
         x = SST_mp.addMusic(data.lstrip("mp_").lstrip("add").lstrip("_"))
         if x:
-            StartupServer.send("Done Loading")
+            StartupServer.sendToAll("Done Loading")
         else:
-            StartupServer.send("Error")
+            StartupServer.sendToAll("Error")
     elif data == "mp_start" and SST_mp_Ac:
         print("Evecon Server", "mp_start")
         balloon_tip("Evecon Server", "mp_start")
-        StartupServer.send("Started Musicplayer")
+        StartupServer.sendToAll("Started Musicplayer")
         SST_mp.start()
     elif data == "mp_pause" and SST_mp_Ac:
         print("Evecon Server", "mp_pause")
         balloon_tip("Evecon Server", "mp_start")
-        StartupServer.send("Paused/Unpaused Musicplayer")
+        StartupServer.sendToAll("Paused/Unpaused Musicplayer")
         SST_mp.switch()
     elif data == "mp_stop" and SST_mp_Ac:
         print("Evecon Server", "mp_stop")
         balloon_tip("Evecon Server", "mp_stop")
-        StartupServer.send("Stoped Musicplayer")
+        StartupServer.sendToAll("Stoped Musicplayer")
         SST_mp.stop()
     elif data == "mp_getsong" and SST_mp_Ac:
-        StartupServer.send(SST_mp.getCur()["name"])
+        StartupServer.sendToAll(SST_mp.getCur()["name"])
     elif data == "mp_status" and SST_mp_Ac:
-        StartupServer.send("Status Musicplayer:")
+        StartupServer.sendToAll("Status Musicplayer:")
         time.sleep(0.3)
-        StartupServer.send("Playing: " + str(SST_mp.playing))
+        StartupServer.sendToAll("Playing: " + str(SST_mp.playing))
         time.sleep(0.3)
         if SST_mp.playing:
-            StartupServer.send("Track: " + str(SST_mp.getCur()["name"]))
+            StartupServer.sendToAll("Track: " + str(SST_mp.getCur()["name"]))
         time.sleep(0.3)
         if SST_mp.musicrun:
-            StartupServer.send("End: False")
+            StartupServer.sendToAll("End: False")
         else:
-            StartupServer.send("End: True")
+            StartupServer.sendToAll("End: True")
     elif data == "help":
-        StartupServer.send("shutdown, sleep, ep_energysave, reboot, mp_setup, mp_add_*, mp_start, mp_pause, mp_stop, mp_getsong, mp_status")
+        StartupServer.sendToAll("shutdown, sleep, ep_energysave, reboot, mp_setup, mp_add_*, mp_start, mp_pause, mp_stop, mp_getsong, mp_status")
 
 def StartupServerTasksJava(dataraw):
     global StartupServerJava
@@ -1895,7 +1892,7 @@ def Timer():
 def startStartupServer(serverport: int, ballonTIP=True):
     global StartupServer
     global StartupServerJava
-    StartupServer = Server(ip=thisIP, port=serverport, react=StartupServerTasks)
+    StartupServer = Server(ip=thisIP, port=serverport, stdReact=StartupServerTasks)
     StartupServerJava = ServerJava(ip=thisIP, port=serverport + 2, react=StartupServerTasksJava, allowPrint=True, sendIP=False, giveJava=False)
     print("JAVA-SERVER port: " + str(StartupServerJava.port))
     print("Server initialized!\nNow Running Systray")

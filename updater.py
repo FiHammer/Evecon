@@ -5,7 +5,7 @@ WORK = True
 
 
 cdir = os.getcwd()
-if cdir == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
+if cdir == "C:\\Users\\Mini-Pc Nutzer.000\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
     os.chdir("..")
 else:
