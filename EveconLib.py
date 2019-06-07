@@ -2177,6 +2177,8 @@ class UsedPortsC:
         self.writeFile()
     def remPort(self, port):
         found = Search(str(port), self.ports)
+        if not found:
+            return
         del self.ports[found[0]]
 
 
@@ -2685,7 +2687,7 @@ class MusicPlayerC(threading.Thread):
         self.remoteAddress = ""
         self.remoteAction = ""
         if self.remote:
-            self.server = Server(port=self.remotePort, ip=thisIP, react=self.react_remote, welcomeMessage="", reactLogINOUT=True, printLog=False)
+            self.server = Server(port=self.remotePort, ip=thisIP, stdReact=self.react_remote, printLog=False)
             self.server_java = ServerJava(port=self.remotePort + 1, ip=thisIP, react=self.react_remote)
         else:
             self.server = None
@@ -5325,112 +5327,693 @@ class VolumeC:
 
 Volume = VolumeC()
 
-class Client(threading.Thread):
-    def __init__(self, ip: str, port: int, react, buffersize=1024, loginName=None, loginPW=None, Seculevel=0, showLog=False):
+
+class Server(threading.Thread):
+    def __init__(self, port: int, stdReact=None, ip=socket.gethostbyname(socket.gethostname()), buffersize=1024,
+                 maxConnections=10, accounts=None, forcePort=False, printLog=True, secuLevel=0, java=False):
         """
-        port
-        the port where the server schould listen on
+        Init the Variables
 
-        reac
-        the function with will be executed when the client sent data
+        :param port: the port which the server listens (do not use usedPorts, only if forcePort)
+        :type port: int
 
-        ip
-        normaly the ip of your pc
-        ip of your pc
+        :param forcePort: forces the use of the port (no usedPorts)
+        :type forcePort: bool
 
-        buffersize
-        normaly 1024
-        byte limit of your get data
+        :param stdReact: the standard react funktion, use THIS param or use the accounts if they connect with an account
+        :type stdReact: function
 
-        loginName
-        if you want the client should login in the server you should define here the username
+        :param ip: the ip of the server
+        :type ip: str
 
-        loginPW
-        if you want the client should login in the server you should define here the password
+        :param buffersize: buffersize of the connection
+        :type buffersize: int
 
-        Seculevel
-        normaly 0 if both uses 0 no secu will be used
-        -2: the encryption will be deactivated, but if the client has enabled Secu, the connection will be refuesd
-        -1: the encryption will be deactivated
-        0:  the client decide if the encryption is enabled
-        1:  you force the client to generate a encryption code, but if the client has deactivated Secu, no Secu will be used
-        2:  you force the client to generate a encryption code, but if the client has deactivated Secu, the connection will be refuesd
+        :param maxConnections: max similar connections
+        :type maxConnections: int
 
-        BigServerBuffersize
-        normaly 536870912 (maybe 512MB)
-        if this Buffersize is less then the normal buffersize the BigServer will be deactivated
-        you can set the Buffersize of the Bigserver
+        :param accounts: all accounts, in the list is a tuple with the (0) name and (1) password, optional the (2) encryption key and (3) special react
+        :type accounts: list
 
-        BigServerPort
-        set the Port of the BigServer if it is 0 the port is the normal port+1
-
-        showLog
-        show Log entries
-
-        Keywords:
-        #C! for a command
-        #T! do not use, this will be used to talk to the client directly, like login in
+        :param printLog: prints the log
+        :type printLog: bool
 
         """
         super().__init__()
 
+        if forcePort:
+            self.port = port
+        else:
+            self.port = usedPorts.givePort(port)
+        self.stdReact = stdReact
+        self.ip = ip
+        self.buffersize = buffersize
+        self.maxConnections = maxConnections
+        self.printLog = printLog
+        self.secuLevel = secuLevel
+        self.java = java
+
+        okAccs = []
+        if accounts:  # validating
+            for acc in accounts:
+                if len(acc) == 4:
+                    okAccs.append(acc)
+
+        self.accounts = okAccs
+        self.timer = TimerC()  # server timer
+
+        self.connections = {}
+
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            self.socket.bind((self.ip, self.port))
+        except OSError:
+            raise EveconExceptions.ServerPortUsed(self.port)
+
+        self.running = False
+        self.status = 0
+        """
+        status definition
+
+        0   not running
+        1   setup
+        2   listen for client
+        3   starting connection handler
+        """
+
+    def __del__(self):
+        usedPorts.remPort(self.port)
+
+    def writeLog(self, data, connectionID=-1, prio=0, dataType=0):
+        if connectionID == -1:
+            prefix = "Server"
+        else:
+            prefix = "ConnectionHandler (%s)" % connectionID
+        if dataType == -1:
+            prefixx = "Recieved: "
+        elif dataType == 1:
+            prefixx = "Sent: "
+        elif dataType == 2:
+            prefixx = "Sent (unencodable): "
+        elif dataType == 3:
+            prefixx = "Sent (long): "
+        elif dataType == 5:
+            prefixx = "Sent (long, unencodable): "
+        else:
+            prefixx = ""
+
+        try:
+            # noinspection PyTypeChecker
+            Log(prefix, prefixx + data, prio, self.printLog)
+        except NameError:
+            # noinspection PyTypeChecker
+            LogServerless(prefix, prefixx + data, prio, self.printLog)
+
+    def logStatus(self, full=False):
+        self.writeLog("Status:")
+        if full:
+            self.writeLog("Ip: " + str(self.ip))
+            self.writeLog("Port: " + str(self.port))
+            self.writeLog("MaxConnections: " + str(self.maxConnections))
+            self.writeLog("Accounts: " + str(len(self.accounts)))
+
+        self.writeLog("Current connections: " + str(len(self.connections)))
+
+    def run(self):
+        self.running = True
+        self.status = 1
+
+        self.logStatus(full=True)
+        self.onStart()
+        while self.running:  # MAIN LOOP
+            self.listenForClient()
+
+    def listenForClient(self):
+        self.status = 2
+
+        self.onStartListen()
+
+        self.socket.listen(self.maxConnections)
+
+        con, conAddress = self.socket.accept()
+        self.writeLog("Found Client with IP: %s, Port: %s" % (conAddress[0], conAddress[1]))
+        self.startConnectionHandler(con, conAddress)
+
+    def startConnectionHandler(self, con, conAddress):
+        self.status = 3
+
+        newID = len(self.connections)
+        conData = {"id": newID, "ip": conAddress[0], "port": conAddress[1], "conAddress": conAddress, "con": con,
+                   "running": False}
+
+        conHandler = ConnectionHandler(conData=conData, server=self)
+
+        conData["conHandler"] = conHandler
+        self.connections[newID] = conData
+
+        conHandler.start()
+
+    def sendToID(self, data, conID):
+        if conID in self.connections.keys():
+            if self.connections[conID]["running"]:
+                return self.connections[conID]["conHandler"].send(data)
+            else:
+                return False  # connection not running
+        else:
+            return False  # wrong ID
+
+    def sendToIDs(self, data, conIDs):
+        for conID in conIDs:
+            if self.connections[conID]["running"]:
+                self.sendToID(data, conID)
+
+    def sendToIP(self, data, conIP):
+        theIPs = []
+        theIP_ID = {}
+        for conID in self.connections:
+            if self.connections[conID]["running"]:
+                theIP_ID[self.connections[conID]["ip"]] = []
+        for conID in self.connections:
+            if self.connections[conID]["running"]:
+                theIPs.append(self.connections[conID]["ip"])
+                theIP_ID[self.connections[conID]["ip"]].append(self.connections[conID]["id"])
+
+        if not conIP in theIPs:
+            return False
+
+        self.sendToIDs(data, theIP_ID[conIP])
+
+    def sendToAll(self, data):
+        for conID in self.connections:
+            self.sendToID(data, conID)
+
+    def exit(self, sendM=True):
+        self.onExit()
+        self.closeConnectionAll()
+        self.socket.close()
+        usedPorts.remPort(self.port)
+
+    def closeConnectionAll(self):
+        for conID in self.connections:
+            self.closeConnectionByID(conID)
+
+    def closeConnectionByID(self, conID):
+        if conID in self.connections.keys():
+            if self.connections[conID]["running"]:
+                return self.connections[conID]["conHandler"].exit()
+            else:
+                return False  # connection not running
+        else:
+            return False  # wrong ID
+
+    def getRunTime(self, raw=True):
+        if raw:
+            return self.timer.getTime()
+        else:
+            return self.timer.getTimeFor()
+
+    # SCRIPTS
+
+    def onStart(self):
+        pass
+
+    def onStartListen(self):
+        pass
+
+    def onConnect(self, conID):
+        pass
+
+    def onDisconnect(self, conID):
+        pass
+
+    def onExit(self):  # begin of exit
+        pass
+
+    def onSend(self, data, conID):
+        pass
+
+    def onRecieve(self, data, conID):
+        pass
+
+
+class ConnectionHandler(threading.Thread):
+    def __init__(self, conData, server):
+        """
+        handles the connection
+
+        :param conData: connection Data
+        :type conData: dict
+        :param server: the main server
+        :type server: Server
+        """
+        super().__init__()
+
+        self.conData = conData
+        self.server = server
+        self.react = None
+
+        self.java = server.java
+        self.accounts = server.accounts
+        self.buffersize = server.buffersize
+        self.useAccount = False
+        self.accountName = ""
+        self.accountPW = ""
+        self.accountKey = ""
+
+        self.secu = {"status": 0, "level": self.server.secuLevel, "key": ""}
+        self.secuClient = {"status": 0, "level": 0}
+
+        self.id = conData["id"]
+        self.con = conData["con"]
+
+        self.dataRec = []
+        self.dataSend = []
+        self.timer = TimerC()
+
+        self.running = False
+        self.status = 0
+
+        self.tmp_longMsg_rec = []
+        """
+        status
+        0:  not running
+        1:  setup
+        2:  recieving
+        3:  sending
+        4:  end
+
+        """
+
+    def run(self):
+        self.status = 1
+
+        try:
+            infoClient_raw = self.con.recv(1024)
+        except ConnectionResetError:
+            self.writeLog("Client disconnected while logging in")
+            self.exit(sendErr=1)
+            return
+
+        infoClient = infoClient_raw.decode("UTF-8").split("!")
+
+        if not infoClient[0] == "#T":
+            self.writeLog("Client send wrong Infoconnection")
+            self.exit(sendErr=2)
+            return
+
+        elif infoClient[0] == "#T" and infoClient[1] == "Test":
+            self.secu["status"] = -1
+            self.writeLog("Client uses the 'Test'-Version")
+
+        else:
+            if infoClient[1] == "True":
+                infoClient[1] = True
+            else:
+                infoClient[1] = False
+
+            self.useAccount = infoClient[1]
+            self.accountName = infoClient[2]
+            self.accountPW = infoClient[3]
+            self.secuClient = {"level": int(infoClient[4])}
+
+            # compute the secu level
+            cl = self.secuClient["level"]
+            se = self.secu["level"]
+
+            noEncryption = -1
+            yesEncryption = 1
+            errorEnryption = 0
+
+            sumSecu = cl + se
+
+            if cl == 0 and se == 0:
+                secuStatus = noEncryption
+            elif sumSecu < 0:
+                secuStatus = noEncryption
+            elif sumSecu == 0:
+                if (cl == 2 and se == 2) or (cl == -2 and se == -2):
+                    secuStatus = errorEnryption
+                elif se <= 0:
+                    secuStatus = noEncryption
+                else:
+                    secuStatus = yesEncryption
+            elif sumSecu > 0:
+                secuStatus = yesEncryption
+            else:
+                self.writeLog("Error computing secu level (Cl: %s, Se: %s, Sum: %s)" % (cl, se, sumSecu))
+                self.exit(sendErr=3)
+                return False
+
+            self.secu["status"] = secuStatus
+            if secuStatus == 1:
+                self.secu["key"] = randompw(returnpw=True, printpw=False, exclude=["#", "!"])
+
+        if self.useAccount:
+            self.useAccount = False
+            for aAccount in self.accounts:
+                if aAccount[0] == self.accountName and aAccount[1] == self.accountPW:
+                    self.useAccount = True
+                    if aAccount[2]:
+                        self.react = aAccount[2]
+                    else:
+                        self.react = self.server.stdReact
+                    if aAccount[3]:
+                        self.secu["status"] = 1
+                        self.secu["key"] = aAccount[3]
+                        self.accountKey = aAccount[3]
+                        if self.secuClient["level"] == -2:  # if client says no, he will disconnect
+                            self.secu["status"] = 0
+            if not self.useAccount:
+                if self.server.stdReact:
+                    self.react = self.server.stdReact
+                else:
+                    self.writeLog("Wrong Username or Password")
+                    self.exit(sendErr=5)
+                    return False
+
+        elif not self.server.stdReact:
+            self.writeLog("Client did not login")
+            self.exit(sendErr=4)
+            return False
+        else:
+            self.react = self.server.stdReact
+
+        infoSend = str(self.secu["status"]).encode()
+        if not self.accountKey:
+            infoClient += b"!" + str(self.secu["key"]).encode()
+
+        self.send(infoSend, encrypt=False, direct=True, special=0)
+
+        if self.secu["status"] == 0:
+            self.writeLog("Could not match secu levels")
+            self.exit(sendM=False)
+            return False
+
+        self.server.connections[self.id]["running"] = True
+        self.status = 2
+        self.running = True
+        self.logStatus()
+        self.writeLog("Started Connection with Client")
+
+        self.server.onConnect(self.id)
+        while self.running:  # MAIN RECIEVING LOOP
+            if not self.recieve():
+                self.running = False
+
+        self.exit(sendM=False)
+
+    def recieve(self, encrypt=999):
+        if not self.running:
+            return False
+        if encrypt == 999:
+            encrypt = self.secu["status"]
+
+        try:
+            data = self.con.recv(self.buffersize)
+        except ConnectionResetError:
+            self.writeLog("Client disconnected without warning")
+            return False
+        except ConnectionAbortedError:
+            self.writeLog("Connection aborted")
+            return False
+        except OSError:
+            return False
+
+        if self.java:
+            data = data.rstrip()
+
+        if encrypt == 1:  # yes
+            data = simplecrypt.decrypt(self.secu["key"], data)
+
+        if not data:
+            self.writeLog("Client disconnected. If this happens the Client send something courious")
+            return False
+
+        return self.recieveWorker(data)
+
+    def recieveWorker(self, data):
+        if not self.running:
+            return False
+
+        noByte = True
+        try:
+            data_form = data.decode("UTF-8")
+        except UnicodeDecodeError:
+            data_form = str(data)
+            noByte = False
+        data_form_split = data_form.split("!")
+        self.writeLog(data_form, dataType=-1)
+
+        self.dataRec.append(data)
+        self.server.onRecieve(data, self.id)
+
+        if self.tmp_longMsg_rec:  # long MSg
+            if self.tmp_longMsg_rec[0] is None:
+                self.tmp_longMsg_rec = []
+            if data_form_split[0] == "#T" and len(data_form_split) == 2:
+                if data_form_split[1] == "longMSGend":
+                    self.writeLog("Long Message finished!")
+                    # LONG MSG WIRD AUS GEWERTET
+
+                    if type(self.tmp_longMsg_rec[0]) == str:
+                        msg = ""
+                    else:
+                        msg = b""
+
+                    for partOfMsg in self.tmp_longMsg_rec:
+                        msg += partOfMsg
+                    self.writeLog("Long Message: " + msg)
+                    self.dataRec.append(msg)
+                    # self.tmp_longMSGs_rec = []
+                    self.react(msg)
+
+                    self.tmp_longMsg_rec = []
+                    return True
+
+            else:
+                if noByte:
+                    self.tmp_longMsg_rec.append(data_form)
+                    self.writeLog("Long Message Part " + str(len(self.tmp_longMsg_rec)) + ": " + data_form)
+                else:
+                    self.tmp_longMsg_rec.append(data)
+                    self.writeLog("Long Message (Byte) Part " + str(len(self.tmp_longMsg_rec)) + ": " + data_form)
+
+
+        else:
+            if data_form_split[0] == "#C" and len(data_form_split) > 1:
+                if data_form_split[1] == "getTimeRaw":
+                    self.send(str(self.server.getRunTime()), special=2)
+                elif data_form_split[1] == "getTime":
+                    self.send(str(self.server.getRunTime(False)), special=2)
+                elif data_form_split[1] == "exit":
+                    self.exit()
+
+            elif data_form_split[0] == "#T" and len(data_form_split) > 1:
+                if data_form_split[1] == "exit":
+                    self.exit(sendM=False)
+                    self.writeLog("Client disconnected")
+
+                elif data_form_split[1] == "longMSGinc":
+                    self.writeLog("Long Message incoming!")
+                    self.tmp_longMsg_rec = [None]
+
+            elif data_form_split[0] == "#B" and len(data_form_split) > 1:
+                pass
+
+            else:
+                if noByte:
+                    self.react(data_form)
+                else:
+                    self.react(data)
+                return True
+
+    def send(self, data, special=-1, encrypt=None, direct=False, thisLongMsg=False):
+        """
+        sends data
+
+        :param data: data
+        :param special: special send
+        -1: nothing
+        0:  special transfer
+        1:  special command
+        2:  special recieve for the client
+        3:  special ?
+
+        :param encrypt: encryption
+        :param direct: directly send the msg
+        :param thisLongMsg: is the msg a long msg
+
+        :return: success
+        """
+        if self.running and self.status == 2 or direct:
+            # self.status = 3
+            self.server.onSend(data, self.id)
+
+            if type(data) == str:
+                data_send = data.encode()
+            elif type(data) == int:
+                data_send = str(data).encode()
+            elif type(data) == bool:
+                data_send = str(data).encode()
+            else:
+                data_send = data
+            longMsg = False
+            if special == 0:
+                data_send = b"#T!" + data_send
+            elif special == 1:
+                data_send = b"#C!" + data_send
+            elif special == 2:
+                data_send = b"#R!" + data_send
+            elif special == 3:
+                data_send = b"#B!" + data_send
+            elif len(data_send) > 1000:  # LONG MSG!!!
+                longMsg = True
+            else:
+                pass
+                # data_send = b"startMSG!" + data_send + b"!endMSG"
+
+            if longMsg:
+                self.send("longMSGinc", special=0)
+
+                longMsgParts = []
+                for i in range(0, len(data) - 1, 1000):
+                    longMsgParts.append(data_send[i:i + 1000])
+
+                for partData in longMsgParts:
+                    self.send(partData, thisLongMsg=True)
+
+                time.sleep(1)
+                self.send("longMSGend", special=0)
+            else:
+                if encrypt is None:
+                    if self.secu["status"] == 1:
+                        data_send_de = simplecrypt.encrypt(self.secu["key"], data_send)
+                    else:
+                        data_send_de = data_send
+                elif encrypt:
+                    data_send_de = simplecrypt.encrypt(self.secu["key"], data_send)
+                else:
+                    data_send_de = data_send
+
+                if not thisLongMsg:
+                    self.dataSend.append(data)
+                    try:
+                        self.writeLog(data_send.decode("UTF-8"), dataType=1)
+                    except UnicodeDecodeError:
+                        self.writeLog(str(data_send), dataType=2)
+                else:
+                    try:
+                        self.writeLog(data_send.decode("UTF-8"), dataType=3)
+                    except UnicodeDecodeError:
+                        self.writeLog(str(data_send), dataType=4)
+
+                if self.java:
+                    data_send_de += b'\r\n'
+
+                self.con.send(data_send_de)
+
+    def exit(self, sendM=True, sendErr=0):
+        if sendM and not sendErr:
+            self.send("exit", special=0)
+        elif sendErr:
+            self.send("exit!error!" + str(sendErr), special=0)
+        self.server.onDisconnect(self.id)
+        self.con.close()
+        self.running = False
+        self.server.connections[self.id]["running"] = False
+        self.status = 4
+
+    def writeLog(self, data, prio=0, dataType=0):
+        self.server.writeLog(data=data, connectionID=self.id, prio=prio, dataType=dataType)
+
+    def logStatus(self):
+        self.writeLog("Status:")
+        self.writeLog("StatusID: " + str(self.status))
+        self.writeLog("Running: " + str(self.running))
+        self.writeLog("Connected with:")
+        self.writeLog("IP: " + str(self.conData["ip"]))
+        if not self.useAccount:
+            self.writeLog("Account: None")
+        else:
+            self.writeLog("Account Name: " + self.accountName)
+            self.writeLog("Account Password: " + self.accountPW)
+
+        self.writeLog("Secustatus: " + str(self.secu["status"]))
+        if self.secu["status"] == 1:
+            self.writeLog("Secukey: " + self.secu["key"])
+
+    def getRunTime(self, raw=True):
+        if raw:
+            return self.timer.getTime()
+        else:
+            return self.timer.getTimeFor()
+
+
+class Client(threading.Thread):
+    def __init__(self, ip: str, port: int, react, buffersize=1024, accountName="", accountPW="", accountKey="",
+                 secuLevel=0, printLog=False, java=False):
+        """
+        a fantastic client
+
+        :param ip: ip of the server
+        :param port: port of the server
+        :param react: function with the recieved data
+        :param buffersize: buffersize of the connection
+        :param accountName: login name
+        :param accountPW: login pw
+        :param accountKey: login encryption key
+        :param secuLevel: seculevel
+        :param printLog: prints the log in the console
+        """
+        super().__init__()
 
         self.port = port
         self.react = react
         self.ip = ip
         self.buffersize = buffersize
-        self.showLog = showLog
+        self.printLog = printLog
 
+        self.java = java
 
-        if loginName and loginPW:
-            self.login = True
+        self.accountName = accountName
+        self.accountPW = accountPW
+        self.accountKey = accountKey
+
+        if accountName or accountPW or accountKey:
+            self.useAccount = True
         else:
-            self.login = False
-        self.loginName = loginName
-        self.loginPW = loginPW
+            self.useAccount = False
 
-        self.Seculevel = Seculevel
+        self.secu = {"status": 0, "level": secuLevel, "key": ""}
 
-        self.tmp_longMSG_rec = False
-        self.tmp_longMSGs_rec = []
-        self.tmp_longMSG_sen = False
-        self.tmp_longMSGs_sen = []
+        self.dataRec = []
+        self.dataSend = []
 
-        self.Logsend = []
-        self.Logsend_long = []
-        self.Logrece = []
-        self.Logrece_long = []
+        self.timer = TimerC()
 
-        self.s = socket.socket()
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        self.Running = False # between start and end
-        self.Connected = False # while connected
+        self.running = False
+        self.status = 0
+
+        self.tmp_longMsg_rec = []
+        """
+        status
+        0:  not running
+        1:  setup
+        2:  recieving
+        3:  sending
+        4:  end
+
+        """
 
         self.conAddress = None
-        self.conInfo = {}
-
-        self.Info = {"login" : {"status" : self.login, "name" : self.loginName, "password" : self.loginPW},
-                     "secu" : {"level" : self.Seculevel}}
-
-        self.Log = []
-        self.Status = "Starting"
 
     def run(self):
-        self.Running = True
-
-        self.Status = "Setup"
-        self.writeLog("Status:")
-        self.writeLog("Ip: " + str(self.ip))
-        self.writeLog("Port: " + str(self.port))
-        self.writeLog("Login: " + str(self.login))
-        self.writeLog("LoginName: " + str(self.loginName))
-        self.writeLog("LoginPW: " + str(self.loginPW))
-        self.writeLog("Seculevel: " + str(self.Seculevel))
-
-        self.Status = "Connecting"
+        self.status = 1
 
         try:
-            self.s.connect((self.ip, self.port))
+            self.socket.connect((self.ip, self.port))
 
         except TimeoutError:
             # wrong ip
@@ -5442,819 +6025,313 @@ class Client(threading.Thread):
             self.writeLog("Can not connect to port, ConnectionRefused")
             raise EveconExceptions.ClientWrongPort
 
-        self.Connected = True
-        self.Status = "Connected"
         self.writeLog("Connected with Server")
 
+        infoSend = str(self.useAccount).encode() + b"!" + \
+                   str(self.accountName).encode() + b"!" + \
+                   str(self.accountPW).encode() + b"!" + \
+                   str(self.secu["level"]).encode()
+
+        self.send(infoSend, encrypt=False, direct=True, special=0)
+
         try:
-            InfoServer_raw = self.s.recv(1024)
+            infoServer_raw = self.socket.recv(1024)
         except ConnectionResetError:
             self.writeLog("Server disconnected without warning")
             raise EveconExceptions.ClientConnectionLost()
 
-        InfoServer = InfoServer_raw.decode("UTF-8").split("!")
-        if not InfoServer[0] == "#T":
+        infoServer = infoServer_raw.decode("UTF-8").split("!")
+
+        if not infoServer[0] == "#T":
             self.writeLog("Server send wrong Infoconnection")
             raise EveconExceptions.ClientWrongServer()
-
-        elif InfoServer[0] == "#T" and InfoServer[1] == "Test":
-            self.conInfo = {"secu": {"status": -1}, "key": "None"}
-            self.writeLog("== uses the 'Test'-Version")
-
         else:
-            if InfoServer[1] == "True":
-                # noinspection PyTypeChecker
-                InfoServer[1] = True
+            if infoServer[1] == "exit":
+                self.writeLog("Server had an error! Code: " + str(infoServer[2]))
+                return False
+            elif infoServer[1] == "0":
+                self.writeLog("Cannot connect to server!")
+                return False
+            elif infoServer[1] == "1" or infoServer[1] == "-1":
+                if len(infoServer) == 3:
+                    self.secu["key"] = infoServer[2]
+                else:
+                    self.secu["key"] = self.accountKey
+                self.secu["status"] = int(infoServer[1])
             else:
-                # noinspection PyTypeChecker
-                InfoServer[1] = False
-            if InfoServer[2] == "True":
-                # noinspection PyTypeChecker
-                InfoServer[2] = True
-            else:
-                # noinspection PyTypeChecker
-                InfoServer[2] = False
-            self.conInfo = {"login": {"status" : InfoServer[1]},
-                            "bigserver" : {"status" : InfoServer[2], "port" : int(InfoServer[3])},
-                            "secu": {"level" : int(InfoServer[4])}}
+                self.writeLog("Server send wrong Infoconnection")
+                raise EveconExceptions.ClientWrongServer()
 
-        S = int(self.conInfo["secu"]["level"])
-        C = int(self.Seculevel)
+        self.status = 2
+        self.running = True
+        self.logStatus()
+        self.writeLog("Started Connection with Server")
+        self.onStart()
 
-        if not -3 < S < 3:
-            self.writeLog("Server send a wrong Seculevel")
-            raise EveconExceptions.ClientWrongServer
+        while self.running:  # MAIN RECIEVING LOOP
+            if not self.recieve():
+                self.running = False
 
-        elif S == -2:
-            if C == 2:
-                self.Info["secu"]["status"] = 0
-            else:
-                self.Info["secu"]["status"] = -1
-        elif S == -1:
-            if C == 2:
-                self.Info["secu"]["status"] = 1
-            else:
-                self.Info["secu"]["status"] = -1
-        elif S == 0:
-            if C < 1:
-                self.Info["secu"]["status"] = -1
-            else:
-                self.Info["secu"]["status"] = 1
-        elif S == 1:
-            if C == -2:
-                self.Info["secu"]["status"] = -1
-            else:
-                self.Info["secu"]["status"] = 1
-        elif S == 2:
-            if C == -2:
-                self.Info["secu"]["status"] = 0
-            else:
-                self.Info["secu"]["status"] = 1
+        self.exit(sendM=False)
 
-        if self.Info["secu"]["status"] == 1:
-            self.Info["secu"]["key"] = randompw(returnpw=True, printpw=False, exclude=["#", "!"])
-        else:
-            self.Info["secu"]["key"] = None
+    def send(self, data, special=-1, encrypt=None, direct=False, thisLongMsg=False):
+        """
+        sends data
 
-        InfoSend = b'#T!' + str(self.Info["login"]["status"]).encode() + b'!' + \
-                   str(self.Info["login"]["name"]).encode() + b'!' + \
-                   str(self.Info["login"]["password"]).encode() + b'!' + \
-                   str(self.Info["secu"]["status"]).encode() + b'!' + \
-                   str(self.Info["secu"]["level"]).encode() + b'!' + \
-                   str(self.Info["secu"]["key"]).encode()
+        :param data: data
+        :param special: special send
+        -1: nothing
+        0:  special transfer
+        1:  special command
+        2:  special recieve for the client
+        3:  special ?
 
-        self.send(InfoSend, encrypt=False, direct=True)
+        :param encrypt: encryption
+        :param direct: directly send the msg
+        :param thisLongMsg: is the msg a long msg
+
+        :return: success
+        """
+        if self.running and self.status == 2 or direct:
+            # self.status = 3
+
+            if type(data) == str:
+                data_send = data.encode()
+            elif type(data) == int:
+                data_send = str(data).encode()
+            elif type(data) == bool:
+                data_send = str(data).encode()
+            else:
+                data_send = data
+            longMsg = False
+            if special == 0:
+                data_send = b"#T!" + data_send
+            elif special == 1:
+                data_send = b"#C!" + data_send
+            elif special == 2:
+                data_send = b"#R!" + data_send
+            elif special == 3:
+                data_send = b"#B!" + data_send
+            elif len(data_send) > 1000:  # LONG MSG!!!
+                longMsg = True
+            else:
+                pass
+                # data_send = b"startMSG!" + data_send + b"!endMSG"
+
+            if longMsg:
+                self.send("longMSGinc", special=0)
+
+                longMsgParts = []
+                for i in range(0, len(data) - 1, 1000):
+                    longMsgParts.append(data_send[i:i + 1000])
+
+                for partData in longMsgParts:
+                    self.send(partData, thisLongMsg=True)
+
+                time.sleep(1)
+                self.send("longMSGend", special=0)
+            else:
+                if encrypt is None:
+                    if self.secu["status"] == 1:
+                        data_send_de = simplecrypt.encrypt(self.secu["key"], data_send)
+                    else:
+                        data_send_de = data_send
+                elif encrypt:
+                    data_send_de = simplecrypt.encrypt(self.secu["key"], data_send)
+                else:
+                    data_send_de = data_send
+
+                if not thisLongMsg:
+                    self.dataSend.append(data)
+                    try:
+                        self.writeLog(data_send.decode("UTF-8"), dataType=1)
+                    except UnicodeDecodeError:
+                        self.writeLog(str(data_send), dataType=2)
+                else:
+                    try:
+                        self.writeLog(data_send.decode("UTF-8"), dataType=3)
+                    except UnicodeDecodeError:
+                        self.writeLog(str(data_send), dataType=4)
+
+                if self.java:
+                    data_send_de += b'\r\n'
+
+                self.socket.send(data_send_de)
+
+    def recieve(self, encrypt=999):
+        if not self.running:
+            return False
+        if encrypt == 999:
+            encrypt = self.secu["status"]
 
         try:
-            conAccept = self.s.recv(self.buffersize).decode("UTF-8")
+            data = self.socket.recv(self.buffersize)
         except ConnectionResetError:
             self.writeLog("Server disconnected without warning")
-            raise EveconExceptions.ClientConnectionLost()
-        #print(conAccept, InfoSend)
-
-        if conAccept:
-
-            if self.Info["secu"]["status"] == 1:
-                self.writeLog("Started Connection with Server. Decryption Key: " + self.Info["secu"]["key"])
-
-                while self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
-                    try:
-                        data_en = self.s.recv(self.buffersize)
-                    except ConnectionResetError:
-                        self.writeLog("Server disconnected without warning")
-                        break
-                    except ConnectionAbortedError:
-                        self.writeLog("Connection aborted")
-                        break
-                    #print(data_en)
-                    data = simplecrypt.decrypt(self.Info["secu"]["key"], data_en)
-
-                    self.receive(data)
-
-            elif self.Info["secu"]["status"] == -1:
-                self.writeLog("Started Connection with Server. No Decryption")
-
-                while self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
-                    try:
-                        data = self.s.recv(self.buffersize)
-                    except ConnectionResetError:
-                        self.writeLog("Server disconnected without warning")
-                        break
-                    except ConnectionAbortedError:
-                        self.writeLog("Connection aborted")
-                        break
-
-                    self.receive(data)
-            else:
-                self.writeLog("Wrong status")
-        else:
-            self.writeLog("Wrong Password")
-
-        self.s.close()
-        self.Running = False
-        self.Connected = False
-        self.Status = "Ended"
-
-
-    def send(self, data, encrypt=None, direct=False):
-        if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected" or direct:
-            if type(data) == str:
-                data_send = data.encode()
-            elif type(data) == int:
-                data_send = str(data).encode()
-            elif type(data) == bool:
-                data_send = str(data).encode()
-            else:
-                data_send = data
-
-            if len(data_send) > 1000:  # LONG MSG!!!
-                self.send("#T!longMSGinc")
-
-                self.tmp_longMSG_sen = True
-                self.tmp_longMSGs_sen = []
-                for i in range(0, len(data) - 1, 1000):
-                    self.tmp_longMSGs_sen.append(data_send[i:i + 1000])
-                    self.Logsend_long.append(data_send[i:i + 1000])
-
-                for partData in self.tmp_longMSGs_sen:
-                    self.send(partData)
-
-                self.tmp_longMSG_sen = False
-                self.tmp_longMSGs_sen = []
-                self.send("#T!longMSGend")
-
-            else:
-                if encrypt is None:
-                    if self.Info["secu"]["status"] == 1:
-                        data_send_de = simplecrypt.encrypt(self.Info["secu"]["key"], data_send)
-                    else:
-                        data_send_de = data_send
-                elif encrypt:
-                    data_send_de = simplecrypt.encrypt(self.Info["secu"]["key"], data_send)
-                else:
-                    data_send_de = data_send
-
-                if type(data) == str:
-                    data_str = data
-                elif type(data) == bytes:
-                    try:
-                        data_str = data.decode("UTF-8")
-                    except UnicodeDecodeError:
-                        data_str = str(data)
-                else:
-                    data_str = str(data)
-                if not self.tmp_longMSG_sen:
-                    self.Logsend.append(data_str)
-
-                    try:
-                        self.writeLog("Sent: " + data_send.decode("UTF-8"))
-                    except UnicodeDecodeError:
-                        self.writeLog("Sent something uncodeable!: " + str(data_send))
-                else:
-                    try:
-                        self.writeLog("Long Message: " + data_send.decode("UTF-8"))
-                    except UnicodeDecodeError:
-                        self.writeLog("Long Message (uncodeable): " + str(data_send))
-
-                self.s.send(data_send_de)
-
-        else:
+            return False
+        except ConnectionAbortedError:
+            self.writeLog("Connection aborted")
+            return False
+        except OSError:
             return False
 
-    def receive(self, data):
-        if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
-            noByte = True
-            try:
-                data_form = data.decode("UTF-8")
-            except UnicodeDecodeError:
-                noByte = False
-                data_form = str(data)
-            data_form_split = data_form.split("!")
-            self.writeLog("Receive: " + data_form)
+        if self.java:
+            data = data.rstrip()
 
-            if not self.tmp_longMSG_rec:
-                self.Logrece.append(data)
+        if encrypt == 1:  # yes
+            data = simplecrypt.decrypt(self.secu["key"], data)
 
-                if data_form_split[0] == "#C" and len(data_form_split) > 1:
-                    if data_form_split[1] == "exit":
-                        self.exit()
-                elif data_form_split[0] == "#T" and len(data_form_split) > 1:
-                    if data_form_split[1] == "exit":
-                        self.exit(sendM=False)
-                        self.writeLog("Server disconnected")
+        if not data:
+            self.writeLog("Server disconnected. If this happens the Server send something courious")
+            return False
 
-                    elif data_form_split[1] == "longMSGinc":
-                        self.writeLog("Long Message incoming!")
-                        self.tmp_longMSG_rec = True
-                        self.tmp_longMSGs_rec = []
-                else:
-                    if noByte:
-                        self.react(data_form)
+        return self.recieveWorker(data)
+
+    def recieveWorker(self, data):
+        if not self.running:
+            return False
+
+        noByte = True
+        try:
+            data_form = data.decode("UTF-8")
+        except UnicodeDecodeError:
+            data_form = str(data)
+            noByte = False
+        data_form_split = data_form.split("!")
+        self.writeLog(data_form, dataType=-1)
+
+        self.dataRec.append(data)
+        self.onRecieve(data)
+
+        if self.tmp_longMsg_rec:  # long MSg
+            if self.tmp_longMsg_rec[0] is None:
+                self.tmp_longMsg_rec = []
+            if data_form_split[0] == "#T" and len(data_form_split) == 2:
+                if data_form_split[1] == "longMSGend":
+                    self.writeLog("Long Message finished!")
+                    # LONG MSG WIRD AUS GEWERTET
+
+                    if type(self.tmp_longMsg_rec[0]) == str:
+                        msg = ""
                     else:
-                        self.react(data)
-            else:  # LONG MESSAGE
-                if data_form_split[0] == "#T" and len(data_form_split) > 1:
-                    if data_form_split[1] == "longMSGend":
-                        self.writeLog("Long Message finished!")
-                        # LONG MSG WIRD AUS GEWERTET
-                        self.tmp_longMSG_rec = False
+                        msg = b""
 
-                        if type(self.tmp_longMSGs_rec[0]) == str:
-                            msg = ""
-                        else:
-                            msg = b""
+                    for partOfMsg in self.tmp_longMsg_rec:
+                        msg += partOfMsg
+                    self.writeLog("Long Message: " + msg)
+                    self.dataRec.append(msg)
+                    # self.tmp_longMSGs_rec = []
+                    self.react(msg)
 
-                        for partOfMsg in self.Logrece_long:
-                            msg += partOfMsg
-                        if type(self.tmp_longMSGs_rec[0]) == str:
-                            self.writeLog("Long Message: " + msg)
-                        else:
-                            self.writeLog("Long (Byte) Message: " + str(msg))
+                    self.tmp_longMsg_rec = []
+                    return True
 
-                        self.Logrece.append(msg)
-                        #self.tmp_longMSGs_rec = []
-                        self.react(msg)
-
+            else:
+                if noByte:
+                    self.tmp_longMsg_rec.append(data_form)
+                    self.writeLog("Long Message Part " + str(len(self.tmp_longMsg_rec)) + ": " + data_form)
                 else:
-                    if noByte:
-                        self.tmp_longMSGs_rec.append(data_form)
-                        self.Logrece_long.append(data_form)
-                        self.writeLog("Long Message Part " + str(len(self.tmp_longMSGs_rec)) + ": " + data_form)
-                    else:
-                        self.tmp_longMSGs_rec.append(data)
-                        self.Logrece_long.append(data)
-                        self.writeLog("Long Message (Byte) Part " + str(len(self.tmp_longMSGs_rec)) + ": " + data_form)
+                    self.tmp_longMsg_rec.append(data)
+                    self.writeLog("Long Message (Byte) Part " + str(len(self.tmp_longMsg_rec)) + ": " + data_form)
 
 
-    def save(self, directory:str):
-        file_log_raw = open("Log.txt", "w")
-        for x in self.Log:
-            file_log_raw.write(x)
-        file_log_raw.close()
+        else:
+            if data_form_split[0] == "#C" and len(data_form_split) > 1:
+                if data_form_split[1] == "getTimeRaw":
+                    self.send(str(self.getRunTime()), special=2)
+                elif data_form_split[1] == "getTime":
+                    self.send(str(self.getRunTime(False)), special=2)
+                elif data_form_split[1] == "exit":
+                    self.exit()
 
-        file_logsend_raw = open("LogSend.txt", "w")
-        for x in self.Logsend:
-            if type(x) == str:
-                file_logsend_raw.write(x)
-            elif type(x) == bytes:
-                file_logsend_raw.write(x.decode("UTF-8"))
-            elif type(x) == bool:
-                file_logsend_raw.write(str(x))
-        file_logsend_raw.close()
+            elif data_form_split[0] == "#T" and len(data_form_split) > 1:
+                if data_form_split[1] == "exit":
+                    self.exit(sendM=False)
+                    self.writeLog("Server disconnected")
 
-        file_logrece_raw = open("LogReceive.txt", "w")
-        for x in self.Logrece:
-            if type(x) == str:
-                file_logrece_raw.write(x)
-            elif type(x) == bytes:
-                file_logrece_raw.write(x.decode("UTF-8"))
-            elif type(x) == bool:
-                file_logrece_raw.write(str(x))
-        file_logrece_raw.close()
+                elif data_form_split[1] == "longMSGinc":
+                    self.writeLog("Long Message incoming!")
+                    self.tmp_longMsg_rec = [None]
 
-    def writeLog(self, data):
-        write = "(" + datetime.datetime.now().strftime("%H:%M:%S:%f") + ") " + "(" + self.Status + ") " + data
-        self.Log.append(write)
-        if self.showLog:
-            print("[Log] " + write)
+            elif data_form_split[0] == "#B" and len(data_form_split) > 1:
+                pass
 
-    def exit(self, sendM=True):
+            else:
+                if noByte:
+                    self.react(data_form)
+                else:
+                    self.react(data)
+                return True
+
+    def writeLog(self, data, prio=0, dataType=0):
+        if dataType == -1:
+            prefixx = "Recieved: "
+        elif dataType == 1:
+            prefixx = "Sent: "
+        elif dataType == 2:
+            prefixx = "Sent (unencodable): "
+        elif dataType == 3:
+            prefixx = "Sent (long): "
+        elif dataType == 5:
+            prefixx = "Sent (long, unencodable): "
+        else:
+            prefixx = ""
+
+
+        try:
+            # noinspection PyTypeChecker
+            Log("Client", prefixx + data, prio, self.printLog)
+        except NameError:
+            # noinspection PyTypeChecker
+            LogServerless("Client", prefixx + data, prio, self.printLog)
+
+    def exit(self, sendM=True, sendErr=0):
         if sendM:
             self.send("#T!exit")
-        self.s.close()
-        self.Connected = False
-        self.Status = "Lost Connection"
+        elif sendErr:
+            self.send("exit!error!" + str(sendErr), special=0)
+        self.onExit()
 
-    def getStatus(self):
-        curStatus = {"status" : {"status" : self.Status, "running" : self.Running, "connected" : self.Connected},
-                     "log": self.Log, "info" : self.Info}
-        return curStatus
+        self.status = 4
+        self.running = False
+        self.socket.close()
 
-
-class Server(threading.Thread):
-    def __init__(self, port: int, react, ip=socket.gethostbyname(socket.gethostname()), buffersize=1024,
-                 loginName=None, loginPW=None, maxConnections=1, Seculevel=0, BigServerBuffersize=0,
-                 BigServerPort=0, welcomeMessage="Welcome to Evecon Server!", thisBig=False, printLog=True, reactLogINOUT=False):
-        """
-        ip
-        ip of the server
-
-        port
-        the port where the server listen on
-
-        reac
-        the function with will be executed when the server sent data
-
-        buffersize
-        normaly 1024
-        byte limit of your get data
-
-        loginName
-        if enabled in the server the loginName is defined here
-
-        loginPW
-        if enabled in the server the loginPW is defined here
-
-        Seculevel
-        normaly 0 if both uses 0 no secu will be used
-        -2: the encryption will be deactivated so you can not connect with server with seculevel 2
-        -1: the encryption will be deactivated, but if the client has enabled Secu, Secu will be used
-        0:  the client decide if the encryption is enabled
-        1:  you force the client to generate a encryption code, but if the client has deactivated Secu, no Secu will be used
-        2:  the encryption will be deactivated so you can not connect with server with seculevel -2
-
-        S   C   Y=Encryption N=No Encryption E=No Connection
-        -2  -2  N
-        -2  -1  N
-        -2  0   N
-        -2  1   N
-        -2  2   E
-
-        -1  -2  N
-        -1  -1  N
-        -1  0   N
-        -1  1   N
-        -1  2   Y
-
-        0  -2   N
-        0  -1   N
-        0  0    N
-        0  1    Y
-        0  2    Y
-
-        1  -2   N
-        1  -1   Y
-        1  0    Y
-        1  1    Y
-        1  2    Y
-
-        2  -2   E
-        2  -1   Y
-        2  0    Y
-        2  1    Y
-        2  2    Y
-
-        BigServerBuffersize
-        normaly 536870912 (maybe 512MB)
-        if this Buffersize is less then the normal buffersize the BigServer will be deactivated
-        you can set the Buffersize of the Bigserver
-
-        BigServerPort
-        set the Port of the BigServer if it is 0 the port is the normal port+1
-
-        reactLogINOUT
-        if True the server will send a react with only the ip-address if the connection is succsessful
-        at disconnet with None
-
-        Keywords:
-        #C! for a command
-        #T! do not use, this will be used to talk to the client directly, like login in
-        #R! for receiving some return infomation
-        #B! for travel through bigserver
-
-        """
-        super().__init__()
-
-        self.version = "1.0.0"
-
-        self.port = usedPorts.givePort(port)
-
-        self.thisBigServer = thisBig
-        self.react = react
-        self.ip = ip
-        self.buffersize = buffersize
-        self.maxConnections = maxConnections
-        self.welcomeMessage = welcomeMessage
-        self.printLog = printLog
-        self.reactLogINOUT = reactLogINOUT
-
-        if loginName and loginPW:
-            self.login = True
-        else:
-            self.login = False
-        self.loginName = loginName
-        self.loginPW = loginPW
-
-        self.Seculevel = Seculevel
-
-        self.tmp_longMSG_rec = False
-        self.tmp_longMSGs_rec = []
-        self.tmp_longMSG_sen = False
-        self.tmp_longMSGs_sen = []
-
-        self.Timer = TimerC()
-
-        self.BigServerBuffersize = BigServerBuffersize
-        if not BigServerPort:
-            self.BigServerPort = port + 1
-
-        if BigServerBuffersize > self.buffersize:
-            self.BigServerEnabled = True
-            self.BigServer = Server(port=BigServerPort, react=self.receive, buffersize=self.BigServerBuffersize,
-                                    loginName=self.loginName, loginPW=self.loginPW, Seculevel=self.Seculevel,
-                                    BigServerBuffersize=0, thisBig=True)
-        else:
-            self.BigServerEnabled = False
-            self.BigServer = None
-
-        self.Logsend = []
-        self.Logsend_long = []
-        self.Logrece = []
-        self.Logrece_long = []
-
-        self.s = socket.socket()
-        try:
-            self.s.bind((self.ip, self.port))
-        except OSError:
-            raise EveconExceptions.ServerPortUsed(self.port)
-
-        self.Running = False  # between start and end
-        self.Connected = False  # while connected
-
-        self.connects = []
-
-        self.conAddress = None
-        self.con = None
-        self.conInfo = None
-
-        self.Info = {"ip": self.ip, "port": self.port, "buffersize": self.buffersize,
-                     "maxconnections": self.maxConnections, "welcomeMessage": self.welcomeMessage,
-                     "login": {"status": self.login, "name": self.loginName, "password": self.loginPW},
-                     "bigserver": {"status": self.BigServerEnabled, "ip": self.ip, "port": self.BigServerPort},
-                     "secu": {"level": self.Seculevel}}
-
-        self.Log = []
-        self.Status = "Starting"
-
-    def run(self):
-        self.Running = True
-        self.Timer.start()
-
-        self.Status = "Setup"
+    def logStatus(self):
         self.writeLog("Status:")
-        self.writeLog("Ip: " + str(self.ip))
+        self.writeLog("StatusID: " + str(self.status))
+        self.writeLog("Running: " + str(self.running))
+        self.writeLog("Connected with:")
+        self.writeLog("IP: " + str(self.ip))
         self.writeLog("Port: " + str(self.port))
-        self.writeLog("Login: " + str(self.login))
-        self.writeLog("LoginName: " + str(self.loginName))
-        self.writeLog("LoginPW: " + str(self.loginPW))
-        self.writeLog("BigServer: " + str(self.BigServerEnabled))
-        self.writeLog("BigServerPort: " + str(self.BigServerPort))
-        self.writeLog("Seculevel: " + str(self.Seculevel))
+        if not self.useAccount:
+            self.writeLog("Account: None")
+        else:
+            self.writeLog("Account Name: " + self.accountName)
+            self.writeLog("Account Password: " + self.accountPW)
 
-        while self.Running:
-
-            self.Status = "Listening..."
-            self.writeLog("Listening...")
-
-            self.s.listen(self.maxConnections)
-
-            self.con, self.conAddress = self.s.accept()
-
-            self.writeLog("Found Client with IP: %s, Port: %s" % (self.conAddress[0], self.conAddress[1]))
-
-            self.Connected = True
-            self.Status = "Connected"
-            self.connects.append(self.conAddress)
-
-            InfoSend = b'#T!' + str(self.Info["login"]["status"]).encode() + b'!' + \
-                       str(self.Info["bigserver"]["status"]).encode() + b'!' + \
-                       str(self.Info["bigserver"]["port"]).encode() + b'!' + \
-                       str(self.Info["secu"]["level"]).encode()
-
-            # self.Log.append(InfoSend)
-            self.send(InfoSend, encrypt=False, direct=True)
-
-            try:
-                InfoClient_raw = self.con.recv(1024)
-            except ConnectionResetError:
-                self.writeLog("Client disconnected while logging in")
-                continue
-
-            InfoClient = InfoClient_raw.decode("UTF-8").split("!")
-
-            if not InfoClient[0] == "#T":
-                self.writeLog("Client send wrong Infoconnection")
-                continue
-
-            elif InfoClient[0] == "#T" and InfoClient[1] == "Test":
-                self.conInfo = {"secu": {"status": -1}, "key": "None"}
-                self.writeLog("Client uses the 'Test'-Version")
-
-            else:
-                if InfoClient[1] == "True":
-                    # noinspection PyTypeChecker
-                    InfoClient[1] = True
-                else:
-                    # noinspection PyTypeChecker
-                    InfoClient[1] = False
-
-                self.conInfo = {"login": {"status": InfoClient[1], "name": InfoClient[2], "password": InfoClient[3]},
-                                "secu": {"status": int(InfoClient[4]), "level": int(InfoClient[5]),
-                                         "key": InfoClient[6]}}
-
-            self.writeLog("Client:")
-            self.writeLog("Login: " + str(InfoClient[1]))
-            self.writeLog("LoginName: " + InfoClient[2])
-            self.writeLog("LoginPW: " + InfoClient[3])
-            self.writeLog("Secu: " + str(InfoClient[4]))
-            self.writeLog("Seculevel: " + str(InfoClient[5]))
-            self.writeLog("Secukey: " + self.conInfo["secu"]["key"])
-
-            # print(self.Info, self.conInfo)
-
-            if self.login:
-                if self.conInfo["login"]["status"]:
-                    if self.loginName == self.conInfo["login"]["name"] and self.loginPW == self.conInfo["login"][
-                        "password"]:
-                        conAccept = True
-                    else:
-                        conAccept = False
-                else:
-                    conAccept = False
-            elif self.conInfo["login"]["status"]:
-                conAccept = False
-            else:
-                conAccept = True
-
-            self.send(conAccept, encrypt=False)
-            if not conAccept:
-                self.writeLog("Client sent wrong logindata")
-                continue
-
-            if self.welcomeMessage:
-                self.send(self.welcomeMessage)
-
-            if self.reactLogINOUT:
-                self.react(self.conAddress)
-
-            if self.conInfo["secu"]["status"] == 1:  # yes
-                self.writeLog("Started Connection with Client. Decryption")
-
-                while self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
-                    try:
-                        data_en = self.con.recv(1024)
-                    except ConnectionResetError:
-                        self.writeLog("Client disconnected without warning")
-                        break
-                    except ConnectionAbortedError:
-                        self.writeLog("Connection aborted")
-                        break
-                    except OSError:
-                        break
-
-                    data = simplecrypt.decrypt(self.conInfo["secu"]["key"], data_en)
-
-                    if not data:
-                        self.writeLog("Client disconnected. If this happens the Client send something courious")
-                        break
-
-                    self.receive(data)
-
-            elif self.conInfo["secu"]["status"] == -1:  # no
-                self.writeLog("Started Connection with Client. No Decryption")
-
-                while self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
-                    try:
-                        data = self.con.recv(1024)
-                    except ConnectionResetError:
-                        self.writeLog("Client disconnected without warning")
-                        break
-                    except ConnectionAbortedError:
-                        self.writeLog("Connection aborted")
-                        break
-                    except OSError:
-                        break
-
-                    if not data:
-                        self.writeLog("Client disconnected. If this happens the Client send something courious")
-                        break
-
-                    self.receive(data)
-
-            elif self.conInfo["secu"]["status"] == 0:  # no connection
-                self.writeLog("Can not establish a connection. Seclevels: Server: %s, Client: %s" % (
-                    self.Seculevel, self.conInfo["secu"]["level"]))
-
-            else:
-                self.writeLog("The Client sent: " + str(self.conInfo["secu"]["status"]) + ". Error")
-
-            self.Connected = False
-            self.con.close()
-            # reset
-            self.conAddress = None
-            self.con = None
-            self.conInfo = None
-
-
-            if self.reactLogINOUT:
-                self.react(None)
-
-        self.Running = False
-        self.Status = "Ended"
-
-    def send(self, data, encrypt=None, direct=False):
-        if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected" or direct:
-
-            if type(data) == str:
-                data_send = data.encode()
-            elif type(data) == int:
-                data_send = str(data).encode()
-            elif type(data) == bool:
-                data_send = str(data).encode()
-            else:
-                data_send = data
-
-            if len(data_send) > 1000: #LONG MSG!!!
-                self.send("#T!longMSGinc")
-
-                self.tmp_longMSG_sen = True
-                self.tmp_longMSGs_sen = []
-                for i in range(0, len(data) - 1, 1000):
-                    self.tmp_longMSGs_sen.append(data_send[i:i+1000])
-                    self.Logsend_long.append(data_send[i:i+1000])
-
-                for partData in self.tmp_longMSGs_sen:
-                    self.send(partData)
-
-                self.tmp_longMSG_sen = False
-                self.tmp_longMSGs_sen = []
-                time.sleep(1)
-                self.send("#T!longMSGend")
-
-            else:
-
-                if encrypt is None:
-                    if self.conInfo["secu"]["status"] == 1:
-                        data_send_de = simplecrypt.encrypt(self.conInfo["secu"]["key"], data_send)
-                    else:
-                        data_send_de = data_send
-                elif encrypt:
-                    data_send_de = simplecrypt.encrypt(self.conInfo["secu"]["key"], data_send)
-                else:
-                    data_send_de = data_send
-
-                # print(encrypt, self.conInfo["secu"]["status"])
-                # print(data, data_send, data_send_de)
-                if not self.tmp_longMSG_sen:
-                    self.Logsend.append(data)
-                    try:
-                        self.writeLog("Sent: " + data_send.decode("UTF-8"))
-                    except UnicodeDecodeError:
-                        self.writeLog("Sent something uncodeable!: " + str(data_send))
-                else:
-                    try:
-                        self.writeLog("Sent long Message: " + data_send.decode("UTF-8"))
-                    except UnicodeDecodeError:
-                        self.writeLog("Sent long Message (uncodeable): " + str(data_send))
-
-                self.con.send(data_send_de)
-
-    def receive(self, data):
-        if self.Running and self.Connected and self.Status != "Ended" and self.Status == "Connected":
-            noByte = True
-            try:
-                data_form = data.decode("UTF-8")
-            except UnicodeDecodeError:
-                data_form = str(data)
-                noByte = False
-            data_form_split = data_form.split("!")
-            self.writeLog("Receive: " + data_form)
-
-            if not self.tmp_longMSG_rec:
-                self.Logrece.append(data)
-
-                if data_form_split[0] == "#C" and len(data_form_split) > 1:
-                    if data_form_split[1] == "getTimeRaw":
-                        self.send("#R!" + str(self.getRunTime()))
-                    elif data_form_split[1] == "getTime":
-                        self.send("#R!" + str(self.getRunTime(False)))
-                    elif data_form_split[1] == "exit":
-                        self.exit()
-                elif data_form_split[0] == "#T" and len(data_form_split) > 1:
-                    if data_form_split[1] == "exit":
-                        self.exit(sendM=False)
-                        self.writeLog("Client disconnected")
-
-                    elif data_form_split[1] == "longMSGinc":
-                        self.writeLog("Long Message incoming!")
-                        self.tmp_longMSG_rec = True
-                        self.tmp_longMSGs_rec = []
-
-                elif data_form_split[0] == "#B" and len(data_form_split) > 1:
-                    pass
-                else:
-                    if noByte:
-                        self.react(data_form)
-                    else:
-                        self.react(data)
-            else: # LONG MESSAGE
-                if data_form_split[0] == "#T" and len(data_form_split) > 1:
-                    if data_form_split[1] == "longMSGend":
-                        self.writeLog("Long Message finished!")
-                        # LONG MSG WIRD AUS GEWERTET
-                        self.tmp_longMSG_rec = False
-
-                        if type(self.tmp_longMSGs_rec[0]) == str:
-                            msg = ""
-                        else:
-                            msg = b""
-
-                        for partOfMsg in self.tmp_longMSGs_rec:
-                            msg += partOfMsg
-                        self.writeLog("Long Message: " + msg)
-                        self.Logrece.append(msg)
-                        #self.tmp_longMSGs_rec = []
-                        self.react(msg)
-
-                else:
-                    if noByte:
-                        self.tmp_longMSGs_rec.append(data_form)
-                        self.Logrece_long.append(data_form)
-                        self.writeLog("Long Message Part " + str(len(self.tmp_longMSGs_rec)) + ": " + data_form)
-                    else:
-                        self.tmp_longMSGs_rec.append(data)
-                        self.Logrece_long.append(data)
-                        self.writeLog("Long Message (Byte) Part " + str(len(self.tmp_longMSGs_rec)) + ": " + data_form)
-
-
-    def writeLog(self, data):
-        write = "(" + datetime.datetime.now().strftime("%H:%M:%S:%f") + ") " + "(" + self.Status + ") " + data
-        self.Log.append(write)
-        if self.printLog:
-            print("[Log] " + write)
-
-    def save(self, directory: str):
-        file_log_raw = open("Log.txt", "w")
-        for x in self.Log:
-            file_log_raw.write(x + "\n")
-        file_log_raw.close()
-
-        file_logsend_raw = open("LogSend.txt", "w")
-        for x in self.Logsend:
-            if type(x) == str:
-                file_logsend_raw.write(x + "\n")
-            elif type(x) == bytes:
-                file_logsend_raw.write(x.decode("UTF-8") + "\n")
-            elif type(x) == bool:
-                file_logsend_raw.write(str(x) + "\n")
-        file_logsend_raw.close()
-
-        file_logrece_raw = open("LogReceive.txt", "w")
-        for x in self.Logrece:
-            if type(x) == str:
-                file_logrece_raw.write(x + "\n")
-            elif type(x) == bytes:
-                file_logrece_raw.write(x.decode("UTF-8") + "\n")
-            elif type(x) == bool:
-                file_logrece_raw.write(str(x) + "\n")
-        file_logrece_raw.close()
-
-    def exit(self, sendM=True):
-        if self.con:
-            if sendM:
-                self.send("#T!exit")
-            self.con.close()
-        self.Connected = False
-        self.Running = False
-        usedPorts.remPort(self.port)
-
-    def close_connection(self):
-        if self.con and self.Connected:
-            self.send("#T!exit")
-            self.con.close()
-            self.Connected = False
-            usedPorts.remPort(self.port)
-
-    def getStatus(self):
-        curStatus = {"status": {"status": self.Status, "running": self.Running, "connected": self.Connected},
-                     "log": self.Log, "info": self.Info, "connects": self.connects}
-        return curStatus
+        self.writeLog("Secustatus: " + str(self.secu["status"]))
+        if self.secu["status"] == 1:
+            self.writeLog("Secukey: " + self.secu["key"])
 
     def getRunTime(self, raw=True):
         if raw:
-            return self.Timer.getTime()
+            return self.timer.getTime()
         else:
-            return self.Timer.getTimeFor()
+            return self.timer.getTimeFor()
+
+    # SCRIPTS
+
+    def onStart(self):
+        pass
+
+    def onExit(self):  # begin of exit
+        pass
+
+    def onSend(self, data):  # MISS
+        pass
+
+    def onRecieve(self, data):  # MISS
+        pass
 
 class ServerJava(threading.Thread):
     def __init__(self, ip, port, react, allowPrint=False, giveJava=True, sendIP=True):
@@ -6334,21 +6411,19 @@ class ServerJava(threading.Thread):
     def bind(self):
         self.s.bind((self.host, self.port))
 
+
 def test(y):
     pass
 
-
-# noinspection PyTypeChecker
-logServer = Server(react=test, ip=thisIP, port=4222, printLog=False)
-logServer.start()
-
-def Log(functioni, info, typei = "Normal"):
-    part_time = "[" + datetime.datetime.now().strftime("%H:%M:%S") + "]"
-    if typei == "Normal":
+def LogServerless(functioni, info, typei = "Normal", printIt=False):
+    part_time = "[" + datetime.datetime.now().strftime("%H:%M:%S:%f") + "]"
+    if typei == "Debug" or typei == -1:
+        part_type = "[Debug]"
+    elif typei == "Normal" or typei == 0:
         part_type = "[Info]"
-    elif typei == "Warning":
+    elif typei == "Warning" or typei == 1:
         part_type = "[Warning]"
-    elif typei == "Error":
+    elif typei == "Error" or typei == 2:
         part_type = "[Error]"
     else:
         part_type = ""
@@ -6356,13 +6431,46 @@ def Log(functioni, info, typei = "Normal"):
 
     log_write = part_time + " " + part_type + " " + part_func + ": " + str(info) + "\n"
 
-    if logServer.Connected:
-        logServer.send(log_write)
+    if printIt:
+        print(log_write.rstrip())
 
     log_file = open("data"+path_seg+"Log"+"Log.txt", "a+")
     log_file.write(log_write)
     log_file.close()
 
+    return log_write
+
+# noinspection PyTypeChecker
+logServer = Server(stdReact=test, ip=thisIP, port=4222, printLog=False)
+logServer.start()
+
+# noinspection PyTypeChecker
+def Log(functioni, info, typei = "Normal", printIt=False):
+    part_time = "[" + datetime.datetime.now().strftime("%H:%M:%S:%f") + "]"
+    if typei == "Debug" or typei == -1:
+        part_type = "[Debug]"
+    elif typei == "Normal" or typei == 0:
+        part_type = "[Info]"
+    elif typei == "Warning" or typei == 1:
+        part_type = "[Warning]"
+    elif typei == "Error" or typei == 2:
+        part_type = "[Error]"
+    else:
+        part_type = ""
+    part_func = "[" + functioni + "]"
+
+    log_write = part_time + " " + part_type + " " + part_func + ": " + str(info) + "\n"
+
+    if logServer.running:
+        logServer.sendToAll(log_write)
+    if printIt:
+        print(log_write.rstrip())
+
+    log_file = open("data"+path_seg+"Log"+"Log.txt", "a+")
+    log_file.write(log_write)
+    log_file.close()
+
+    return log_write
 
 class BrowserOld:
     def __init__(self, path):
@@ -6489,7 +6597,7 @@ class MusicPlayerRemote:
             if globalMPports.ports:
                 port = globalMPports.ports[0]
 
-        self.cl = Client(ip=ip, port=port, react=self.react, showLog=showLog)
+        self.cl = Client(ip=ip, port=port, react=self.react, printLog=showLog)
 
         self.recieved = False
 
@@ -8328,7 +8436,7 @@ class KlakumC:
     def connect(self):
         if not self.Connected:
             self.connection.start()
-            while not self.connection.Connected:
+            while not self.connection.running:
                 time.sleep(0.05)
             time.sleep(0.15)
             self.Connected = True
