@@ -125,7 +125,7 @@ path_seg = "\\"
 firefox_path = "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
 vivaldi_path = "C:\\Program Files (x86)\\Vivaldi\\Application\\vivaldi.exe"
 
-if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
+if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer.000\\Desktop\\Evecon\\!Evecon\\dev":
     #urDir = os.getcwd()
     os.chdir("..")
     os.chdir("..")
