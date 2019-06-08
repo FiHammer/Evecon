@@ -5607,12 +5607,7 @@ class ConnectionHandler(threading.Thread):
     def run(self):
         self.status = 1
 
-        try:
-            infoClient_raw = self.con.recv(1024)
-        except ConnectionResetError:
-            self.writeLog("Client disconnected while logging in")
-            self.exit(sendErr=1)
-            return
+        infoClient_raw = self.recieve(0, direct=True)
 
         infoClient = infoClient_raw.decode("UTF-8").split("!")
 
@@ -5632,9 +5627,12 @@ class ConnectionHandler(threading.Thread):
                 infoClient[1] = False
 
             self.useAccount = infoClient[1]
-            self.accountName = infoClient[2]
-            self.accountPW = infoClient[3]
-            self.secuClient = {"level": int(infoClient[4])}
+            self.secu["key"] = infoClient[2] # auf zwei liegt jetz der encryption key
+            self.secuClient = {"level": int(infoClient[3])}
+
+            self.accountName = self.recieve(1, direct=True).decode("UTF-8").lstrip('#T!')
+            self.accountPW = self.recieve(1, direct=True).decode("UTF-8").lstrip('#T!')
+
 
             # compute the secu level
             cl = self.secuClient["level"]
@@ -5665,8 +5663,8 @@ class ConnectionHandler(threading.Thread):
                 return False
 
             self.secu["status"] = secuStatus
-            if secuStatus == 1:
-                self.secu["key"] = randompw(returnpw=True, printpw=False, exclude=["#", "!"])
+            #if secuStatus == 1:
+            #    self.secu["key"] = randompw(returnpw=True, printpw=False, exclude=["#", "!"])
 
         if self.useAccount:
             self.useAccount = False
@@ -5679,7 +5677,7 @@ class ConnectionHandler(threading.Thread):
                         self.react = self.server.stdReact
                     if aAccount[3]:
                         self.secu["status"] = 1
-                        self.secu["key"] = aAccount[3]
+                        self.secu["key"] += aAccount[3] # PLUS
                         self.accountKey = aAccount[3]
                         if self.secuClient["level"] == -2:  # if client says no, he will disconnect
                             self.secu["status"] = 0
@@ -5699,8 +5697,8 @@ class ConnectionHandler(threading.Thread):
             self.react = self.server.stdReact
 
         infoSend = str(self.secu["status"]).encode()
-        if not self.accountKey:
-            infoClient += b"!" + str(self.secu["key"]).encode()
+        #if not self.accountKey:
+        #    infoClient += b"!" + str(self.secu["key"]).encode()
 
         self.send(infoSend, encrypt=False, direct=True, special=0)
 
@@ -5717,14 +5715,15 @@ class ConnectionHandler(threading.Thread):
 
         self.server.onConnect(self.id)
         while self.running:  # MAIN RECIEVING LOOP
-            if not self.recieve():
+            if not self.recieveWorker(self.recieve()):
                 self.running = False
 
         self.exit(sendM=False)
 
-    def recieve(self, encrypt=999):
+    def recieve(self, encrypt=999, direct=False):
         if not self.running:
-            return False
+            if not direct:
+                return False
         if encrypt == 999:
             encrypt = self.secu["status"]
 
@@ -5749,10 +5748,12 @@ class ConnectionHandler(threading.Thread):
             self.writeLog("Client disconnected. If this happens the Client send something courious")
             return False
 
-        return self.recieveWorker(data)
+        return data
 
     def recieveWorker(self, data):
         if not self.running:
+            return False
+        if data is False:
             return False
 
         noByte = True
@@ -6027,20 +6028,22 @@ class Client(threading.Thread):
 
         self.writeLog("Connected with Server")
 
+        self.secu["key"] = randompw(returnpw=True, printpw=False, exclude=["#", "!"])
+
         infoSend = str(self.useAccount).encode() + b"!" + \
-                   str(self.accountName).encode() + b"!" + \
-                   str(self.accountPW).encode() + b"!" + \
+                   self.secu["key"].encode() + b"!" + \
                    str(self.secu["level"]).encode()
 
         self.send(infoSend, encrypt=False, direct=True, special=0)
 
-        try:
-            infoServer_raw = self.socket.recv(1024)
-        except ConnectionResetError:
-            self.writeLog("Server disconnected without warning")
-            raise EveconExceptions.ClientConnectionLost()
+        self.send(self.accountName, encrypt=True, direct=True, special=0)
+        self.send(self.accountPW, encrypt=True, direct=True, special=0)
 
-        infoServer = infoServer_raw.decode("UTF-8").split("!")
+        if self.useAccount:
+            self.secu["key"] += self.accountKey
+
+
+        infoServer = self.recieve(0, direct=True).decode("UTF-8").split("!")
 
         if not infoServer[0] == "#T":
             self.writeLog("Server send wrong Infoconnection")
@@ -6053,10 +6056,6 @@ class Client(threading.Thread):
                 self.writeLog("Cannot connect to server!")
                 return False
             elif infoServer[1] == "1" or infoServer[1] == "-1":
-                if len(infoServer) == 3:
-                    self.secu["key"] = infoServer[2]
-                else:
-                    self.secu["key"] = self.accountKey
                 self.secu["status"] = int(infoServer[1])
             else:
                 self.writeLog("Server send wrong Infoconnection")
@@ -6069,7 +6068,7 @@ class Client(threading.Thread):
         self.onStart()
 
         while self.running:  # MAIN RECIEVING LOOP
-            if not self.recieve():
+            if not self.recieveWorker(self.recieve()):
                 self.running = False
 
         self.exit(sendM=False)
@@ -6158,9 +6157,10 @@ class Client(threading.Thread):
 
                 self.socket.send(data_send_de)
 
-    def recieve(self, encrypt=999):
+    def recieve(self, encrypt=999, direct=False):
         if not self.running:
-            return False
+            if not direct:
+                return False
         if encrypt == 999:
             encrypt = self.secu["status"]
 
@@ -6185,10 +6185,12 @@ class Client(threading.Thread):
             self.writeLog("Server disconnected. If this happens the Server send something courious")
             return False
 
-        return self.recieveWorker(data)
+        return data
 
     def recieveWorker(self, data):
         if not self.running:
+            return False
+        if data is False:
             return False
 
         noByte = True

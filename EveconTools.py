@@ -893,6 +893,15 @@ def getPartStrToStr(word: str, endkey: str, beginkey="", exact=False):
 
 
 def randompw(returnpw=False, length=150, printpw=True, exclude=None):
+    """
+
+    :param returnpw:
+    :param length:
+    :param printpw:
+    :param exclude:
+    :return:
+    :rtype: str
+    """
     if exclude is None:
         exclude = []
     listx = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
