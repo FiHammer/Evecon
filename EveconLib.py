@@ -5608,6 +5608,8 @@ class ConnectionHandler(threading.Thread):
         self.status = 1
 
         infoClient_raw = self.recieve(0, direct=True)
+        if infoClient_raw is None:
+            return
 
         infoClient = infoClient_raw.decode("UTF-8").split("!")
 
@@ -6179,7 +6181,10 @@ class Client(threading.Thread):
             data = data.rstrip()
 
         if encrypt == 1:  # yes
-            data = simplecrypt.decrypt(self.secu["key"], data)
+            try:
+                data = simplecrypt.decrypt(self.secu["key"], data)
+            except simplecrypt.DecryptionException:
+                return False
 
         if not data:
             self.writeLog("Server disconnected. If this happens the Server send something courious")
