@@ -22,6 +22,7 @@ def exit_now(killmex = False):
     startmain = False
     #if version_PC != 1:
     #    exit()
+    logServer.exit()
 
     if killmex:
         time.sleep(0.5)
@@ -2218,5 +2219,5 @@ if exitnow == 0:
         debug_startup()
         main()
         time.sleep(0)
-
+        print("Exit")
         exit_now()

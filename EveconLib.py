@@ -5454,8 +5454,12 @@ class Server(threading.Thread):
         self.onStartListen()
 
         self.socket.listen(self.maxConnections)
+        try:
+            con, conAddress = self.socket.accept()
+        except OSError:
+            self.running = False
+            return
 
-        con, conAddress = self.socket.accept()
         self.writeLog("Found Client with IP: %s, Port: %s" % (conAddress[0], conAddress[1]))
         self.startConnectionHandler(con, conAddress)
 
