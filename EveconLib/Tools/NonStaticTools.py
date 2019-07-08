@@ -2,6 +2,7 @@ import EveconLib.Config
 import EveconLib.Tools.Tools
 import datetime
 import os
+import sys
 
 
 #import win32process
@@ -21,8 +22,7 @@ from getpass import getuser as getpass_getuser
 def exit_now(killmex = False):
     try:
         EveconLib.Config.title_time.deac()
-        pass
-    except NameError:
+    except AttributeError:
         pass
 
     EveconLib.Config.exitnow = 1 # make to bool
@@ -35,7 +35,9 @@ def exit_now(killmex = False):
         time.sleep(0.5)
         EveconLib.Tools.Tools.killme()
 
-    # sys.exit()
+    sys.exit()
+    #os.close(0)
+    os._exit(0)
 
 def killConsoleWin():
     EveconLib.Config.title_time.deac()

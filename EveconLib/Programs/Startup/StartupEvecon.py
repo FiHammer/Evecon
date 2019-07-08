@@ -12,3 +12,5 @@ def startup():
     # noinspection PyTypeChecker
     EveconLib.Config.logServer = EveconLib.Networking.Server(stdReact=EveconLib.Tools.doNothing, ip=EveconLib.Config.thisIP, port=EveconLib.Config.logServerPort, printLog=False)
     EveconLib.Config.logServer.start()
+
+    EveconLib.Programs.Klakum.startup()

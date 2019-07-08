@@ -1,6 +1,7 @@
 # All
 
-
+class NoEnviroment(Exception):
+    pass
 
 class MegaIsRunning(Exception):
     def __init__(self, background):

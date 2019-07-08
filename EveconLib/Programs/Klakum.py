@@ -45,6 +45,8 @@ def react(msg):
 
 
 def connect():
+    if not Started:
+        startup()
     global Connected
     if not Connected:
         connection.start()
@@ -60,6 +62,8 @@ def connect():
 
 
 def disconnect():
+    if not Started:
+        startup()
     global Connected
     if Connected:
         connection.exit()
@@ -71,16 +75,24 @@ def disconnect():
 
 
 def refresh():
+    if not Started:
+        startup()
     for x in relays:
         x.refresh()
         time.sleep(0.05)
 
+def startup():
+    global connection, relays, srelays
+    connection = EveconLib.Networking.Client(ip="192.168.2.107", port=1007, react=react)
+    relays = [RelayC(0, connection), RelayC(1, connection), RelayC(2, connection),
+              RelayC(3, connection), RelayC(4, connection), RelayC(5, connection),
+              RelayC(6, connection)]
 
-connection = EveconLib.Networking.Client(ip="192.168.2.107", port=1007, react=react)
-relays = [RelayC(0, connection), RelayC(1, connection), RelayC(2, connection),
-          RelayC(3, connection), RelayC(4, connection), RelayC(5, connection),
-          RelayC(6, connection)]
-
-srelays = [SRelayC(0, connection)]
+    srelays = [SRelayC(0, connection)]
 
 Connected = False
+Started = False
+
+relays = []
+srelays = []
+connection = None

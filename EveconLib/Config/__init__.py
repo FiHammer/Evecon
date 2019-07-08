@@ -12,12 +12,26 @@ file_versions = []
 file_version = code_version
 def refreshVersion():
     global file_versions
-    with open("data" + path_seg + "Info" + path_seg + "version", "r") as file_version_raw:
+    if not os.path.exists(versionFile):
+        file_versions = [0, "0.0.0.0", "0.0.0.0"]
+        file_version = "0.0.0.0"
+        return
+    with open(versionFile, "r") as file_version_raw:
         file_versions = file_version_raw.readlines()
     del file_version_raw
     file_versions.append(code_version)
 
     file_version = file_versions[1]
+
+validEnv = False
+def testEnv():
+    #print(os.path.exists(usedPortsFile), os.path.exists(backupMusicFile))
+    if os.path.exists(usedPortsFile) and os.path.exists(backupMusicFile):
+        validEnv = True
+        return True
+    else:
+        validEnv = False
+        return False
 
 
 def readConfig():
@@ -38,14 +52,16 @@ def readConfig():
         elif musicrandom_tmp == "False":
             musicrandom = False
 
-        browser = config["Notepad"]["browser"]
-        firefox_path = config["Browser"]["firefox_path"]
-        vivaldi_path = config["Browser"]["vivaldi_path"]
 
         thisIP = config["PC"]["thisIP"]
 
         cores = int(config["PC"]["cores"])
+
+        browser = config["Notepad"]["browser"]
+        firefox_path = config["Browser"]["firefox_path"]
+        vivaldi_path = config["Browser"]["vivaldi_path"]
     except KeyError:
+        input("Config Error something crashed!\nYou can go on (Enter), but something could happen")
         pass
 
 if os.path.exists("!Console.py") and os.path.exists("EveconLib"):
@@ -78,7 +94,7 @@ else:
 
 
 refreshVersion()
-
+testEnv()
 # read config
 
 readConfig()

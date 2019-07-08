@@ -121,6 +121,9 @@ def givePort(port=4000):
 def startup():
     global evecon, python, programs
 
+    if not os.path.exists(EveconLib.Config.usedPortsFile):
+        return
+
     for x in psutil.process_iter():
         if x.name() == "!Console.exe":
             evecon += 1

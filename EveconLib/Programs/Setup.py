@@ -1,8 +1,9 @@
 import os
-import sys
+#import sys
 import shutil
 import subprocess
 import json
+import time
 
 import EveconLib.Tools.NonStaticTools
 # static vars
@@ -11,55 +12,75 @@ import EveconLib.Config
 #import urllib
 import urllib.request
 
-def setup(): # TODO change EveconLib to dir
+ps = EveconLib.Config.path_seg
+
+def setup():
     # am I .exe or .py
+    EveconLib.Tools.cls()
     print("Evecon Setup:\nInitializing")
     print("Path: " + os.getcwd())
     if not EveconLib.Config.myType: # string is empty
         print("ERROR: Evecon FILE NOT FOUND")
-        print("Change the file name to !Console.exe or .py (with EveconLib & Tools & Exception & MiniDebug)")
+        print("Change the file name to !Console.exe or .py (with the package EveconLib)")
         EveconLib.Tools.NonStaticTools.exit_now()
         return
+
+    if os.path.exists("!Evecon" + ps + "dev" + ps + "selfbuild"):
+        os.chdir("!Evecon" + ps + "dev")
+        print("Oh! We found a path: " + os.getcwd())
+    elif os.path.exists("!Evecon" + ps + "!Console" + ps + "selfbuild"):
+        os.chdir("!Evecon" + ps + "!Console")
+        print("Oh! We found a path: " + os.getcwd())
+    elif os.path.exists("!Evecon" + ps + "Exe" + ps + "selfbuild"):
+        os.chdir("!Evecon" + ps + "Exe")
+        print("Oh! We found a path: " + os.getcwd())
 
     existFile = open("selfstart", "w")
     existFile.write("Hello File!")
     existFile.close()
 
-    curDir = os.getcwd()
-    last = curDir.split(EveconLib.Config.path_seg)[-1]
-    selfBuild = os.path.exists("selfbuild")
-
-    if len(sys.argv) > 2:
-        if os.path.exists(sys.argv[2]):
-            os.chdir(sys.argv[2])
-
     selfStart = os.path.exists("selfstart")
 
-    os.chdir(curDir)
+    curDir = os.getcwd()
+    last = curDir.split(EveconLib.Config.path_seg)[-1]
 
-    print("Started as " + EveconLib.Config.myType)
+    selfBuild = os.path.exists("selfbuild")
 
-    if last == "dev" and EveconLib.Config.myType == "python" and selfBuild and selfStart:
+    #if len(sys.argv) > 2:
+    #    if os.path.exists(sys.argv[2]):
+    #        os.chdir(sys.argv[2])
+
+
+    #os.chdir(curDir)
+
+
+    #print()
+    print("Started as " + EveconLib.Config.myType + "\n\n")
+    time.sleep(2)
+
+    if last == "dev" and EveconLib.Config.myType == "python_file" and selfBuild and selfStart:
         stepOne = True
     elif last == "!Console" and EveconLib.Config.myType == "lib_exe" and selfBuild and selfStart:
         stepOne = True
     elif last == "Exe" and EveconLib.Config.myType == "standalone_exe" and selfBuild and selfStart:
         stepOne = True
     else:
-        print("Start copying")
+        print("Step 1: Start copying")
         try:
             shutil.rmtree("!Evecon")
         except FileNotFoundError:
             pass
-        if EveconLib.Config.myType == "python":
+        if EveconLib.Config.myType == "python_file":
             os.mkdir("!Evecon")
             dst = "!Evecon" + EveconLib.Config.path_seg + "dev"
             os.mkdir(dst)
             shutil.copy("!Console.py", dst)
-            shutil.copy("EveconLib.py", dst)
-            shutil.copy("EveconTools.py", dst)
-            shutil.copy("EveconExceptions.py", dst)
-            shutil.copy("EveconMiniDebug.py", dst)
+            shutil.copytree("EveconLib", dst + "\\EveconLib")
+
+            #shutil.copy("EveconLib.py", dst)
+            #shutil.copy("EveconTools.py", dst)
+            #shutil.copy("EveconExceptions.py", dst)
+            #shutil.copy("EveconMiniDebug.py", dst)
 
             if os.path.exists("EveconLogListener.py"):
                 shutil.copy("EveconLogListener.py", dst)
@@ -67,6 +88,18 @@ def setup(): # TODO change EveconLib to dir
                 shutil.copy("ss_time.py", dst)
             if os.path.exists("updater.py"):
                 shutil.copy("updater.py", dst)
+            #  probably from the installer zip
+            if os.path.exists("!Console"):
+                shutil.copytree("!Console", "!Evecon" + ps + "!Console")
+                shutil.rmtree("!Console")
+
+            #  probably from something ?
+            os.mkdir("!Evecon" + ps + "Exe")
+            for file in os.getcwd():
+                if EveconLib.Tools.lsame(file, "!Console") and EveconLib.Tools.rsame(file, ".exe"):
+                    shutil.copy(file, "!Evecon" + ps + "Exe")
+                    os.remove(file)
+
 
             existFile = open(dst + EveconLib.Config.path_seg + "selfbuild", "w")
             existFile.write("Hello File!")
@@ -84,6 +117,30 @@ def setup(): # TODO change EveconLib to dir
             os.mkdir(dst)
             shutil.copy("!Console.exe", dst)
 
+            # other python files
+            os.mkdir("!Evecon" + ps + "dev")
+
+            if os.path.exists("!Console.py"):
+                shutil.copy("!Console.py", dst)
+            if os.path.exists("EveconLib"):
+                shutil.copytree("EveconLib", dst + "\\EveconLib")
+            if os.path.exists("EveconLogListener.py"):
+                shutil.copy("EveconLogListener.py", dst)
+            if os.path.exists("ss_time.py"):
+                shutil.copy("ss_time.py", dst)
+            if os.path.exists("updater.py"):
+                shutil.copy("updater.py", dst)
+
+            # lib exe          probably from the installer zip
+            if os.path.exists("!Console"):
+                shutil.copytree("!Console", "!Evecon" + ps + "!Console")
+                shutil.rmtree("!Console")
+
+            for file in os.getcwd(): # other exe files
+                if EveconLib.Tools.lsame(file, "!Console") and EveconLib.Tools.rsame(file, ".exe"):
+                    shutil.copy(file, dst)
+                    os.remove(file)
+
             existFile = open(dst + EveconLib.Config.path_seg + "selfbuild", "w")
             existFile.write("Hello File!")
             existFile.close()
@@ -95,11 +152,34 @@ def setup(): # TODO change EveconLib to dir
         elif EveconLib.Config.myType == "lib_exe":
             # os.mkdir("!Evecon" + path_seg + "!Console")
             os.chdir("..")
-            os.mkdir("EveconEnv")
-            os.mkdir("EveconEnv" + EveconLib.Config.path_seg + "!Evecon")
-            dst = "EveconEnv" + EveconLib.Config.path_seg + "!Evecon"
+
+            os.mkdir("!Evecon")
+            dst = "!Evecon"
             shutil.copytree(last, dst)
-            os.rename(dst + EveconLib.Config.path_seg + last, dst + EveconLib.Config.path_seg + "!Console")
+            #shutil.rmtree(last) can not delete because it is open!
+            os.rename(dst + ps + last, dst + ps + "!Console")
+
+            # other python files
+            os.mkdir("!Evecon" + ps + "dev")
+
+            if os.path.exists("!Console.py"):
+                shutil.copy("!Console.py", dst)
+            if os.path.exists("EveconLib"):
+                shutil.copytree("EveconLib", dst + "\\EveconLib")
+            if os.path.exists("EveconLogListener.py"):
+                shutil.copy("EveconLogListener.py", dst)
+            if os.path.exists("ss_time.py"):
+                shutil.copy("ss_time.py", dst)
+            if os.path.exists("updater.py"):
+                shutil.copy("updater.py", dst)
+
+            #  probably from something ?
+            os.mkdir("!Evecon" + ps + "Exe")
+            for file in os.getcwd():
+                if EveconLib.Tools.lsame(file, "!Console") and EveconLib.Tools.rsame(file, ".exe"):
+                    shutil.copy(file, "!Evecon" + ps + "Exe")
+                    os.remove(file)
+
 
             existFile = open(dst + EveconLib.Config.path_seg + "!Console" + EveconLib.Config.path_seg + "selfbuild", "w")
             existFile.write("Hello File!")
@@ -109,23 +189,23 @@ def setup(): # TODO change EveconLib to dir
             subprocess.Popen(
                 [os.getcwd() + EveconLib.Config.path_seg + dst + EveconLib.Config.path_seg + "!Console" + EveconLib.Config.path_seg + "!Console.exe", "--setup", curDir],
                 creationflags=subprocess.CREATE_NEW_CONSOLE, cwd=dst + EveconLib.Config.path_seg + "!Console")
-
+        else:
+            print("Somesthing happended:\nmyType not valid?:\t" + EveconLib.Config.myType)
+        print("Exit")
         EveconLib.Tools.NonStaticTools.exit_now()
         #sys.exit()
 
     print("Started in the right dir!")
-    print("Deleting old files (no Console-Lib)")
+    print("Step 2: Deleting old files (no Console-Lib)")
 
     os.remove("selfbuild")
 
     os.chdir("..")
     os.chdir("..")
 
-    if EveconLib.Config.myType == "python":
+    if EveconLib.Config.myType == "python_file":
         os.remove("!Console.py")
-        os.remove("EveconLib.py")
-        os.remove("EveconTools.py")
-        os.remove("EveconExceptions.py")
+        shutil.rmtree("EveconLib")
 
         if os.path.exists("EveconLogListener.py"):
             os.remove("EveconLogListener.py")
@@ -142,9 +222,14 @@ def setup(): # TODO change EveconLib to dir
         os.remove("!Console.exe")
 
         os.remove("selfstart")
-    else:
+    elif EveconLib.Config.myType == "lib_exe":
+        if os.path.exists("!Console"):
+            shutil.rmtree("!Console")
+        else:
+            print("Could not delete old directory! Do it manually!")
         os.remove("selfstart")
-
+    else:
+        input("AAHHHHHHHHHHHHHHH SOmething happened wrong mytype: " + EveconLib.Config.myType)
     print("Finished Deleting\nGeneration !Evecon/Music/Program Dirs")
 
     if not os.path.exists("!Evecon" + EveconLib.Config.path_seg + "!Console"):
@@ -178,24 +263,16 @@ def setup(): # TODO change EveconLib to dir
 
     with open("Music.json", "w") as jsonfile:
         json.dump(
-            {'version': '1.0', 'pc': 'global', 'musicDir': 'Music\\Presets', 'directories': {}, 'multiplaylists': {}},
+            {'version': '1.1', 'pc': 'global', 'musicDir': 'Music\\Presets', 'directories': {}, 'multiplaylists': {}},
             jsonfile, indent=4, sort_keys=True)
 
     os.mkdir("!Evecon")
     os.mkdir("!Evecon" + EveconLib.Config.path_seg + "!Console")
     os.mkdir("!Evecon" + EveconLib.Config.path_seg + "dev")
+    os.mkdir("!Evecon" + EveconLib.Config.path_seg + "dev" + EveconLib.Config.path_seg + "EveconLib")
     os.chdir("!Evecon" + EveconLib.Config.path_seg + "dev")
 
     file = open("!Console.py", "w")
-    file.write("a.py-file")
-    file.close()
-    file = open("EveconExceptions.py", "w")
-    file.write("a.py-file")
-    file.close()
-    file = open("EveconLib.py", "w")
-    file.write("a.py-file")
-    file.close()
-    file = open("EveconMiniDebug.py", "w")
     file.write("a.py-file")
     file.close()
     file = open("ss_time.py", "w")
@@ -225,7 +302,8 @@ def setup(): # TODO change EveconLib to dir
 
     file = open("config.ini", "w")
     file.write(
-        "[Notepad]\nbrowser = firefox\n[ScreenSaver]\nstarttimer = 180\n[FoxNhe]\nenable_FoxNhe = True\nfoxORnhe = nhee\n[Music]\nrandom = True\n[PC]\nthisIP = 127.0.0.1\ncores = 2")
+        "[Notepad]\nbrowser = firefox\n[Browser]\nfirefox_path = C:\\Program Files\\Mozilla Firefox\\firefox.exe\nvivaldi_path = C:\\Program Files (x86)\\Vivaldi\\Application\\vivaldi.exe" +
+        "[ScreenSaver]\nstarttimer = 180\n[FoxNhe]\nenable_FoxNhe = False\nfoxORnhe = nhee\n[Music]\nrandom = True\n[PC]\nthisIP = 127.0.0.1\ncores = 2")
     file.close()
 
     with open("Music.json", "w") as jsonfile:
@@ -299,7 +377,7 @@ def setup(): # TODO change EveconLib to dir
     file.write("PC-Version")
     file.close()
     file = open("updater_megalogin", "w")
-    file.write("sorry")
+    file.write("sorry no MegaLogin, Insert your E-Mail\nInsert your Password")
     file.close()
     file = open("version", "w")
     file.write("0\n0.0.0.0")
@@ -331,4 +409,34 @@ def setup(): # TODO change EveconLib to dir
 
     os.remove("!Evecon" + EveconLib.Config.path_seg + "dev" + EveconLib.Config.path_seg + "selfstart")
 
-    print("END")
+    # probably files from installer zip
+
+    if os.path.exists("Changelog.txt"):
+        os.remove(EveconLib.Config.changelogFile)
+        shutil.copy("Changelog.txt", EveconLib.Config.infoPath)
+        os.remove("Changelog.txt")
+    if os.path.exists("version"):
+        os.remove(EveconLib.Config.versionFile)
+        shutil.copy("version", EveconLib.Config.infoPath)
+        os.remove("version")
+
+    # files form config
+
+    with open(EveconLib.Config.usedPortsFile, "w") as file:
+        file.write("0")
+
+    # insert more
+
+    print("\n\nEND of installation")
+    print("Close this Program now and start it again")
+    if EveconLib.Config.myType == "python_file":
+        print("New Path: '!Evecon" + ps + "dev" + ps + "!Console.py'")
+    elif EveconLib.Config.myType == "standalone_exe":
+        print("New Path: '!Evecon" + ps + "Exe" + ps + "%s'" % os.listdir("!Evecon" + ps + "Exe")[0]) # is dangerous
+    elif EveconLib.Config.myType == "lib_exe":
+        print("New Path: '!Evecon" + ps + "!Console" + ps + "!Console.exe'")
+        print("You can now delete your old Evecon dir! (It will not start)")
+    print("Working dir: " + os.getcwd())
+
+    input()
+    EveconLib.Tools.exit_now()

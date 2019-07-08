@@ -14,6 +14,9 @@ class GlobalMPports:
         python = 0
         evecon = 0
 
+        if not os.path.exists(file):
+            return
+
         for x in psutil.process_iter():
             if x.name() == "!Console.exe":
                 evecon += 1

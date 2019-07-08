@@ -23,7 +23,7 @@ class MegacmdC:
             subprocess.call([self.path] + list(command))
     def __del__(self):
         self.logout()
-        self.stopServer()
+        #self.stopServer()
     def _running(self):
         if "MEGAcmdServer.exe" in (p.name() for p in psutil.process_iter()):
             return True

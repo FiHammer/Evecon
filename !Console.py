@@ -16,7 +16,21 @@ thisIP = None
 StartupServerJava = None
 
 
+if len(sys.argv) > 2:
+    if sys.argv[1] == "--setup":
+        EveconLib.Programs.Setup.setup()
 
+if not EveconLib.Config.testEnv():
+    EveconLib.Tools.cls()
+    print("Error:\n")
+    print("The programm can not start, because no enviroment is generated!")
+    print("Start the Setup? (Y/N)")
+
+    ans = input("\n")
+    if ans.lower() == "y":
+        EveconLib.Programs.Setup.setup()
+    else:
+        raise EveconLib.EveconExceptions.NoEnviroment
 
 EveconLib.Programs.Startup.StartupEvecon.startup()
 EveconLib.Config.loadFull = True
@@ -1840,6 +1854,8 @@ def main():
         EveconLib.Tools.Status()
     elif user_input.lower() == "timer":
         Timer()
+    elif user_input.lower() == "setup":
+        EveconLib.Programs.Setup.setup() # do not try it because the programm can not reach this code without a setup -_-
 
 
 def Arg():

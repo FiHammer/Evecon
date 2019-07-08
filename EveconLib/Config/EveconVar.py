@@ -16,6 +16,10 @@ logServerPort = 4222
 
 path_seg = "\\"
 
+infoPath = "data" + path_seg + "Info"
+versionFile = infoPath + path_seg + "version"
+changelogFile = infoPath + path_seg + "Changelog.txt"
+
 notiePath = "data" + path_seg + "Noties"
 outputPath = "data" + path_seg + "Output"
 
