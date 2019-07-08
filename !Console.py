@@ -1,41 +1,49 @@
+import os
+import threading
+import subprocess
+import sys
+import datetime
+import random
+import time
+
+import EveconLib
+import EveconLib.Tools as Tools
+
 startmain = False
 exitnow = 0
 pausetime = 180
 thisIP = None
 StartupServerJava = None
 
-from EveconLib import *
-"""
-if __name__ == "__main__":
-    cdir = os.getcwd()
-    os.chdir("..")
-    os.chdir("..")
-"""
+
+
+
+EveconLib.Programs.Startup.StartupEvecon.startup()
+EveconLib.Config.loadFull = True
+
+# converting vars from EveconLib to Console
+
+title = EveconLib.Tools.title
+ttime = EveconLib.Config.title_time
+exit_now = EveconLib.Tools.exit_now
+balloon_tip = EveconLib.Tools.Windows.BalloonTip
+path_seg = EveconLib.Config.path_seg
+cls = EveconLib.Tools.cls
+TimerC = EveconLib.Tools.Timer
+
+foxi = EveconLib.Programs.Flapi.Foxi
+nhee = EveconLib.Programs.Flapi.Nhee
+color = EveconLib.Tools.Color
+
 ttime.start()
-
 title("Load first Programs")
-def exit_now(killmex = False):
-    ttime.deac()
-    # noinspection PyGlobalUndefined
-    global exitnow, startmain
-    exitnow = 1
-    startmain = False
-    #if version_PC != 1:
-    #    exit()
-    logServer.exit()
-
-    if killmex:
-        time.sleep(0.5)
-        killme()
-
-    sys.exit()
 
 
 def InteractiveClient(host, port):
     def x(data):
         print("[Server] " + data)
 
-    cl = Client(ip=host, port=port, react=x)
+    cl = EveconLib.Networking.Client(ip=host, port=port, react=x)
     cl.start()
 
     time.sleep(1)
@@ -57,25 +65,25 @@ def StartupServerTasks(data):
     if data == "shutdown":
         print("Evecon Server", "Shutdown")
         balloon_tip("Evecon Server", "Shutdown")
-        Tools.Shutdown()
+        Tools.PCTools.Shutdown()
     elif data == "sleep":
         print("Evecon Server", "sleep")
         balloon_tip("Evecon Server", "sleep")
-        Tools.Sleep()
+        Tools.PCTools.Sleep()
     elif data == "ep_energysave":
         print("Evecon Server", "ep_energysave")
         balloon_tip("Evecon Server", "ep_energysave")
         StartupServer.sendToAll("Changed Energyplan to Energysaveplan")
-        Tools.EnergyPlan.Change(1)
+        Tools.PCTools.EnergyPlan.Change(1)
     elif data == "reboot":
         print("Evecon Server", "reboot")
         balloon_tip("Evecon Server", "reboot")
-        Tools.Reboot()
+        Tools.PCTools.Reboot()
     elif data == "mp_setup":
         print("Evecon Server", "mp_setup")
         balloon_tip("Evecon Server", "mp_setup")
         StartupServer.sendToAll("MusicPlayer is ready")
-        SST_mp = MusicPlayerC()
+        SST_mp = EveconLib.Programs.Player.MusicPlayer()
         SST_mp_Ac = True
     elif data[0] == "m" and data[1] == "p" and data[2] == "_" and data[3] == "a" and data[4] == "d" and data[5] == "d" and SST_mp_Ac:
         print("Evecon Server", "mp_add " + data.lstrip("mp_").lstrip("add").lstrip("_"))
@@ -123,172 +131,13 @@ def StartupServerTasksJava(dataraw):
 
     if data[0] == "get":
         if data[1] == "mpPort":
-            globalMPportsJava.readFile()
-            if globalMPportsJava.ports[0]:
-                StartupServerJava.send(globalMPportsJava.ports[0])
-
-class FoxiC:
-    def __init__(self, browser_type=browser):
-        if browser_type == "firefox":
-            self.browser = Firefox()
-        elif browser_type == "vivaldi":
-            self.browser = Vivaldi()
-        else:
-            self.browser = Firefox()
-
-        self.pageurl = ""
-        self.working_dir = "data"+path_seg+"Data"+path_seg+"Foxi"+path_seg
-
-        if enable_FoxNhe:
-            with open(self.working_dir+"website.txt") as file:
-                self.pageurl = file.readline().rstrip()
-
-            with open(self.working_dir+"data.json") as jsonfile:
-                self.data = json.load(jsonfile)
-
-    def readJson(self):
-        with open(self.working_dir+"website.txt") as file:
-            self.pageurl = file.readline().rstrip()
-        with open(self.working_dir+"data.json") as jsonfile:
-            self.data = json.load(jsonfile)
-
-    def writeJson(self):
-        with open(self.working_dir+"data.json", "w") as jsonfile:
-            json.dump(self.data, jsonfile, indent=4, sort_keys=True)
-
-    def open_fox(self):
-        if not enable_FoxNhe:
-            self.readJson()
-        self.browser.refresh()
-        self.browser.open_win(self.data["Last"]["last_name_url"])
-        if self.browser.running:
-            time.sleep(4)
-        else:
-            time.sleep(8)
-        self.browser.open_tab(self.data["Last"]["last_page_url"])
-
-    def open_foxname(self):
-        if not enable_FoxNhe:
-            self.readJson()
-        self.browser.open_win(self.data["Last"]["last_name_url"])
-
-    def open_foxpage(self):
-        if not enable_FoxNhe:
-            self.readJson()
-        self.browser.open_win(self.data["Last"]["last_page_url"])
-
-    def fap(self, opentype="fox"):
-        if not enable_FoxNhe:
-            self.readJson()
-        cls()
-        print("Loading ...")
-        self.readJson()
-        if opentype == "fox":
-            self.open_fox()
-        elif opentype == "foxname":
-            self.open_foxname()
-        elif opentype == "foxpage":
-            self.open_foxpage()
-        else:
-            return False
-
-        thistime_read = 0
-        thistime_time = datetime.datetime.now().strftime("%H:%S:%M")
-        thistime_date = datetime.datetime.now().strftime("%d.%m.%Y")
-
-        idstart = int(self.data["Last"]["last_name_url"].split("/")[-2])
-
-        cls()
-        print("Do not forget to add 'www.googletagmanager.com' in Pi-Hole or disable it!")
-        print("Which is your startpage? (Begin: %s, Search for: %s)" % (self.data["Last"]["last_page"], idstart))
-        pagestart = int(input())
-
-        thistime_timeC = TimerC()
-        thistime_timeC.start()
-
-        fapping = True
-        while fapping:
-            cls()
-            print("Foxi:\n")
-            print("You read: %s" % thistime_read)
-            print("You are fapping: %s\n" % thistime_timeC.getTimeFor())
-
-            print("Everything for Next, Finish (FIN)")
-
-            user_input = input()
-
-            thistime_read += 1
-
-            if user_input.lower() == "fin":
-                break
-
-        thistime_timeC.stop()
-
-        cls()
-        print("End Hanga: (Name)")
-        hangaend_name = input()
-
-        print("End Hanga: (URL)")
-        hangaend_url = input()
-
-        print("End Page: ")
-        pageend = int(input())
-
-        pageend_url = self.pageurl + str(pageend)+ "/"
-        pageprogress = pagestart - pageend
-
-
-        idend = int(hangaend_url.split("/")[-2])
-        idprogress = idend - idstart
-        skipped = idprogress - thistime_read
-        startname = self.data["Last"]["last_name"]
-        starturl = self.data["Last"]["last_name_url"]
-
-        self.data["Stats"] = {"fapped": self.data["Stats"]["fapped"] + 1,
-                              "all_pages": self.data["Stats"]["all_pages"] + pageprogress,
-                              "all_hangas": self.data["Stats"]["all_hangas"] + thistime_read}
-
-        self.data["Last"] = {"last_page": pageend, "last_page_url": pageend_url,
-                             "last_name": hangaend_name, "last_name_url": hangaend_url}
-
-        self.data[str(self.data["Stats"]["fapped"])] = {"number": self.data["Stats"]["fapped"],
-                                                   "date": thistime_date,
-                                                   "starttime": thistime_time,
-                                                   "time": thistime_timeC.getTimeFor(),
-                                                   "foxi": {"read": thistime_read,
-                                                            "skipped": skipped,
-                                                            "pagestart": pagestart,
-                                                            "pageend": pageend,
-                                                            "pageprogress": pageprogress,
-                                                            "idstart": idstart,
-                                                            "idend": idend,
-                                                            "idprogress": idprogress,
-                                                            "start_Hanga": {
-                                                                "page": pagestart,
-                                                                "name": startname,
-                                                                "id": idstart,
-                                                                "url": starturl
-                                                            },
-                                                            "end_Hanga": {
-                                                                "page": pageend,
-                                                                "name": hangaend_name,
-                                                                "id": idend,
-                                                                "url": hangaend_url
-                                                            }
-                                                            }}
-
-        self.writeJson()
-        print("Finished")
-        time.sleep(0.85)
-
-
-Foxi = FoxiC()
+            EveconLib.Config.globalMPportsJava.readFile()
+            if EveconLib.Config.globalMPportsJava.ports[0]:
+                StartupServerJava.send(EveconLib.Config.globalMPportsJava.ports[0])
 
 
 
 title("Loading Arguments")
-
-
 
 
 
@@ -297,8 +146,6 @@ def debug():
     print("DEBUGGING")
     while True:
         exec(input())
-
-
 
 def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
 
@@ -315,9 +162,10 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
                     time.sleep(0.5)
                 while muPlayer.musicrun and muPlayer.allowPrint:
                     time.sleep(self.refreshTime)
-                    if muPlayer.last_print_auto + self.refreshTime > time.time():
+                    if muPlayer.last_print + self.refreshTime > time.time():
                         continue
                     muPlayer.printit()
+                    muPlayer.last_print_auto = time.time()
                     muPlayer.refreshTitle()
                     while muPlayer.paused or not muPlayer.autorefresh:
                         time.sleep(1)
@@ -337,7 +185,7 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
         #    muPlayer.input(user_input)
 
 
-    muPlayer = MusicPlayerC(systray=systrayon, balloonTip=balloonTip, random=musicrandom, killMeAfterEnd=killMeAfterEnd)
+    muPlayer = EveconLib.Programs.Player.MusicPlayer(systray=systrayon, balloonTip=balloonTip, random=EveconLib.Config.musicrandom, killMeAfterEnd=killMeAfterEnd)
     muPlayer.read_musiclist()
 
     if not load:
@@ -365,22 +213,6 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
     else:
         music_user_input = ""
         muPlayer.addMusic(load)
-
-    """
-    if music_user_input.lower() == "mix":
-        muPlayer.addMusic("an")
-        muPlayer.addMusic("phu")
-        muPlayer.addMusic("cp")
-        muPlayer.addMusic("es")
-        muPlayer.addMusic("jpop")
-        muPlayer.addMusic("mixx")
-        muPlayer.addMusic("und")
-        muPlayer.addMusic("del")
-
-    elif music_user_input.lower() == "j":
-        muPlayer.addMusic("an")
-        muPlayer.addMusic("jpop")
-    """
 
     if music_user_input.lower() == "all":
         for x in muPlayer.musiclist["keys"]:
@@ -416,7 +248,7 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
 
             if musicman_user_input.lower() == "fin":
                 musicman_search = False
-            elif not Search(musicman_user_input, muPlayer.musiclist["keys"], exact=True):
+            elif not EveconLib.Tools.Search(musicman_user_input, muPlayer.musiclist["keys"], exact=True):
                 continue
 
             else:
@@ -469,15 +301,15 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
         for x in range(1, muPlayer.music["all_dirs"] + 1):
             all_dir.append(muPlayer.music["dir" + str(x)]["file"])
 
-        found_music = Search(user_input_search, all_music)
-        found_dir = Search(user_input_search, all_dir)
+        found_music = Tools.Search(user_input_search, all_music)
+        found_dir = Tools.Search(user_input_search, all_dir)
 
         for x in found_music:
             muPlayer.playlist.append("file" + str(x + 1))
 
         def funcx(dirID):
             for x in muPlayer.music["dir" + str(dirID)]["content"]:
-                if lsame(x, "dir"):
+                if EveconLib.Tools.lsame(x, "dir"):
                     funcx(int(x.lstrip("dir"))) # weitergabe: XX
                 else:
                     doit = True
@@ -517,13 +349,13 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
     else:
         print("No track found")
 
-    normaltitle()
+    EveconLib.Tools.normaltitle()
 
 
 
 
 def Radio(systrayon=True):
-    radioPlayer = RadioC(systrayon)
+    radioPlayer = EveconLib.Programs.Radio(systrayon)
     cls()
 
     print("Radios:\n")
@@ -568,8 +400,8 @@ def screensaver(preset = None):
 
         title("Screensaver", "")
 
-        oldEP = Tools.EnergyPlan.getEP()
-        Tools.EnergyPlan.Change(1)
+        oldEP = Tools.PCTools.EnergyPlan.getEP()
+        Tools.PCTools.EnergyPlan.Change(1)
 
         ttime.ss_switch()
 
@@ -578,30 +410,8 @@ def screensaver(preset = None):
         ss_active = True
         backcolor = "dark"
 
-        # class Timecount(threading.Thread):
-        #    def run(self):
-        #        global ss_pause##
-
-        #        ss_start = time.time()
-        #        while sleeps:
-        #            time.sleep(0.1)
-
-        #        ss_pause = time.time() - ss_start
-
-        # Machen wenn pause time counter
-        #backtime = Timecount()
-
-        # ss_start = time.time()
-
-        #dir_tmp = os.getcwd()
-        #os.chdir("Programs\\Evecon\\Screensaver_time")
-        #os.system("start ss_time.exe")
-        #subprocess.call("ss_time.exe") # time printer
-        #os.chdir(dir_tmp)
-        #time.sleep(1)
-
-        nircmd("foreground")
-        nircmd("setsize")
+        EveconLib.Tools.Windows.NirCMD.foreground()
+        EveconLib.Tools.Windows.NirCMD.setsize()
 
         def screensavertime():
 
@@ -664,7 +474,7 @@ def screensaver(preset = None):
 
         # schreibe in die Datei ...
         #ss_pause = time.time() - ss_start
-        Tools.EnergyPlan.Change(oldEP)
+        Tools.PCTools.EnergyPlan.Change(oldEP)
         exit_now(killmem)
 
     if preset is None:
@@ -680,7 +490,7 @@ def Timeprint():
 
     if user_input.lower() == "r":
 
-        nircmd("maxi")
+        EveconLib.Tools.Windows.NirCMD.maxi()
 
         space = "\t" * 24
 
@@ -1833,7 +1643,7 @@ def Alarm():
 #MusicPlayerTest = MusicPlayerC()
 
 def Splatoon():
-    spl = SplatoonC()
+    spl = EveconLib.Programs.SplWeapRand()
 
     class Printerr(threading.Thread):
         def __init__(self):
@@ -1893,8 +1703,8 @@ def Timer():
 def startStartupServer(serverport: int, ballonTIP=True):
     global StartupServer
     global StartupServerJava
-    StartupServer = Server(ip=thisIP, port=serverport, stdReact=StartupServerTasks)
-    StartupServerJava = ServerJava(ip=thisIP, port=serverport + 2, react=StartupServerTasksJava, allowPrint=True, sendIP=False, giveJava=False)
+    StartupServer = EveconLib.Networking.Server(ip=EveconLib.Config.thisIP, port=serverport, stdReact=StartupServerTasks)
+    StartupServerJava = EveconLib.Networking.ServerJava(ip=thisIP, port=serverport + 2, react=StartupServerTasksJava, allowPrint=True, sendIP=False, giveJava=False)
     print("JAVA-SERVER port: " + str(StartupServerJava.port))
     print("Server initialized!\nNow Running Systray")
 
@@ -1902,36 +1712,36 @@ def startStartupServer(serverport: int, ballonTIP=True):
         StartupServer.exit()
         StartupServerJava.stop()
     def switchEP(x):
-        Tools.EnergyPlan.Switch()
-        msg = "Änderte EP zu: " + Tools.EnergyPlan.cEP
+        Tools.PCTools.EnergyPlan.Switch()
+        msg = "Änderte EP zu: " + Tools.PCTools.EnergyPlan.cEP
         print(msg)
         if ballonTIP:
-            Tools.EnergyPlan.getEP(False)
+            Tools.PCTools.EnergyPlan.getEP(False)
             balloon_tip("Evecon: StartupServer", msg)
     def setEP_energysaver(x):
-        Tools.EnergyPlan.Change(1)
+        Tools.PCTools.EnergyPlan.Change(1)
         msg = "Änderte EP zu: Stromsparen"
         print(msg)
         if ballonTIP:
-            Tools.EnergyPlan.getEP(False)
+            Tools.PCTools.EnergyPlan.getEP(False)
             balloon_tip("Evecon: StartupServer", msg)
     def setEP_fastmode(x):
-        Tools.EnergyPlan.Change(0)
+        Tools.PCTools.EnergyPlan.Change(0)
         msg = "Änderte EP zu: Ausbalanciert"
         print(msg)
         if ballonTIP:
-            Tools.EnergyPlan.getEP(False)
+            Tools.PCTools.EnergyPlan.getEP(False)
             balloon_tip("Evecon: StartupServer", msg)
     def switchSS(x):
         print("HI")
-        Tools.ScreenSaverSettings.switchStatus()
-        if Tools.ScreenSaverSettings.status:
+        Tools.PCTools.ScreenSaver.switchStatus()
+        if Tools.PCTools.ScreenSaver.status:
             msg = "Schaltete SreenSaver: AN"
         else:
             msg = "Schaltete SreenSaver: AUS"
         print(msg)
         if ballonTIP:
-            Tools.EnergyPlan.getEP(False)
+            Tools.PCTools.EnergyPlan.getEP(False)
             balloon_tip("Evecon: StartupServer", msg)
     def switchKlakumLight(x):
         balloon_tip("OK", "HIER")
@@ -1949,14 +1759,14 @@ def startStartupServer(serverport: int, ballonTIP=True):
             balloon_tip("Evecon: StartupServer", msg)
         """
     def shutdown(x):
-        Tools.shutdown()
+        Tools.PCTools.Shutdown()
         if ballonTIP:
-            Tools.EnergyPlan.getEP(False)
+            Tools.PCTools.EnergyPlan.getEP(False)
             balloon_tip("Evecon: StartupServer", "Fahre herrunter")
 
     sub_menu1 = {"Ausbalanciert": setEP_fastmode, "Energiesparen": setEP_energysaver}
     main_menu = {"SS wechseln": switchSS, "EP wechseln": switchEP, "Schreibtischlicht wechseln": switchKlakumLight, "Herrunterfahren": shutdown}
-    sysTray = SysTray("data"+path_seg+"ico"+path_seg+"PC.ico", "Evecon: StartupServer",
+    sysTray = EveconLib.Tools.Windows.SysTray("data"+path_seg+"ico"+path_seg+"PC.ico", "Evecon: StartupServer",
                       main_menu, sub_menu1=sub_menu1, sub_menu_name1="EPs", quitFunc=quitFunc)
 
     sysTray.start()
@@ -1969,19 +1779,17 @@ def startStartupServer(serverport: int, ballonTIP=True):
 
 
 def main():
-    versionFind()
-
-    title("Waiting for Input", something="Logport: " + str(logServer.port))
+    title("Waiting for Input", something="Logport: " + str(EveconLib.Config.logServer.port))
 
     cls()
 
     print("Evecon")
-    print("PC: " + Computername)
+    print("PC: " + EveconLib.Config.Computername)
 
     print("\nMenu:")
 
     print("\nFuntions:")
-    print("Musicplayer (MUSIC), Radio (RADIO), Foxi (FOX)")
+    print("Musicplayer (MUSIC), Radio (RADIO), foxi (FOX)")
     print("Time (TIME), Timer (TIMER), Alarm (ALARM)")
 
     print("\nSettings:")
@@ -1994,20 +1802,20 @@ def main():
     user_input = input("\n\n")
 
     if user_input.lower() == "fap":
-        if foxORnhe == "foxi":
-            Foxi.fap()
-        elif foxORnhe == "nhee":
-            Nhee.fap()
+        if EveconLib.Config.foxORnhe == "foxi":
+            foxi.fap()
+        elif EveconLib.Config.foxORnhe == "nhee":
+            nhee.fap()
     elif user_input.lower() == "foxpage":
-        Foxi.open_foxpage()
+        foxi.open_foxpage()
     elif user_input.lower() == "foxname":
-        Foxi.open_foxname()
+        foxi.open_foxname()
     elif user_input.lower() == "nhee" or user_input.lower() == "nhe":
-        Nhee.fap()
+        nhee.fap()
     elif user_input.lower() == "nheepage":
-        Nhee.open_foxpage()
+        nhee.open_nheepage()
     elif user_input.lower() == "nheename":
-        Nhee.open_foxname()
+        nhee.open_nheename()
     elif user_input.lower() == "l":
         color.Man()
     elif user_input.lower() == "debug":
@@ -2021,7 +1829,7 @@ def main():
     elif user_input.lower() == "time":
         Timeprint()
     elif user_input.lower() == "randpw":
-        randompw()
+        EveconLib.Tools.randompw()
     #elif user_input.lower() == "pw":
     #    passwordmanager()
     elif user_input.lower() == "radio":
@@ -2029,7 +1837,7 @@ def main():
     elif user_input.lower() == "alarm":
         Alarm()
     elif user_input.lower() == "status":
-        Status()
+        EveconLib.Tools.Status()
     elif user_input.lower() == "timer":
         Timer()
 
@@ -2052,66 +1860,60 @@ def Arg():
             break
         if sys.argv[x] == "--l_dark":
             title("Load Argument", "Argument: Dark")
-            color.change("07")
+            Tools.Color.change("07")
         if sys.argv[x] == "--l_bright":
             title("Load Argument", "Argument: Bright")
-            color.change("F0")
+            Tools.Color.change("F0")
 
         if sys.argv[x] == "-fap":
-            title("Load Argument", "Foxi")
+            title("Load Argument", "foxi")
             ttime.deac()
-            if foxORnhe == "foxi":
-                Foxi.fap()
-            elif foxORnhe == "nhee":
-                Nhee.fap()
+            if EveconLib.Config.foxORnhe == "foxi":
+                foxi.fap()
+            elif EveconLib.Config.foxORnhe == "nhee":
+                nhee.fap()
             exit_now()
 
         if sys.argv[x] == "--foxi" or sys.argv[x] == "-fap":
-            title("Load Argument", "Foxi")
+            title("Load Argument", "foxi")
             ttime.deac()
-            Foxi.fap()
+            foxi.fap()
             exit_now()
         if sys.argv[x] == "--foxi_page":
             title("Load Argument", "Notie: FOXPAGE")
             ttime.deac()
-            Foxi.open_foxpage()
+            foxi.open_foxpage()
             exit_now()
         if sys.argv[x] == "--foxi_name":
             title("Load Argument", "Notie: FOXNAME")
             ttime.deac()
-            Foxi.open_foxname()
+            foxi.open_foxname()
             exit_now()
         if sys.argv[x] == "--nhee":
-            title("Load Argument", "Nhee")
+            title("Load Argument", "nhee")
             ttime.deac()
-            Nhee.fap()
+            nhee.fap()
             exit_now()
         if sys.argv[x] == "--nhee_page":
-            title("Load Argument", "Nhee: NHEEPAGE")
+            title("Load Argument", "nhee: NHEEPAGE")
             ttime.deac()
-            Nhee.open_nheepage()
+            nhee.open_nheepage()
             exit_now()
         if sys.argv[x] == "--nhee_name":
-            title("Load Argument", "Nhee: NHEENAME")
+            title("Load Argument", "nhee: NHEENAME")
             ttime.deac()
-            Nhee.open_nheename()
+            nhee.open_nheename()
             exit_now()
 
         if sys.argv[x] == "--nc_stdsize":
             title("Load Argument", "Nircmd: Standard size")
-            nircmd("setsize", 1000, 520)
+            EveconLib.Tools.Windows.NirCMD.setsize(1000, 520)
         if sys.argv[x] == "--tt_freq":
             title("Load Argument", "TTime: Change Freq")
-            title_time.freq = float(sys.argv[x + 1])
+            ttime.freq = float(sys.argv[x + 1])
         if sys.argv[x] == "--tt_deac":
             title("Load Argument", "TTime: Deactivate")
             ttime.deac()
-            # if sys.argv[x] == "-update":
-            #    title("Load Argument", "Updater: Updating")
-            #    update()
-        #if sys.argv[x] == "--upgrade":
-        #    title("Load Argument", "Updater: Upgrading")
-        #    upgrade()
         if sys.argv[x] == "--screensaver":
             title("Load Argument", "Screensaver")
             screensaver()
@@ -2119,26 +1921,26 @@ def Arg():
         if sys.argv[x] == "--ep_switch":
             title("Load Argument", "Switch Energy Plan")
             ttime.deac()
-            Tools.EnergyPlan.Switch()
-            Tools.EnergyPlan.getEP(True)
+            Tools.PCTools.EnergyPlan.Switch()
+            Tools.PCTools.EnergyPlan.getEP(True)
             time.sleep(2)
             exit_now()
         if sys.argv[x] == "--shutdown":
             title("Load Argument", "Shutdown")
             ttime.deac()
-            Tools.Shutdown()
+            Tools.PCTools.Shutdown()
             exit_now()
         if sys.argv[x] == "--reboot":
             title("Load Argument", "Reboot")
             ttime.deac()
-            Tools.Reboot()
+            Tools.PCTools.Reboot()
             exit_now()
         if sys.argv[x] == "--start_server":
             title("Server", " ", " ")
             ttime.deac()
             serverport = int(sys.argv[x + 1])
             if not sys.argv[x + 2] == "app":
-                killConsoleWin()
+                Tools.killConsoleWin()
             startStartupServer(serverport)
             exit_now()
         if sys.argv[x] == "--inter_client":
@@ -2161,17 +1963,18 @@ def Arg():
             exit_now()
         if sys.argv[x] == "--Klakum_switch_light":
             title("Load Argument", "Switch Light", "Klakum")
-            Klakum.connect()
-            Klakum.relays[4].switch()
-            Klakum.disconnect()
+            EveconLib.Programs.Klakum.connect()
+            EveconLib.Programs.Klakum.relays[4].switch()
+            EveconLib.Programs.Klakum.disconnect()
             exit_now()
+        """
         if sys.argv[x] == "--vp":
             title("Load Argument", "Video Player")
             print(sys.argv)
-            vp = VideoPlayer(sys.argv[x + 1])
+            vp = EveconLib.Programs.Player.VideoPlayer(sys.argv[x + 1])
             vp.start()
             exit_now()
-
+        """
 def debug_startup():
     """
     def x(x):

@@ -3,6 +3,7 @@ import os
 import sys
 import threading
 import random
+import subprocess
 
 def cls():
     if sys.platform == "win32":
@@ -54,101 +55,6 @@ def rsame(fullword: str, partword: str, exact=True):
         return False
 
 
-
-
-class TimerC:
-    def __init__(self):
-        self.starttime = 0
-        self.stoptime = 0
-        self.startpausetime = 0
-        self.stoppausetime = 0
-        self._time = 0
-        self.Pause = 0
-        self.curPause = 0
-        self.startcurPause = 0
-        self.startpausetimetmp = 0
-
-        self.Running = False
-        self.Paused = False
-        self.End = False
-
-    def start(self):
-        self.reset()
-        self.Running = True
-        self.starttime = time.time()
-
-    def stop(self):
-        if self.Running:
-            if self.Paused:
-                self.unpause()
-            self.stoptime = time.time()
-            self.reload()
-            self.End = True
-
-    def pause(self):
-        if not self.End:
-            if not self.Paused:
-                self.Paused = True
-                self.startcurPause = time.time()
-                self.startpausetimetmp = time.time()
-
-    def unpause(self):
-        if not self.End:
-            if self.Paused:
-                self.Paused = False
-                self.startpausetime += self.startpausetimetmp
-                self.stoppausetime += time.time()
-                self.reload()
-                self.curPause = 0
-                self.startcurPause = 0
-
-    def reset(self):
-        self.starttime = 0
-        self.stoptime = 0
-        self.startpausetime = 0
-        self.stoppausetime = 0
-        self._time = 0
-        self.Pause = 0
-        self.curPause = 0
-        self.startcurPause = 0
-        self.startpausetimetmp = 0
-
-        self.Running = False
-        self.Paused = False
-        self.End = False
-
-    def switch(self):
-        if not self.Paused:
-            self.pause()
-        else:
-            self.unpause()
-
-    def reload(self):
-        if self.Running:
-            if self.Paused:
-                self.curPause = time.time() - self.startcurPause
-            else:
-                self.curPause = 0
-                self.startcurPause = 0
-
-            self.Pause = self.stoppausetime - self.startpausetime
-
-            if self.End:
-                self._time = self.stoptime - self.starttime - self.Pause
-            else:
-                self._time = time.time() - self.starttime - self.Pause - self.curPause
-        else:
-            self._time = 0
-
-    def getTime(self):
-        self.reload()
-
-        return self._time
-
-    time = property(getTime)
-
-    def getTimeFor(self):
-        return TimeFor(self.time)
 
 def TimeFor(Time):
     if (round(Time) % 60) == 0:
@@ -928,4 +834,92 @@ def randompw(returnpw=False, length=150, printpw=True, exclude=None):
         print("Password: (length: %s) \n\n%s" % (length, pw))
 
         input()
+
+
+
+def MusicEncode(musicname):
+    if MusicType(musicname):
+        name = musicname.rstrip("." + MusicType(musicname, True))
+    else:
+        name = musicname
+
+    try:
+        title = getPartStrToStr(name, " by ")
+        interpreter = getPartStrToStr(name, beginkey=title + " by ", endkey=" (")
+        musictype = turnStr(getPartStrToStr(turnStr(name), endkey= turnStr(") - ")))
+
+        part = getPartStrToStr(name, beginkey=title + " by " + interpreter + " (From ", endkey=") - " + musictype)
+
+        x = SearchStr(" S", part, exact = True)
+    except IndexError:
+        return False
+
+
+    animeSeason = True
+    if len(x) > 1:
+        x = x[len(x) - 1] + 1
+    elif len(x) == 0:
+        animeSeason = None
+    else:
+        x = x[0]  + 1
+
+    if animeSeason:
+        try:
+            animeSeason = int(part[x + 1] + part[x + 2])
+        except ValueError:
+            animeSeason = int(part[x + 1])
+        except IndexError:
+            animeSeason = int(part[x + 1])
+
+    y = SearchStr(" OP", part, exact = True)
+    animeTypeNum = True
+    if len(y) > 1:
+        y = y[len(y) - 1] + 2
+        animeType = "OP"
+    elif len(y) == 0:
+        y = SearchStr(" EN", part, exact=True)
+        if len(y) > 1:
+            y = y[len(y) - 1] + 2
+            animeType = "EN"
+        elif len(y) == 0:
+            animeType = None
+            animeTypeNum = None
+        else:
+            y = y[0] + 2
+            animeType = "EN"
+    else:
+        y = y[0] + 2
+        animeType = "OP"
+
+    if animeTypeNum:
+        try:
+            animeTypeNum = int(part[y + 1] + part[y + 2])
+        except ValueError:
+            animeTypeNum = int(part[y + 1])
+        except IndexError:
+            animeTypeNum = int(part[y + 1])
+
+    if animeSeason is not None:
+        #animeName = gerPartStrToStr(part, endkey=" " + part[x] + part[x + 1])
+
+        animeName = getPartStr(part, 0, x - 1)
+    elif animeTypeNum is not None:
+        #animeName = gerPartStrToStr(part, endkey=" " + part[y] + part[y + 1])
+
+        animeName = getPartStr(part, 0, y - 1)
+    else:
+        animeName = part
+
+    output = {"title": title, "interpreter": interpreter, "musictype": musictype, "animeName": animeName,
+              "animeSeason": animeSeason, "animeType": animeType, "animeTypeNum": animeTypeNum}
+    return output
+
+def killme():
+    subprocess.call(["taskkill", "/F", "/PID", str(os.getpid())])
+    #os.system("taskkill /PID /F %s" % str(os.getpid()))
+
+
+
+def doNothing(a="",b="",c="",d=""):
+    pass
 

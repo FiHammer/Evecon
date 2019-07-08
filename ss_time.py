@@ -5,18 +5,17 @@ import subprocess
 import time
 import datetime
 import ctypes
-import os
 import threading
 from cls import *
 
 cdir = os.getcwd()
 if cdir == "C:\\Users\\Mini-Pc Nutzer\\Desktop\\Evecon\\!Evecon\\dev":
-	os.chdir("..")
-	os.chdir("..")
+    os.chdir("..")
+    os.chdir("..")
 else:
-	os.chdir("..")
-	os.chdir("..")
-	os.chdir("..")
+    os.chdir("..")
+    os.chdir("..")
+    os.chdir("..")
 
 ctypes.windll.kernel32.SetConsoleTitleW("_time Printer")
 

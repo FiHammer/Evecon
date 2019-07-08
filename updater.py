@@ -1,4 +1,9 @@
 import os
+import shutil
+import subprocess
+import datetime
+import sys
+import time
 
 WORK = True
 
@@ -13,14 +18,22 @@ else:
     os.chdir("..")
     os.chdir("..")
 
-from EveconLib import *
+import EveconLib
 
-ddbugger = ddbug()
+Megacmd = EveconLib.Tools.Windows.MegaCMD
+szip = EveconLib.Tools.SZip
+title = EveconLib.Tools.title
+exit_now = EveconLib.Tools.exit_now
+this_version = EveconLib.Config.file_versions
+cls = EveconLib.Tools.cls
+
+
+ddbugger = EveconLib.Tools.ddbug()
 ddbugger.start()
 
+
 def update():
-    global this_version
-    this_version = versionFind()
+    this_version = EveconLib.Config.file_versions()
     #check version
     #check if newer
     #check if in cache
@@ -48,7 +61,7 @@ def checkVersion():
 
     Megacmd.login(email, pw)
     Megacmd.download("/Evecon/version", "data\\Update")
-    Megacmd.exit()
+    #Megacmd.exit()
 
     newVersionFile = open("data\\Update\\version")
     newVersion = []
@@ -60,22 +73,29 @@ def checkVersion():
 
     return newVersion
 
-def install(zipFile, installDir="", installPY=True):
+def install(zipFile, installDir="", installPY=True, unzipDir="data\\Update\\unzipTMP"):
 
     # unzip
     # copy
     # remove unzip
 
     if installDir != "":
-        installDir += "\\"
+        installDir = installDir.rstrip("\\") + "\\"
 
-    if os.path.exists("data\\Update\\unzipTMP"):
+    unzipDir = "data\\Update\\unzipTMP"
+
+    if os.path.exists(unzipDir):
         shutil.rmtree("data\\Update\\unzipTMP")
+    #else:
+        #unzipDir = "unzipTMP"
+        #if os.path.exists(unzipDir):
+        #    shutil.rmtree(unzipDir)
 
-    os.mkdir("data\\Update\\unzipTMP")
-    szip.extract_archive(zipFile, "data\\Update\\unzipTMP")
 
-    backuptime = open(installDir + "data\\Backup\\backup.txt", "w")  # von Mainstick auf Ministick
+    os.mkdir(unzipDir)
+    szip.extract_archive(zipFile, unzipDir)
+
+    backuptime = open(installDir + "data\\Backup\\backup.txt", "w")
     backuptime.write("Backup:\nFrom: Zip\nTo: Me\nDate: %s\n_time: %s\nVersion: %s" % (
         datetime.datetime.now().strftime("%d.%m.%Y"),
         datetime.datetime.now().strftime("%H:%M:%S"), this_version[1]))
@@ -115,29 +135,14 @@ def install(zipFile, installDir="", installPY=True):
         time.sleep(0.5)
     shutil.copy("data\\Update\\unzipTMP\\!Console.py", installDir + "!Evecon\\dev")
 
-    os.remove(installDir + "data\\Backup\\!Evecon\\dev\\EveconExceptions.py")
-    shutil.copy(installDir + "!Evecon\\dev\\EveconExceptions.py", installDir + "data\\Backup\\!Evecon\\dev\\EveconExceptions.py")
-    os.remove(installDir + "!Evecon\\dev\\EveconExceptions.py")
-    while not os.path.exists("data\\Update\\unzipTMP\\EveconExceptions.py"):
+    shutil.rmtree(installDir + "data\\Backup\\!Evecon\\dev\\EveconLib")
+    shutil.copytree(installDir + "!Evecon\\dev\\EveconLib", installDir + "data\\Backup\\!Evecon\\dev\\EveconLib")
+    shutil.rmtree(installDir + "!Evecon\\dev\\EveconLib")
+    while not os.path.exists("data\\Update\\unzipTMP\\EveconLib"):
         print("Wait for file!")
         time.sleep(0.5)
-    shutil.copy("data\\Update\\unzipTMP\\EveconExceptions.py", installDir + "!Evecon\\dev")
+    shutil.copytree("data\\Update\\unzipTMP\\EveconLib", installDir + "!Evecon\\dev\\EveconLib")
 
-    os.remove(installDir + "data\\Backup\\!Evecon\\dev\\EveconLib.py")
-    shutil.copy(installDir + "!Evecon\\dev\\EveconLib.py", installDir + "data\\Backup\\!Evecon\\dev\\EveconLib.py")
-    os.remove(installDir + "!Evecon\\dev\\EveconLib.py")
-    while not os.path.exists("data\\Update\\unzipTMP\\EveconLib.py"):
-        print("Wait for file!")
-        time.sleep(0.5)
-    shutil.copy("data\\Update\\unzipTMP\\EveconLib.py", installDir + "!Evecon\\dev")
-
-    os.remove(installDir + "data\\Backup\\!Evecon\\dev\\EveconMiniDebug.py")
-    shutil.copy(installDir + "!Evecon\\dev\\EveconMiniDebug.py", installDir + "data\\Backup\\!Evecon\\dev\\EveconMiniDebug.py")
-    os.remove(installDir + "!Evecon\\dev\\EveconMiniDebug.py")
-    while not os.path.exists("data\\Update\\unzipTMP\\EveconMiniDebug.py"):
-        print("Wait for file!")
-        time.sleep(0.5)
-    shutil.copy("data\\Update\\unzipTMP\\EveconMiniDebug.py", installDir + "!Evecon\\dev")
 
     os.remove(installDir + "data\\Backup\\!Evecon\\dev\\ss_time.py")
     shutil.copy(installDir + "!Evecon\\dev\\ss_time.py", installDir + "data\\Backup\\!Evecon\\dev\\ss_time.py")
@@ -172,19 +177,17 @@ def downloadUpdate(downlVersion="newest", downlDir="data\\Update", EveconPath=Tr
         downlDir = os.getcwd() + "\\" + downlDir
 
     Megacmd.login(email, pw)
-    Megacmd.download("/Evecon/Versions/%s" % downlVersion, downlDir)
+    Megacmd.download("/Evecon/Versions/%s/Evecon-%s.zip" % (downlVersion, downlVersion), downlDir, Eveconpath=False)
     Megacmd.exit()
 
 
 def zipme():
     title("Upgrade", "Zipping")
-    global this_version
-    this_version = versionFind()
     newarchive = "data\\Update\\Evecon-" + this_version[1] + ".zip"
     allfiles = ["!Evecon\\dev\\!Console.py", "!Evecon\\dev\\updater.py", "!Evecon\\dev\\ss_time.py",
-                "!Evecon\\dev\\EveconExceptions.py", "!Evecon\\dev\\EveconMiniDebug.py", "!Evecon\\dev\\EveconLib.py",
+    #            "!Evecon\\dev\\EveconExceptions.py", "!Evecon\\dev\\EveconMiniDebug.py", "!Evecon\\dev\\EveconLib.py",
                 "data\\Info\\Changelog.txt", "data\\Info\\version"]
-    alldic = ["!Evecon\\!Console"]
+    alldic = ["!Evecon\\!Console", "!Evecon\\dev\\EveconLib"]
 
     szip.create_archive(newarchive, allfiles + alldic)
 
@@ -192,7 +195,7 @@ def zipme():
         print("Success")
     else:
         print("ERROR")
-        raise EveconExceptions.UpdateZip
+        raise EveconLib.EveconExceptions.UpdateZip
 
 
 def upload():
@@ -204,8 +207,6 @@ def upload():
 
     zipme()
     title("Upgrade", "Uploading")
-    versionFind()
-    global this_version
 
 
     logindata = open("data\\Info\\updater_megalogin", "r")
@@ -223,14 +224,38 @@ def upload():
     cls()
     os.remove("data\\Update\\Evecon-" + this_version[1] + ".zip")
 
+def backup():
+    title("Upgrade", "Backup")
+
+    backuptime = open("data\\Backup\\backup.txt", "w")
+    backuptime.write("Backup while Upgrading:\nDate: %s\n_time: %s\nVersion: %s" % (
+        datetime.datetime.now().strftime("%d.%m.%Y"),
+        datetime.datetime.now().strftime("%H:%M:%S"), this_version[1]))
+    backuptime.close()
+
+
+    shutil.rmtree("data\\Backup\\!Evecon")
+    shutil.copytree("!Evecon\\!Console", "data\\Backup\\!Evecon\\!Console")
+    os.mkdir("data\\Backup\\!Evecon\\dev")
+
+    shutil.copy("!Evecon\\dev\\!Console.py", "data\\Backup\\!Evecon\\dev")
+    shutil.copytree("!Evecon\\dev\\EveconLib", "data\\Backup\\!Evecon\\dev\\EveconLib")
+    #shutil.copy("!Evecon\\dev\\EveconLib.py", "data\\Backup\\!Evecon\\dev")
+    #shutil.copy("!Evecon\\dev\\EveconExceptions.py", "data\\Backup\\!Evecon\\dev")
+    #shutil.copy("!Evecon\\dev\\EveconMiniDebug.py", "data\\Backup\\!Evecon\\dev")
+    shutil.copy("!Evecon\\dev\\ss_time.py", "data\\Backup\\!Evecon\\dev")
+    shutil.copy("!Evecon\\dev\\updater.py", "data\\Backup\\!Evecon\\dev")
+
+    os.remove("data\\Backup\\data\\Info\\version")
+    shutil.copy("data\\Info\\version", "data\\Backup\\data\\Info")
+    os.remove("data\\Backup\\data\\Info\\Changelog.txt")
+    shutil.copy("data\\Info\\Changelog.txt", "data\\Backup\\data\\Info")
 
 def upgrade():
     subprocess.call(["taskkill", "/IM", "!Console.exe", "/f"])
     cls()
-    if version == "MiniPC" or version == "BigPC":
+    if EveconLib.Config.computer == "MiniPC":
         title("Upgrade", "Changelog")
-        versionFind()
-        global this_version
         print("Changelog\n\nOld Version: %s" % this_version[1])
         newversion = input("\nNew Version: ")
         newupdate = []
@@ -248,29 +273,7 @@ def upgrade():
             newupdate.append(newupdate_input)
             newupdate_firstinput = True
         cls()
-        title("Upgrade", "Backup")
-
-        backuptime = open("data\\Backup\\backup.txt", "w")
-        backuptime.write("Backup while Upgrading:\nDate: %s\n_time: %s\nVersion: %s" % (
-            datetime.datetime.now().strftime("%d.%m.%Y"),
-            datetime.datetime.now().strftime("%H:%M:%S"), this_version[1]))
-        backuptime.close()
-
-        shutil.rmtree("data\\Backup\\!Evecon")
-
-        shutil.copytree("!Evecon\\!Console", "data\\Backup\\!Evecon\\!Console")
-        os.mkdir("data\\Backup\\!Evecon\\dev")
-        shutil.copy("!Evecon\\dev\\!Console.py", "data\\Backup\\!Evecon\\dev")
-        shutil.copy("!Evecon\\dev\\EveconLib.py", "data\\Backup\\!Evecon\\dev")
-        shutil.copy("!Evecon\\dev\\EveconExceptions.py", "data\\Backup\\!Evecon\\dev")
-        shutil.copy("!Evecon\\dev\\ss_time.py", "data\\Backup\\!Evecon\\dev")
-        shutil.copy("!Evecon\\dev\\updater.py", "data\\Backup\\!Evecon\\dev")
-        shutil.copy("!Evecon\\dev\\EveconMiniDebug.py", "data\\Backup\\!Evecon\\dev")
-
-        os.remove("data\\Backup\\data\\Info\\version")
-        shutil.copy("data\\Info\\version", "data\\Backup\\data\\Info")
-        os.remove("data\\Backup\\data\\Info\\Changelog.txt")
-        shutil.copy("data\\Info\\Changelog.txt", "data\\Backup\\data\\Info")
+        backup()
 
         title("Upgrade", "Change Version")
 
@@ -292,7 +295,7 @@ def upgrade():
         file_changelog_raw.write("\n\n")
         file_changelog_raw.close()
 
-        versionFind()
+        EveconLib.Config.refreshVersion()
 
         title("Upgrade", "Deleting")
 
@@ -363,15 +366,17 @@ def main():
     if user_input.lower() == "ug":
         upgrade()
     elif user_input.lower() == "in":
-        install(input())
+        install(input("ZipFile:\n"))
     elif user_input.lower() == "zip":
         zipme()
+    elif user_input.lower() == "down":
+        downloadUpdate() # latest
 
 
-if exitnow == 0:
+if EveconLib.Config.exitnow == 0:
     if __name__ == "__main__":
         main()
-        time.sleep(0)
+        time.sleep(0.2)
 
         exit_now()
-        ddbug.work = False
+        ddbugger.work = False
