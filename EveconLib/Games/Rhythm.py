@@ -2,7 +2,14 @@ import time
 import EveconLib.Programs.Scanner
 import EveconLib.Config
 
+alltries = 0
+righttries = 0
+alltimes = 0
+lastTime = 0
+
+
 def play():
+    global lastTime, righttries, alltimes, alltries
     lastTime = time.time()
 
     def setLastTime(key):

@@ -47,7 +47,7 @@ TimerC = EveconLib.Tools.Timer
 
 foxi = EveconLib.Programs.Flapi.Foxi
 nhee = EveconLib.Programs.Flapi.Nhee
-color = EveconLib.Tools.Color
+color = EveconLib.Tools.Windows.Color
 
 ttime.start()
 title("Load first Programs")
@@ -1758,20 +1758,19 @@ def startStartupServer(serverport: int, ballonTIP=True):
             Tools.PCTools.EnergyPlan.getEP(False)
             balloon_tip("Evecon: StartupServer", msg)
     def switchKlakumLight(x):
-        balloon_tip("OK", "HIER")
-        """
-        TODO: HIER WEGMACHEN WENN LAMPE AN
-        Klakum.connect()
-        Klakum.relays[4].switch()
-        Klakum.disconnect()
+        #balloon_tip("OK", "HIER")
+        #"""
+        #TODO: HIER WEGMACHEN WENN LAMPE AN
+        EveconLib.Programs.Klakum.connect()
+        EveconLib.Programs.Klakum.relays[4].switch()
+        EveconLib.Programs.Klakum.disconnect()
         if ballonTIP:
-            Tools.EnergyPlan.getEP(False)
-            if Klakum.relay[4].value == 1:
+            if EveconLib.Programs.Klakum.relays[4].value == 1:
                 msg =  "Schaltete die Lampe: AN"
             else:
                 msg = "Schaltete die Lampe: AUS"
             balloon_tip("Evecon: StartupServer", msg)
-        """
+        #"""
     def shutdown(x):
         Tools.PCTools.Shutdown()
         if ballonTIP:

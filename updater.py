@@ -204,7 +204,7 @@ def upload():
     # dazu gehört: '!Console', 'dev' bzw darin NUR *.py und 'dll', 'data\Info\Changelog.txt + version' (FIN)
     # diese zip-File dann auf Mega.nz mit dem Konto -------@*.com und PW -------- hochladen.
     # bzw. auf Mega einige Ordner erstellen UND die aktuelle Versions-Datei ersetzen! (die normale 'version')
-
+    EveconLib.Config.refreshVersion()
     zipme()
     title("Upgrade", "Uploading")
 
@@ -295,8 +295,10 @@ def upgrade():
         file_changelog_raw.write("\n\n")
         file_changelog_raw.close()
 
+        print(EveconLib.Config.file_versions)
         EveconLib.Config.refreshVersion()
-
+        print(EveconLib.Config.file_versions)
+        input()
         title("Upgrade", "Deleting")
 
         dir_tmp = os.getcwd()

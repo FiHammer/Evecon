@@ -2,6 +2,8 @@ import psutil
 import os
 import subprocess
 import webbrowser
+import time
+import sys
 
 import EveconLib.Config
 
@@ -12,11 +14,10 @@ class Browser:
         self.com_newWin = ""
         self.com_newTab = ""
         self.path_dir = ""
-        for x in self.path.split(EveconLib.Config.path_seg):
-            if x == "C:":
-                self.path_dir = x
-            elif x != "firefox.exe":
-                self.path_dir += EveconLib.Config.path_seg + x
+        splitted = self.path.split(EveconLib.Config.path_seg)
+
+        for x in range(len(splitted) - 1):  # -1 because last ignore
+            self.path_dir += EveconLib.Config.path_seg + splitted[x]
 
         self.name = self.path.split(EveconLib.Config.path_seg)[-1]
         if self.name in (p.name() for p in psutil.process_iter()):

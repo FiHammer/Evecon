@@ -14,7 +14,11 @@ logServerPort = 4222
 
 # filePaths
 
-path_seg = "\\"
+import sys
+if sys.platform == "win32":
+    path_seg = "\\"
+else:
+    path_seg = "/"
 
 infoPath = "data" + path_seg + "Info"
 versionFile = infoPath + path_seg + "version"

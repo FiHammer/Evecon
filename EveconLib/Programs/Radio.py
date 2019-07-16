@@ -16,7 +16,7 @@ class Radio:
         self.streamPrintCh = False
         self.streamPrintVol = False
 
-        self.systrayon = systray
+        self.systrayon = systray and sys.platform == "win32"
         self.systray = None
 
         self.stream_playlists = ["EgoFM", "HR1", "HR3", "Bayern3", "ByteFM"]

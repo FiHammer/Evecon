@@ -3,7 +3,14 @@ import random
 import EveconLib.Programs.Scanner
 import EveconLib.Config
 
+alltries = 0
+righttries = 0
+alltimes = 0
+pressKey = 0
+lastTime = 0
+
 def play():
+    global lastTime, pressKey, righttries, alltimes, alltries
     lastTime = time.time()
 
     # statistics

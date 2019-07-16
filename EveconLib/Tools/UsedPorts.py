@@ -32,32 +32,34 @@ def readFile():
 
     else:
     """
-    with open(EveconLib.Config.usedPortsFile) as file:
-        lines = file.readlines()
-        for x in range(len(lines)):
-            if x == 0:  # first Line
-                programs = int(lines[x].rstrip())
-            else:
-                try:
-                    int(x)
-                    ports.append(lines[x].rstrip())
-                except ValueError:
-                    resetFile()
-                    break
-    if len(ports) < programs:
-        resetFile()
+    if EveconLib.Config.validEnv:
+        with open(EveconLib.Config.usedPortsFile) as file:
+            lines = file.readlines()
+            for x in range(len(lines)):
+                if x == 0:  # first Line
+                    programs = int(lines[x].rstrip())
+                else:
+                    try:
+                        int(x)
+                        ports.append(lines[x].rstrip())
+                    except ValueError:
+                        resetFile()
+                        break
+        if len(ports) < programs:
+            resetFile()
 
 
 def writeFile():
     global ports, programs
-    with open(EveconLib.Config.usedPortsFile, "w") as file:
-        for x in range(len(ports) + 1):
-            if x == 0:
-                file.write(str(programs) + "\n")
-            elif x == len(ports):
-                file.write(ports[x - 1])
-            else:
-                file.write(ports[x - 1] + "\n")
+    if EveconLib.Config.validEnv:
+        with open(EveconLib.Config.usedPortsFile, "w") as file:
+            for x in range(len(ports) + 1):
+                if x == 0:
+                    file.write(str(programs) + "\n")
+                elif x == len(ports):
+                    file.write(ports[x - 1])
+                else:
+                    file.write(ports[x - 1] + "\n")
 
 
 def resetFile():

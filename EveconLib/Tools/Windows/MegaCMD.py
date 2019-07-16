@@ -42,7 +42,6 @@ class MegacmdC:
                                      #stderr=subprocess.PIPE, shell=False)
                                      stderr = subprocess.PIPE, shell = True)
 
-                self.Running = True
                 time.sleep(1)
 
                 EveconLib.Tools.Tools.cls()
@@ -122,11 +121,8 @@ class MegacmdC:
         self.pw = None
         if self.Running:
             self.stopServer()
-        else:
-            self.Running = False
         self.MegacmdServer = False
     def debug_start(self):
         self.LoggedIn = True
-        self.Running = True
 
 MegaCMD = MegacmdC("Programs\\MEGAcmd")

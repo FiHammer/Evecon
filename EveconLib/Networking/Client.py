@@ -95,9 +95,14 @@ class Client(threading.Thread):
                    str(self.secu["level"]).encode()
 
         self.send(infoSend, encrypt=False, direct=True, special=0)
-
-        self.send(self.accountName, encrypt=True, direct=True, special=0)
-        self.send(self.accountPW, encrypt=True, direct=True, special=0)
+        time.sleep(0.2) # to prevent appending the msgs
+        # intention: send nothing (emtpy msg) if acc none
+        if not self.accountName and not self.accountPW:
+            self.send(self.accountName, encrypt=False, direct=True, special=0)
+            self.send(self.accountPW, encrypt=False, direct=True, special=0)
+        else:
+            self.send(self.accountName, encrypt=True, direct=True, special=0)
+            self.send(self.accountPW, encrypt=True, direct=True, special=0)
 
         if self.useAccount:
             self.secu["key"] += self.accountKey
@@ -192,25 +197,32 @@ class Client(threading.Thread):
             else:
                 if encrypt is None:
                     if self.secu["status"] == 1:
+                        print("Crypt")
                         data_send_de = simplecrypt.encrypt(self.secu["key"], data_send)
                     else:
                         data_send_de = data_send
                 elif encrypt:
-                    data_send_de = simplecrypt.encrypt(self.secu["key"], data_send)
+                        print("Crypt")
+                        data_send_de = simplecrypt.encrypt(self.secu["key"], data_send)
                 else:
                     data_send_de = data_send
+
+                if data_send_de == data_send:
+                    dec = True
+                else:
+                    dec = False
 
                 if not thisLongMsg:
                     self.dataSend.append(data)
                     try:
-                        self.writeLog(data_send.decode("UTF-8"), dataType=1)
+                        self.writeLog(data_send.decode("UTF-8"), dataType=1, decrypted=dec)
                     except UnicodeDecodeError:
-                        self.writeLog(str(data_send), dataType=2)
+                        self.writeLog(str(data_send), dataType=2, decrypted=dec)
                 else:
                     try:
-                        self.writeLog(data_send.decode("UTF-8"), dataType=3)
+                        self.writeLog(data_send.decode("UTF-8"), dataType=3, decrypted=dec)
                     except UnicodeDecodeError:
-                        self.writeLog(str(data_send), dataType=4)
+                        self.writeLog(str(data_send), dataType=4, decrypted=dec)
 
                 if self.java:
                     data_send_de += b'\r\n'
@@ -328,20 +340,23 @@ class Client(threading.Thread):
                     self.react(data)
                 return True
 
-    def writeLog(self, data, prio=0, dataType=0):
-        if dataType == -1:
-            prefixx = "Recieved: "
-        elif dataType == 1:
-            prefixx = "Sent: "
-        elif dataType == 2:
-            prefixx = "Sent (unencodable): "
-        elif dataType == 3:
-            prefixx = "Sent (long): "
-        elif dataType == 5:
-            prefixx = "Sent (long, unencodable): "
+    def writeLog(self, data, prio=0, dataType=0, decrypted=False):
+        if decrypted:
+            decrypted = "Decryptedly "
         else:
-            prefixx = ""
-
+            decrypted = ""  # Not Decryptedly
+        if dataType == -1:
+            prefixx = decrypted + "Recieved: "
+        elif dataType == 1:
+            prefixx = decrypted + "Sent: "
+        elif dataType == 2:
+            prefixx = decrypted + "Sent (unencodable): "
+        elif dataType == 3:
+            prefixx = decrypted + "Sent (long): "
+        elif dataType == 5:
+            prefixx = decrypted + "Sent (long, unencodable): "
+        else:
+            prefixx = decrypted
 
         try:
             # noinspection PyTypeChecker

@@ -1,9 +1,13 @@
 
-path_seg = "\\"
+import sys
+if sys.platform == "win32":
+    path_seg = "\\"
+else:
+    path_seg = "/"
 firefox_path = "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
 vivaldi_path = "C:\\Program Files (x86)\\Vivaldi\\Application\\vivaldi.exe"
 
-code_version = "0.9.9.0"
+code_version = "0.9.9.1"
 
 ss_active = False
 exitnow = 0
@@ -21,6 +25,7 @@ cores = 2
 console_data = {"lenx": 120, "leny": 30, "posx": 0, "posy": 0, "pixx": 120, "pixy": 30}
 thisHWND = 0
 
+alwaysPrintLog = True
 
 myType = "" # type of the console: python_file, standalone_exe, lib_exe
 

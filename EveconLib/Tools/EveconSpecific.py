@@ -70,12 +70,13 @@ def LogServerless(functioni, info, typei = "Normal", printIt=False):
 
     log_write = part_time + " " + part_type + " " + part_func + ": " + str(info) + "\n"
 
-    if printIt:
+    if printIt or EveconLib.Config.alwaysPrintLog:
         print(log_write.rstrip())
 
-    log_file = open(EveconLib.Config.logFile, "a+")
-    log_file.write(log_write)
-    log_file.close()
+    if EveconLib.Config.validEnv:
+        log_file = open(EveconLib.Config.logFile, "a+")
+        log_file.write(log_write)
+        log_file.close()
 
     return log_write
 
@@ -101,12 +102,13 @@ def Log(functioni, info, typei = "Normal", printIt=False):
             EveconLib.Config.logServer.sendToAll(log_write)
     except AttributeError:
         pass
-    if printIt:
+    if printIt or EveconLib.Config.alwaysPrintLog:
         print(log_write.rstrip())
 
-    log_file = open(EveconLib.Config.logFile, "a+")
-    log_file.write(log_write)
-    log_file.close()
+    if EveconLib.Config.validEnv:
+        log_file = open(EveconLib.Config.logFile, "a+")
+        log_file.write(log_write)
+        log_file.close()
 
     return log_write
 

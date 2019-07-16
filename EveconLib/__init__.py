@@ -1,21 +1,27 @@
 import os
+import sys
 # set dir
 orgDir = os.getcwd()
 
-path_seg = "\\"
+if sys.platform == "win32":
+    path_seg = "\\"
+else:
+    path_seg = "/"
+
+
 
 if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer.000\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
     os.chdir("..")
-
+elif os.getcwd().split(path_seg)[-1] == "!Evecon":
+    os.chdir("..")
+elif len(os.getcwd().split(path_seg)) <= 1:
+    pass
 elif os.getcwd().split(path_seg)[-2] == "!Evecon":
     if os.getcwd().split(path_seg)[-1] == "dev" or os.getcwd().split(path_seg)[-1] == "!Console" or os.getcwd().split(path_seg)[-1] == "Exe":
         os.chdir("..")
         os.chdir("..")
-elif os.getcwd().split(path_seg)[-1] == "!Evecon":
-    os.chdir("..")
 del path_seg
-
 
 
 import EveconLib.Config

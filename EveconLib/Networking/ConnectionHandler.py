@@ -80,10 +80,14 @@ class ConnectionHandler(threading.Thread):
 
             self.useAccount = infoClient[1]
             self.secu["key"] = infoClient[2] # auf zwei liegt jetz der encryption key
-            self.secuClient = {"level": int(infoClient[3])}
+            self.secuClient = {"level": int(infoClient[3].rstrip("#T"))}
 
-            self.accountName = self.recieve(1, direct=True).decode("UTF-8").lstrip('#T!')
-            self.accountPW = self.recieve(1, direct=True).decode("UTF-8").lstrip('#T!')
+            if len(infoClient) == 6: # account already sent (network error)
+                self.accountName = infoClient[-2].rstrip("#T")
+                self.accountPW = infoClient[-1]
+            else:
+                self.accountName = self.recieve(1, direct=True, doNotEncryptEmptyFromBegin=True).decode("UTF-8").lstrip('#T!')
+                self.accountPW = self.recieve(1, direct=True, doNotEncryptEmptyFromBegin=True).decode("UTF-8").lstrip('#T!')
 
 
             # compute the secu level
@@ -172,7 +176,7 @@ class ConnectionHandler(threading.Thread):
 
         self.exit(sendM=False)
 
-    def recieve(self, encrypt=999, direct=False):
+    def recieve(self, encrypt=999, direct=False, doNotEncryptEmptyFromBegin=False):
         if not self.running:
             if not direct:
                 return False
@@ -194,6 +198,10 @@ class ConnectionHandler(threading.Thread):
             data = data.rstrip()
 
         if encrypt == 1:  # yes
+            if doNotEncryptEmptyFromBegin: # not normal purpose ONLY USED AUTOMATICALLY IN THE START
+                if not data.lstrip(b"#T!"):
+                    return data # = "#T!" (has to be "EMTPTY")
+
             data = simplecrypt.decrypt(self.secu["key"], data)
 
         if not data:
@@ -238,7 +246,7 @@ class ConnectionHandler(threading.Thread):
                     self.writeLog("Long Message: " + msg)
                     self.dataRec.append(msg)
                     # self.tmp_longMSGs_rec = []
-                    self.react(msg)
+                    self.react(msg, self.id)
 
                     self.tmp_longMsg_rec = []
                     return True
@@ -275,9 +283,9 @@ class ConnectionHandler(threading.Thread):
 
             else:
                 if noByte:
-                    self.react(data_form)
+                    self.react(data_form, self.id)
                 else:
-                    self.react(data)
+                    self.react(data, self.id)
                 return True
 
     def send(self, data, special=-1, encrypt=None, direct=False, thisLongMsg=False):
@@ -348,17 +356,22 @@ class ConnectionHandler(threading.Thread):
                 else:
                     data_send_de = data_send
 
+                if data_send_de == data_send:
+                    dec = True
+                else:
+                    dec = False
+
                 if not thisLongMsg:
                     self.dataSend.append(data)
                     try:
-                        self.writeLog(data_send.decode("UTF-8"), dataType=1)
+                        self.writeLog(data_send.decode("UTF-8"), dataType=1, decrypted=dec)
                     except UnicodeDecodeError:
-                        self.writeLog(str(data_send), dataType=2)
+                        self.writeLog(str(data_send), dataType=2, decrypted=dec)
                 else:
                     try:
-                        self.writeLog(data_send.decode("UTF-8"), dataType=3)
+                        self.writeLog(data_send.decode("UTF-8"), dataType=3, decrypted=dec)
                     except UnicodeDecodeError:
-                        self.writeLog(str(data_send), dataType=4)
+                        self.writeLog(str(data_send), dataType=4, decrypted=dec)
 
                 if self.java:
                     data_send_de += b'\r\n'
@@ -376,8 +389,8 @@ class ConnectionHandler(threading.Thread):
         self.server.connections[self.id]["running"] = False
         self.status = 4
 
-    def writeLog(self, data, prio=0, dataType=0):
-        self.server.writeLog(data=data, connectionID=self.id, prio=prio, dataType=dataType)
+    def writeLog(self, data, prio=0, dataType=0, decrypted=False):
+        self.server.writeLog(data=data, connectionID=self.id, prio=prio, dataType=dataType, decrypted=decrypted)
 
     def logStatus(self):
         self.writeLog("Status:")

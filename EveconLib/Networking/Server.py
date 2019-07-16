@@ -83,23 +83,27 @@ class Server(threading.Thread):
         self.exit()
         EveconLib.Tools.UsedPorts.remPort(self.port)
 
-    def writeLog(self, data, connectionID=-1, prio=0, dataType=0):
+    def writeLog(self, data, connectionID=-1, prio=0, dataType=0, decrypted=False):
         if connectionID == -1:
             prefix = "Server"
         else:
             prefix = "ConnectionHandler (%s)" % connectionID
-        if dataType == -1:
-            prefixx = "Recieved: "
-        elif dataType == 1:
-            prefixx = "Sent: "
-        elif dataType == 2:
-            prefixx = "Sent (unencodable): "
-        elif dataType == 3:
-            prefixx = "Sent (long): "
-        elif dataType == 5:
-            prefixx = "Sent (long, unencodable): "
+        if decrypted:
+            decrypted = "Decryptedly "
         else:
-            prefixx = ""
+            decrypted = ""  # Not Decryptedly
+        if dataType == -1:
+            prefixx = decrypted + "Recieved: "
+        elif dataType == 1:
+            prefixx = decrypted + "Sent: "
+        elif dataType == 2:
+            prefixx = decrypted + "Sent (unencodable): "
+        elif dataType == 3:
+            prefixx = decrypted + "Sent (long): "
+        elif dataType == 5:
+            prefixx = decrypted + "Sent (long, unencodable): "
+        else:
+            prefixx = decrypted
 
         try:
             # noinspection PyTypeChecker

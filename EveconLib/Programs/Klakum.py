@@ -1,4 +1,5 @@
 import EveconLib.Networking.Client
+import time
 
 class RelayC:
     def __init__(self, myid, connection):
@@ -7,16 +8,16 @@ class RelayC:
         self.value = None
 
     def refresh(self):
-        if self.connetion.Connected:
+        if self.connetion.status == 2 or self.connetion.status == 3:
             self.connetion.send("relay_" + str(self.id) + "_get")
 
     def set(self, value):
-        if self.connetion.Connected:
+        if self.connetion.status == 2 or self.connetion.status == 3:
             self.value = value
             self.connetion.send("relay_" + str(self.id) + "_set_" + str(value))
 
     def switch(self):
-        if self.connetion.Connected:
+        if self.connetion.status == 2 or self.connetion.status == 3:
             self.connetion.send("relay_" + str(self.id) + "_switch")
 
 
@@ -26,7 +27,7 @@ class SRelayC:
         self.connetion = connection
 
     def switch(self):
-        if self.connetion.Connected:
+        if self.connetion.status == 2 or self.connetion.status == 3:
             self.connetion.send("srelay_" + str(self.id) + "_switch")
 
 
@@ -47,7 +48,7 @@ def react(msg):
 def connect():
     if not Started:
         startup()
-    global Connected
+    global Connected, connection
     if not Connected:
         connection.start()
         while not connection.running:
@@ -83,7 +84,7 @@ def refresh():
 
 def startup():
     global connection, relays, srelays
-    connection = EveconLib.Networking.Client(ip="192.168.2.107", port=1007, react=react)
+    connection = EveconLib.Networking.Client(ip="192.168.2.107", port=2343, react=react)
     relays = [RelayC(0, connection), RelayC(1, connection), RelayC(2, connection),
               RelayC(3, connection), RelayC(4, connection), RelayC(5, connection),
               RelayC(6, connection)]

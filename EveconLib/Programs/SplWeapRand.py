@@ -1,4 +1,5 @@
 import random
+import time
 import json
 
 import EveconLib.Config
@@ -94,8 +95,9 @@ class SplWeapRand:
                              "Tenta Sorella Brella", "Undercover Brella", "Undercover Sorella Brella"]
                         }
 
-        with open(self.file) as jsonfile:
-            self.weapons = json.load(jsonfile)
+        if EveconLib.Config.validEnv:
+            with open(self.file) as jsonfile:
+                self.weapons = json.load(jsonfile)
 
         self.lang = weaponlang
         self.RUN = True

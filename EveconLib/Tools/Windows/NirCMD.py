@@ -1,5 +1,6 @@
 import os
 import subprocess
+import time
 
 def setsize(length=995, width=521, x=100, y=100):
     dir_tmp = os.getcwd()

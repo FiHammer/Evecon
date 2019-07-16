@@ -28,18 +28,19 @@ class GlobalMPports:
 
         else:
             if os.path.exists(EveconLib.Config.tmpPath + EveconLib.Config.path_seg + self.file):
-                with open(EveconLib.Config.tmpPath + EveconLib.Config.path_seg + self.file) as file:
-                    lines = file.readlines()
-                    for x in range(len(lines)):
-                        if x == 0: # first Line
-                            self.programs = int(lines[x].rstrip())
-                        else:
-                            try:
-                                int(x)
-                                self.ports.append(lines[x].rstrip())
-                            except ValueError:
-                                self.resetFile()
-                                break
+                if EveconLib.Config.validEnv:
+                    with open(EveconLib.Config.tmpPath + EveconLib.Config.path_seg + self.file) as file:
+                        lines = file.readlines()
+                        for x in range(len(lines)):
+                            if x == 0: # first Line
+                                self.programs = int(lines[x].rstrip())
+                            else:
+                                try:
+                                    int(x)
+                                    self.ports.append(lines[x].rstrip())
+                                except ValueError:
+                                    self.resetFile()
+                                    break
             else:
                 self.resetFile()
 
@@ -57,34 +58,37 @@ class GlobalMPports:
             self.resetFile()
 
         else:
-            with open(EveconLib.Config.tmpPath + EveconLib.Config.path_seg + self.file) as file:
-                lines = file.readlines()
-                for x in range(len(lines)):
-                    if x == 0: # first Line
-                        self.programs = int(lines[x].rstrip())
-                    else:
-                        try:
-                            int(x)
-                            self.ports.append(lines[x].rstrip())
-                        except ValueError:
-                            self.resetFile()
-                            break
-            if len(self.ports) < self.programs:
-                self.resetFile()
+            if EveconLib.Config.validEnv:
+                with open(EveconLib.Config.tmpPath + EveconLib.Config.path_seg + self.file) as file:
+                    lines = file.readlines()
+                    for x in range(len(lines)):
+                        if x == 0: # first Line
+                            self.programs = int(lines[x].rstrip())
+                        else:
+                            try:
+                                int(x)
+                                self.ports.append(lines[x].rstrip())
+                            except ValueError:
+                                self.resetFile()
+                                break
+                if len(self.ports) < self.programs:
+                    self.resetFile()
 
     def writeFile(self):
-        with open(EveconLib.Config.tmpPath + EveconLib.Config.path_seg + self.file, "w") as file:
-            for x in range(len(self.ports) + 1):
-                if x == 0:
-                    file.write(str(self.programs) + "\n")
-                elif x == len(self.ports):
-                    file.write(self.ports[x - 1])
-                else:
-                    file.write(self.ports[x - 1] + "\n")
+        if EveconLib.Config.validEnv:
+            with open(EveconLib.Config.tmpPath + EveconLib.Config.path_seg + self.file, "w") as file:
+                for x in range(len(self.ports) + 1):
+                    if x == 0:
+                        file.write(str(self.programs) + "\n")
+                    elif x == len(self.ports):
+                        file.write(self.ports[x - 1])
+                    else:
+                        file.write(self.ports[x - 1] + "\n")
     def resetFile(self):
         self.programs = 0
-        with open(EveconLib.Config.tmpPath + EveconLib.Config.path_seg + self.file, "w") as file:
-            file.write(str(self.programs))
+        if EveconLib.Config.validEnv:
+            with open(EveconLib.Config.tmpPath + EveconLib.Config.path_seg + self.file, "w") as file:
+                file.write(str(self.programs))
 
     def addPort(self, port):
         if EveconLib.Tools.Tools.Search(str(port), self.ports):

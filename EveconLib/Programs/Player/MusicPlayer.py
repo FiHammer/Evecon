@@ -2123,7 +2123,7 @@ class MusicPlayer(threading.Thread):
             return False
         return True
 
-    def react_remote(self, i, java=False):
+    def react_remote(self, i, conId=0, java=False):
         if isinstance(i, tuple):
             self.remoteAddress = i[0]
         elif i is None:

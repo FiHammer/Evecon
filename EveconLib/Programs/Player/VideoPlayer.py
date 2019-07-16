@@ -1,3 +1,6 @@
+import pyglet
+import os
+
 class VideoPlayer:
     def __init__(self, filepath, subtitle=True):
         self.player = pyglet.media.Player()
@@ -20,11 +23,12 @@ class VideoPlayer:
             pass  # parse subtitle here
 
         self.win = pyglet.window.Window(resizable=True)
+
         self.win.set_visible(False)
 
         @self.win.event
         def on_draw():
-            self.player.get_texture().blit(0, 0)
+            self.player.get_texture().blit(self.win.width/2 - self.vid.video_format.width/2, self.win.height/2 - self.vid.video_format.height/2)
 
         @self.win.event
         def on_close():
@@ -34,3 +38,8 @@ class VideoPlayer:
         self.win.set_visible(True)
         self.player.play()
         pyglet.app.run()
+    def exit(self):
+        self.player.delete()
+        self.win.close()
+
+        pyglet.app.exit()

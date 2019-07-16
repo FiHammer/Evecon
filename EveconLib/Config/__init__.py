@@ -3,6 +3,7 @@ from EveconLib.Config.EveconVar import *
 
 
 loadFull = False
+suppressErros = False
 
 # startup
 import configparser
@@ -31,6 +32,11 @@ def testEnv():
         return True
     else:
         validEnv = False
+
+        if suppressErros:
+            print("Invalid Enviroment!")
+        else:
+            input("Invalid Enviroment!\nYou can go on (Enter), but something could happen")
         return False
 
 
@@ -61,8 +67,11 @@ def readConfig():
         firefox_path = config["Browser"]["firefox_path"]
         vivaldi_path = config["Browser"]["vivaldi_path"]
     except KeyError:
-        input("Config Error something crashed!\nYou can go on (Enter), but something could happen")
-        pass
+        if suppressErros:
+            print("Config Error something crashed!")
+        else:
+            input("Config Error something crashed!\nYou can go on (Enter), but something could happen")
+
 
 if os.path.exists("!Console.py") and os.path.exists("EveconLib"):
     myType = "python_file"
