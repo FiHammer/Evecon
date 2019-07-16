@@ -25,8 +25,6 @@ cores = 2
 console_data = {"lenx": 120, "leny": 30, "posx": 0, "posy": 0, "pixx": 120, "pixy": 30}
 thisHWND = 0
 
-alwaysPrintLog = True
-
 myType = "" # type of the console: python_file, standalone_exe, lib_exe
 
 title_oldstatus = "Loading"

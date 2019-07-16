@@ -4,6 +4,7 @@ import subprocess
 import datetime
 import sys
 import time
+import threading
 
 WORK = True
 
@@ -316,12 +317,27 @@ def upgrade():
         shutil.copytree("!Evecon\\dev\\dist\\!Console", "!Evecon\\!Console")
         shutil.copy("!Evecon\\dev\\dll\\avbin64.dll", "!Evecon\\!Console")
 
+        t = threading.Thread(target=makeSingleFile)
+        t.start()
+
         upload()
+        t.join()
 
     # 2. Changelog und neue version abfragen mit alte zeigen (version) 3. backup 4. os.system("pyinstaller x") 5. kopieren 6. neustart wenn mit arg -re mit !Evecon.bat
     else:
         print("Only at a PC with PyInstaller!")
         time.sleep(3)
+
+def makeSingleFile():
+    if os.path.exists("!Evecon\\dev\\dist\\!Console.exe"):
+        os.remove("!Evecon\\dev\\dist\\!Console.exe")
+    d = os.getcwd()
+    os.chdir("!Evecon\\dev")
+    subprocess.call(["pyinstaller.exe", "!Console.py", "--onefile"])
+    time.sleep(1)
+    os.chdir(d)
+
+    shutil.move("!Evecon\\dev\\dist\\!Console.exe", "!Evecon\\Exe\\!Console-%s.exe" % this_version[1])
 
 
 skiparg = []
@@ -373,6 +389,8 @@ def main():
         zipme()
     elif user_input.lower() == "down":
         downloadUpdate() # latest
+    elif user_input.lower() == "onefile":
+        makeSingleFile()
 
 
 if EveconLib.Config.exitnow == 0:

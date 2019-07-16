@@ -3,7 +3,11 @@ from EveconLib.Config.EveconVar import *
 
 
 loadFull = False
+
+# user debug config
 suppressErros = False
+alwaysPrintLog = False
+
 
 # startup
 import configparser
