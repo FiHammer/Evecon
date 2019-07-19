@@ -17,7 +17,10 @@ class Browser:
         splitted = self.path.split(EveconLib.Config.path_seg)
 
         for x in range(len(splitted) - 1):  # -1 because last ignore
-            self.path_dir += EveconLib.Config.path_seg + splitted[x]
+            if x == 0 and sys.platform == "win32":
+                self.path_dir = splitted[x]
+            else:
+                self.path_dir += EveconLib.Config.path_seg + splitted[x]
 
         self.name = self.path.split(EveconLib.Config.path_seg)[-1]
         if self.name in (p.name() for p in psutil.process_iter()):

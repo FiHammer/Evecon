@@ -40,7 +40,7 @@ def readFile():
                     programs = int(lines[x].rstrip())
                 else:
                     try:
-                        int(x)
+                        int(x)  # throws exception
                         ports.append(lines[x].rstrip())
                     except ValueError:
                         resetFile()
@@ -121,7 +121,11 @@ def givePort(port=4000):
     return port
 
 def startup():
-    global evecon, python, programs
+    global evecon, python, programs, ports
+    ports = []
+    programs = 0
+    python = 0
+    evecon = 0
 
     if not os.path.exists(EveconLib.Config.usedPortsFile):
         return
@@ -151,5 +155,3 @@ def startup():
         else:
             resetFile()
 
-
-#startup() #now in global startup file

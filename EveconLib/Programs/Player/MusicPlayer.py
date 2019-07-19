@@ -72,6 +72,7 @@ class MusicPlayer(threading.Thread):
         self.timer = EveconLib.Tools.Timer()
         self.scanner = EveconLib.Programs.Scanner(self.react)
         self.spl = EveconLib.Programs.SplWeapRand()
+        self.rhy = EveconLib.Games.Rhythm.Game()
 
         self.skip_del = False
         self.paused = False
@@ -486,7 +487,7 @@ class MusicPlayer(threading.Thread):
         self.cur_Input = ""
         self.cur_Pos = 0
         self.change = ""
-        self.notifications = []
+        self.notifications = [] # realy?
 
     def reloadMusic(self, tracknum):
         if type(tracknum) == int:
@@ -1411,7 +1412,8 @@ class MusicPlayer(threading.Thread):
         elif self.con_main == "spl":
             outputList += self.spl.returnmain()
             # self.spl.printit(False)
-
+        elif self.con_main == "rhy":
+            outputList += self.rhy.getPrint()
 
         elif self.con_main == "search":
             # outputList.append(self.searchlist)
@@ -2056,11 +2058,11 @@ class MusicPlayer(threading.Thread):
             self.rerollThis()
         elif i == "exin":
             self.exitn = True
-        elif i == "dea":
+        elif i == "dea" and (self.con_main == "pl" or self.con_main == "search"):
             self.con_main_last = self.con_main
             self.con_main = "details"
             self.con_cont = "cont"
-        elif i == "info":
+        elif i == "info" and (self.con_main == "pl" or self.con_main == "search"):
             self.con_main_last = self.con_main
             self.con_main = "info"
             self.con_cont = "cont"
@@ -2101,8 +2103,10 @@ class MusicPlayer(threading.Thread):
 
         elif i == "spl":
             if self.con_main == "spl":
+                self.con_main_last = self.con_main
                 self.con_main = "pl"
             else:
+                self.con_main_last = self.con_main
                 self.con_main = "spl"
 
         elif EveconLib.Tools.lsame(i, "sp") and not i == "sp" and self.con_main == "spl":
@@ -2118,6 +2122,18 @@ class MusicPlayer(threading.Thread):
                 self.spl.WRreroll()
             else:
                 return False
+
+        elif i == "rhy":
+            if self.con_main == "rhy":
+                self.con_main_last = self.con_main
+                self.con_main = "pl"
+            else:
+                self.con_main_last = self.con_main
+                self.con_main = "rhy"
+
+        elif self.con_main == "rhy":
+            self.rhy.newPress()
+
 
         else:
             return False

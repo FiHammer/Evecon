@@ -30,6 +30,7 @@ def refreshVersion():
 
 validEnv = False
 def testEnv():
+    global validEnv
     #print(os.path.exists(usedPortsFile), os.path.exists(backupMusicFile))
     if os.path.exists(usedPortsFile) and os.path.exists(backupMusicFile):
         validEnv = True
