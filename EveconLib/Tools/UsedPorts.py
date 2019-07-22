@@ -154,4 +154,3 @@ def startup():
                             break
         else:
             resetFile()
-

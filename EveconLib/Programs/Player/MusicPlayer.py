@@ -146,12 +146,12 @@ class MusicPlayer(threading.Thread):
                 self.find_music_out["all_files"] += 1
 
                 me = EveconLib.Tools.MusicEncode(file)
-                if me:
+                if me["valid"] and not me["noBrack"]:
                     antype = True
                     andata = me
                 else:
                     antype = False
-                    andata = None
+                    andata = me # oops
 
                 self.music["file" + str(self.music["all_files"])] = {"name": name, "file": file, "path": path,
                                                                      "fullname": fullname,
@@ -1348,9 +1348,11 @@ class MusicPlayer(threading.Thread):
                     "Interpreter: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["interpreter"]))
                 outputList.append("Musictype: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["musictype"]))
                 outputList.append("Animename: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeName"]))
-                outputList.append("Season: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeSeason"]))
-                outputList.append("Type: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeType"]) +
-                                  str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeTypeNum"]))
+                if self.music[self.playlist[self.cur_Pos]]["andata"].get("animeSeason"):
+                    outputList.append("Season: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeSeason"]))
+                if self.music[self.playlist[self.cur_Pos]]["andata"].get("animeType"):
+                    outputList.append("Type: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeType"]) +
+                                      str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeTypeNum"]))
 
             outputList.append("Filename: " + self.music[self.playlist[self.cur_Pos]]["name"])
             outputList.append("Album: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.album.decode())
@@ -1361,8 +1363,6 @@ class MusicPlayer(threading.Thread):
             outputList.append("Title: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.title.decode())
             outputList.append("Track: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.track))
             outputList.append("Year: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.year))
-
-
 
         elif self.con_main == "info":
             outputList.append("Infos:\n")

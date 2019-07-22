@@ -7,6 +7,7 @@ import subprocess
 
 def cls():
     if sys.platform == "win32":
+        #pass
         os.system("cls")
 
 class ddbug(threading.Thread):
@@ -836,7 +837,7 @@ def randompw(returnpw=False, length=150, printpw=True, exclude=None):
         input()
 
 
-
+"""
 def MusicEncode(musicname):
     if MusicType(musicname):
         name = musicname.rstrip("." + MusicType(musicname, True))
@@ -913,6 +914,159 @@ def MusicEncode(musicname):
     output = {"title": title, "interpreter": interpreter, "musictype": musictype, "animeName": animeName,
               "animeSeason": animeSeason, "animeType": animeType, "animeTypeNum": animeTypeNum}
     return output
+"""
+
+def MusicEncode(fileName: str):
+    """
+    output:
+    dictionary with the keyword:
+        title, interpreter, musictype, animeName, animeSeason, animeType, animeTypeNum
+        valid, validAnime, noBrack
+
+    :param fileName:
+    :return: dict
+    """
+
+    output = {}
+
+    x = MusicType(fileName, exact=True)
+    if x:
+        fileName = fileName.rstrip(x).rstrip(".")
+
+    # getting possible positions
+
+    find_by = SearchStr(" by ", fileName, exact=True)
+    find_From = SearchStr(" (From ", fileName, exact=True)
+    find_BrackClose =SearchStr(") - ", fileName, exact=True)
+
+    by_pos = -1
+    from_pos = -1
+    brackClose_pos = -1
+
+    # finding right positions
+
+    if len(find_by) == 0:
+        by_pos = -1  # not exisisting
+    elif len(find_by) == 1:
+        by_pos = find_by[0]
+    else:  # more uses
+        if len(find_From) == 1:
+            if find_From[0] <= find_by[0]:
+                by_pos = -1  # can not be after From
+
+            elif find_From[0] > find_by[-1]:
+                by_pos = find_by[-1]
+
+            else: # between the bys
+                for x in range(len(find_by)):
+                    if find_by[x] < find_From[0]:
+                        continue
+                    else:
+                        by_pos = find_by[x - 1]
+                        break
+        else:
+            by_pos = -1
+
+    if len(find_From) == 0 or len(find_BrackClose) == 0:
+        from_pos = -1
+        brackClose_pos = -1
+    elif len(find_From) == 1:
+        from_pos = find_From[0]
+        if find_BrackClose[-1] > from_pos:
+            for aPos in find_BrackClose:
+                if aPos > from_pos:
+                    brackClose_pos = aPos
+                    break
+        else:
+            brackClose_pos = -1
+
+    else:
+        if find_BrackClose[-1] > find_From[0]:
+            for x in range(len(find_From), 0, -1):
+                if find_From[x] < find_BrackClose[-1]:
+                    # should validate content
+                    from_pos = find_From[x]
+                    brackClose_pos = find_BrackClose[-1]
+                    break
+        else:
+            from_pos = -1
+            brackClose_pos = -1
+
+    # validating positions
+
+    if from_pos + brackClose_pos == -2 and 0 < by_pos:
+        output["noBrack"] = True
+        output["valid"] = True
+    else:
+        output["noBrack"] = False
+
+        if 0 < by_pos < from_pos < brackClose_pos:
+            output["valid"] = True
+        else:
+            output["valid"] = False
+            return output
+
+
+    if output["noBrack"]:  # only title + interpreter
+        output["title"] = getPartStr(fileName, 0, by_pos)
+        output["interpreter"] = getPartStr(fileName, by_pos + 4, len(fileName))
+
+        output["valid"] = False # only for tmp purpose!
+        return output
+    else:
+        output["title"] = getPartStr(fileName, 0, by_pos)
+        output["interpreter"] = getPartStr(fileName, by_pos + 4, from_pos)
+        output["musictype"] = getPartStr(fileName, brackClose_pos + 4, len(fileName))
+        # inner bracket stuff
+
+        brackStr = getPartStr(fileName, from_pos + 7, brackClose_pos)
+
+        spaceParts = brackStr.split(" ")
+
+        done = {"S": False, "Type": False}
+        possibleParts = len(done)
+        #print(fileName, spaceParts)
+        if len(spaceParts) > 1:
+            for stringPart in range(1, possibleParts+1):
+                if lsame(spaceParts[-stringPart], "S", exact=True) and not done["S"]:
+                    try:
+                        output["animeSeason"] = int(spaceParts[-stringPart].lstrip("S"))
+                        done["S"] = True
+                    except ValueError:
+                        pass
+                elif lsame(spaceParts[-stringPart], "OP", exact=True) and not done["Type"]:
+                    try:
+                        output["animeTypeNum"] = int(spaceParts[-stringPart].lstrip("OP"))
+                        output["animeType"] = "OP"
+                        done["Type"] = True
+                    except ValueError:
+                        pass
+                elif lsame(spaceParts[-stringPart], "EN", exact=True) and not done["Type"]:
+                    try:
+                        output["animeTypeNum"] = int(spaceParts[-stringPart].lstrip("EN"))
+                        output["animeType"] = "EN"
+                        done["Type"] = True
+                    except ValueError:
+                        pass
+                elif lsame(spaceParts[-stringPart], "OST", exact=True) and not done["Type"]:
+                    try:
+                        output["animeTypeNum"] = int(spaceParts[-stringPart].lstrip("OST"))
+                        output["animeType"] = "OST"
+                        done["Type"] = True
+                    except ValueError:
+                        pass
+        else:
+            pass
+
+        for x in done:
+            if done[x]:
+                del spaceParts[-1]
+
+        output["animeName"] = ""
+        for part in spaceParts:
+            output["animeName"] += part + " "
+        output["animeName"].rstrip()
+        return output
 
 def killme():
     subprocess.call(["taskkill", "/F", "/PID", str(os.getpid())])
