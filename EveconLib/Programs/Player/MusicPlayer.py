@@ -1847,15 +1847,15 @@ class MusicPlayer(threading.Thread):
             if not done:
                 self.cur_Pos -= 1
 
-        elif inp == "arrowdown" and self.cur_Pos < len(self.playlist) - 1 and self.searching:
+        elif inp == "arrowdown" and self.cur_Pos < len(self.searchlist) - 1 and self.searching:
             done = False
             for aS in self.arrowSetting:
                 if aS[0] < mulPress < aS[1] != -1 and not done or aS[0] < mulPress and aS[1] == -1 and not done:
                     done = True
-                    if self.cur_Pos + aS[2] <= len(self.playlist) - 1:
+                    if self.cur_Pos + aS[2] <= len(self.searchlist) - 1:
                         self.cur_Pos += aS[2]
                     else:
-                        self.cur_Pos = len(self.playlist) - 1
+                        self.cur_Pos = len(self.searchlist) - 1
                     break
             if not done:
                 self.cur_Pos += 1
