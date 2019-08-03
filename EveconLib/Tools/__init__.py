@@ -10,8 +10,10 @@ from EveconLib.Tools.GlobalMPports import GlobalMPports
 
 import EveconLib.Tools.PCTools
 
+from EveconLib.Tools.MPlayer import MPlayer
+from EveconLib.Tools.SZip import SZip
+
 if sys.platform == "win32":
     import EveconLib.Tools.Windows
-
-    from EveconLib.Tools.MPlayer import MPlayer
-    from EveconLib.Tools.SZip import SZip
+elif sys.platform == "linux": # DUMMY WARE
+    import EveconLib.Tools.WindowsDummy

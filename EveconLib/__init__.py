@@ -8,7 +8,6 @@ if sys.platform == "win32":
 else:
     path_seg = "/"
 
-print(os.getcwd())
 
 if os.getcwd() == "C:\\Users\\Mini-Pc Nutzer.000\\Desktop\\Evecon\\!Evecon\\dev":
     os.chdir("..")
@@ -23,14 +22,11 @@ elif os.getcwd().split(path_seg)[-2] == "!Evecon":
         os.chdir("..")
 del path_seg
 
-print(os.getcwd())
-input()
-
+import EveconLib.Tools
+import EveconLib.Programs
 import EveconLib.Config
 import EveconLib.Games
 import EveconLib.Networking
-import EveconLib.Programs
-import EveconLib.Tools
 
 import EveconLib.EveconExceptions
 

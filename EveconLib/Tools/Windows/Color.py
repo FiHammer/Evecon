@@ -32,6 +32,7 @@ def decode(background, foreground, printit=False):
 
 
 def change( code):
+    global CurColor
     CurColor = code
     # subprocess.call(["color", code])
     os.system("color " + code)
@@ -45,6 +46,7 @@ def switch():
 
 
 def Man():
+    global CurColor
     EveconLib.Tools.Tools.cls()
     print("Color change")
     print("First is background")
