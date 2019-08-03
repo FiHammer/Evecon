@@ -9,7 +9,8 @@ def cls():
     if sys.platform == "win32":
         #pass
         os.system("cls")
-
+    elif sys.platform == "linux":
+        os.system("clear")
 class ddbug(threading.Thread):
     def __init__(self):
         super().__init__()
@@ -799,7 +800,7 @@ def getPartStrToStr(word: str, endkey: str, beginkey="", exact=False):
     return part
 
 
-def randompw(returnpw=False, length=150, printpw=True, exclude=None):
+def randompw(returnpw=False, length=150, printpw=True, exclude=None, noAscii=False):
     """
 
     :param returnpw:
@@ -816,11 +817,16 @@ def randompw(returnpw=False, length=150, printpw=True, exclude=None):
              "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "!",
              "§", "$", "%", "&", "/", "(", ")", "=", "?", "ß", "#", "'", "+", "*", "~", "ü", "ö", "ä", "-", "_", ".",
              ":", ",", ";", "{", "[", "]", "}", ">", "<", "|"]
-
+    
+    if noAscii:
+        exclude += ["!", "§", "$", "%", "&", "/", "(", ")", "=", "?", "ß", "#", "'", "+", "*", "~", "ü", "ö", "ä", "-", "_", ".",
+             ":", ",", ";", "{", "[", "]", "}", ">", "<", "|"]
+    
     for x in exclude:
-        for y in range(len(listx) - 1):
+        for y in range(len(listx)):
             if x == listx[y]:
                 del listx[y]
+                break
 
     pw = ""
 

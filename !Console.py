@@ -40,14 +40,15 @@ EveconLib.Config.loadFull = True
 title = EveconLib.Tools.title
 ttime = EveconLib.Config.title_time
 exit_now = EveconLib.Tools.exit_now
-balloon_tip = EveconLib.Tools.Windows.BalloonTip
+if sys.platform == "win32":
+    balloon_tip = EveconLib.Tools.Windows.BalloonTip
+    color = EveconLib.Tools.Windows.Color
 path_seg = EveconLib.Config.path_seg
 cls = EveconLib.Tools.cls
 TimerC = EveconLib.Tools.Timer
 
 foxi = EveconLib.Programs.Flapi.Foxi
 nhee = EveconLib.Programs.Flapi.Nhee
-color = EveconLib.Tools.Windows.Color
 
 ttime.start()
 title("Load first Programs")

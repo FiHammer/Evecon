@@ -163,8 +163,9 @@ else:
     browser = EveconLib.Tools.Browser.Firefox()
 
 pageurl = ""
-
-if EveconLib.Config.enable_FoxNhe:
+import os
+print(os.getcwd())
+if EveconLib.Config.enable_FoxNhe and EveconLib.Config.validEnv:
     with open(EveconLib.Config.nheeDir + "website.txt") as file:
         pageurl = file.readline().rstrip()
 

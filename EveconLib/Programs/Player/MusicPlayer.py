@@ -993,7 +993,7 @@ class MusicPlayer(threading.Thread):
                     #    self.splmp.TimeLeftStart += time.time() - music_time_wait
 
             self.timer.reset()
-            self.player.next()
+            self.player.next_source()
 
             if self.skip_del:
                 self.skip_del = False
