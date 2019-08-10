@@ -2216,6 +2216,7 @@ class MusicPlayer(threading.Thread):
                 self.con_main_last = self.con_main
                 self.con_main = "pl"
             else:
+                self.rhy.start()
                 self.con_main_last = self.con_main
                 self.con_main = "rhy"
 

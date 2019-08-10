@@ -25,9 +25,14 @@ class Game:
 
     def getPrint(self, lastPresses=5):
         out = []
-        if lastPresses > len(self.lastPresses):
-            lastPresses = len(self.lastPresses)
-        for index in range(lastPresses):
+        if lastPresses < 0:
+            return out
+
+        lastPresses = len(self.lastPresses) - lastPresses
+        if lastPresses < 0:
+            lastPresses = 0
+
+        for index in range(lastPresses, len(self.lastPresses)):
             out.append(self.lastPresses[index])
         return out
 
