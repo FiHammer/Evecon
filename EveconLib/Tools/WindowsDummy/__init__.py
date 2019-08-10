@@ -4,3 +4,5 @@ from EveconLib.Tools.WindowsDummy.WindowBalloonTip import balloon_tip as Balloon
 from EveconLib.Tools.WindowsDummy.SysTray import SysTray
 from EveconLib.Tools.WindowsDummy.MegaCMD import MegaCMD
 import EveconLib.Tools.WindowsDummy.Color
+from EveconLib.Tools.WindowsDummy.MPlayer import MPlayer
+from EveconLib.Tools.WindowsDummy.SZip import SZip

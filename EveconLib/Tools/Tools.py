@@ -816,6 +816,7 @@ def randompw(returnpw=False, length=150, printpw=True, exclude=None, noAscii=Fal
     :param length:
     :param printpw:
     :param exclude:
+    :param noAscii: no use of ascii
     :return:
     :rtype: str
     """

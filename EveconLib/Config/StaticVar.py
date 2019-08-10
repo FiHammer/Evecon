@@ -7,7 +7,7 @@ else:
 firefox_path = "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
 vivaldi_path = "C:\\Program Files (x86)\\Vivaldi\\Application\\vivaldi.exe"
 
-code_version = "0.9.9.1"
+code_version = "0.9.9.2"
 
 ss_active = False
 exitnow = 0

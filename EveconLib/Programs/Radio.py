@@ -10,7 +10,7 @@ class Radio:
         self.streamrun = True
         self.streamvolume = EveconLib.Tools.Windows.Volume.getVolume()
 
-        self.streamplayer = EveconLib.Tools.MPlayer("Programs\\MPlayer")
+        self.streamplayer = EveconLib.Tools.Windows.MPlayer("Programs\\MPlayer")
 
         self.streamPrintOth = False
         self.streamPrintCh = False

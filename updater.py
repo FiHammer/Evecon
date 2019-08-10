@@ -4,7 +4,6 @@ import subprocess
 import datetime
 import sys
 import time
-import threading
 
 WORK = True
 
@@ -22,7 +21,7 @@ else:
 import EveconLib
 
 Megacmd = EveconLib.Tools.Windows.MegaCMD
-szip = EveconLib.Tools.SZip
+szip = EveconLib.Tools.Windows.SZip
 title = EveconLib.Tools.title
 exit_now = EveconLib.Tools.exit_now
 this_version = EveconLib.Config.file_versions
@@ -317,11 +316,10 @@ def upgrade():
         shutil.copytree("!Evecon\\dev\\dist\\!Console", "!Evecon\\!Console")
         shutil.copy("!Evecon\\dev\\dll\\avbin64.dll", "!Evecon\\!Console")
 
-        t = threading.Thread(target=makeSingleFile)
-        t.start()
 
         upload()
-        t.join()
+        makeSingleFile()
+
 
     # 2. Changelog und neue version abfragen mit alte zeigen (version) 3. backup 4. os.system("pyinstaller x") 5. kopieren 6. neustart wenn mit arg -re mit !Evecon.bat
     else:
@@ -329,6 +327,7 @@ def upgrade():
         time.sleep(3)
 
 def makeSingleFile():
+    title("Upgrade", "Singelfile")
     if os.path.exists("!Evecon\\dev\\dist\\!Console.exe"):
         os.remove("!Evecon\\dev\\dist\\!Console.exe")
     d = os.getcwd()
@@ -385,7 +384,7 @@ def main():
         upgrade()
     elif user_input.lower() == "in":
         install(input("ZipFile:\n"))
-    elif user_input.lower() == "zip":
+    elif user_input.lower() == "zip" or user_input.lower() == "zipme":
         zipme()
     elif user_input.lower() == "down":
         downloadUpdate() # latest
