@@ -18,7 +18,7 @@ from queue import Queue as queue_Queue
 # noinspection PyTypeChecker
 class MusicPlayer(threading.Thread):
     def __init__(self, systray=True, random=True, expandRange=2, stop_del=False, scanner_active=True, balloonTip=True,
-                 killMeAfterEnd=True, remote=True, remotePort=4554, selfprint=False, specialFilePath=None):
+                 killMeAfterEnd=True, remote=True, remotePort=4554, selfprint=False, specialFilePath=None, neverPrint=False):
         super().__init__()
 
         self.debug = False
@@ -33,6 +33,7 @@ class MusicPlayer(threading.Thread):
         self.remote = True
         self.remotePort = remotePort
         self.selfprint = selfprint
+        self.neverPrint = neverPrint
 
         self.remoteAddress = ""
         self.remoteAction = ""
@@ -106,6 +107,8 @@ class MusicPlayer(threading.Thread):
         self.tmp_pl_output_1 = []
         self.tmp_pl_output_2 = []
 
+        self.musicKeysLeft = []
+
         self.lastPresses = [0, time.time(), "None"]
 
         self.musiclist = {"names": []}
@@ -116,7 +119,7 @@ class MusicPlayer(threading.Thread):
         self.musicFileEditor = EveconLib.Programs.Player.MusicFileEditor(specialFilePath)
 
 
-    def findMusic(self, path, reset=True):
+    def findMusic(self, path, reset=True, key="cus"):
         if reset:
             self.find_music_out = {"all_files": 0, "all_dirs": 0}
         content = []
@@ -125,14 +128,14 @@ class MusicPlayer(threading.Thread):
             fullname = path + EveconLib.Config.path_seg + file
             if os.path.isdir(path + EveconLib.Config.path_seg + file):
                 self.music["all_dirs"] += 1
-                self.music["dir" + str(self.music["all_dirs"])] = {"file": file, "path": path, "fullname": fullname}
+                self.music["dir" + str(self.music["all_dirs"])] = {"file": file, "path": path, "fullname": fullname, "key": key}
 
                 thisDirID = self.music["all_dirs"]
 
                 self.find_music_out["all_dirs"] += 1
                 self.find_music_out["dir" + str(self.music["all_dirs"])] = {"file": file, "path": path,
-                                                                            "fullname": fullname}
-                dir_content = self.findMusic(fullname, False)
+                                                                            "fullname": fullname, "key": key}
+                dir_content = self.findMusic(fullname, False, key=key)
 
                 self.music["dir" + str(thisDirID)]["content"] = dir_content
                 self.find_music_out["dir" + str(thisDirID)]["content"] = dir_content
@@ -155,11 +158,11 @@ class MusicPlayer(threading.Thread):
 
                 self.music["file" + str(self.music["all_files"])] = {"name": name, "file": file, "path": path,
                                                                      "fullname": fullname,
-                                                                     "antype": antype, "andata": andata}
+                                                                     "antype": antype, "andata": andata, "key": key}
 
                 self.find_music_out["file" + str(self.music["all_files"])] = {"name": name, "file": file, "path": path,
                                                                               "fullname": fullname,
-                                                                              "antype": antype, "andata": andata}
+                                                                              "antype": antype, "andata": andata, "key": key}
 
                 content.append("file" + str(self.music["all_files"]))  # ID of FILE
 
@@ -182,7 +185,7 @@ class MusicPlayer(threading.Thread):
         if noList and type(key) == str:
             if EveconLib.Tools.Search(key, self.musiclist["keys"], exact=True):
                 return False
-        if printStaMSG:
+        if printStaMSG and not self.neverPrint:
             EveconLib.Tools.cls()
             if EveconLib.Config.computer == "MiniPC":
                 print("Loading... (On Mini-PC)")
@@ -219,7 +222,7 @@ class MusicPlayer(threading.Thread):
         if type(key) == str:
             for x in self.musiclist["keys"]:
                 if x == key:
-                    self.findMusic(self.musicDir + EveconLib.Config.path_seg + self.musiclist[key]["path"])
+                    self.findMusic(self.musicDir + EveconLib.Config.path_seg + self.musiclist[key]["path"], key=key)
                     done = True
                     break
         elif type(key) == list:
@@ -233,9 +236,9 @@ class MusicPlayer(threading.Thread):
         if done:
             pass
         elif key == "us":
-            self.findMusic("Music" + EveconLib.Config.path_seg + "User")
+            self.findMusic("Music" + EveconLib.Config.path_seg + "User", key=key)
         elif key == "cus" and cusPath:  # cusPath
-            self.findMusic(cusPath)
+            self.findMusic(cusPath, key=key)
         elif key == "all":
             for x in self.musiclist["keys"]:
                 self.addMusic(x, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
@@ -300,7 +303,7 @@ class MusicPlayer(threading.Thread):
 
         # self.music_playlists_active.append(key)
         self.music["active"].append(key)
-        if printEndMSG:
+        if printEndMSG and not self.neverPrint:
             print("Finished: " + key)
         if makeNoti:
             self.notificate(key.title(), title="Finished loading", screentime=2.5)
@@ -708,10 +711,11 @@ class MusicPlayer(threading.Thread):
         self.scanner.running = False
 
         if self.remote:
-            self.server.close_connection()
+            self.server.exit()
+            #self.server.close_connection()
             self.server_java.stop()
             try:
-                EveconLib.Config.globalMPports.remPort(self.server.port)
+                #EveconLib.Config.globalMPports.remPort(self.server.port)
                 EveconLib.Config.globalMPportsJava.remPort(self.server_java.port)
             except AttributeError:
                 pass
@@ -721,7 +725,7 @@ class MusicPlayer(threading.Thread):
 
     def __del__(self):
         try:
-            EveconLib.Config.globalMPports.remPort(self.server.port)
+            #EveconLib.Config.globalMPports.remPort(self.server.port)  # autodelete
             EveconLib.Config.globalMPportsJava.remPort(self.server_java.port)
         except AttributeError:
             pass
@@ -751,7 +755,11 @@ class MusicPlayer(threading.Thread):
             self.next(True)
 
     def DelByFile(self, plfile):
-        num = EveconLib.Tools.Search(plfile, self.playlist)[0]
+        numList = EveconLib.Tools.Search(plfile, self.playlist)
+        if len(numList) == 0:
+            return False  # already deleted
+
+        num = numList[0]
         if num == 0 and self.stop_del:
             self.stop()
         if num > len(self.playlist) - 1:
@@ -767,6 +775,35 @@ class MusicPlayer(threading.Thread):
 
         if file == file_del:
             self.next(True)
+
+    def DelByKey(self, key):
+        """
+        this will delete musicfiles from the playlist
+
+        :param key: the key from the musicFileEditor
+        :return:
+        """
+
+        if not key in self.music["active"]:
+            return False  # key not loaded
+
+        if self.multiplaylists.get(key):  # key is a multiPL and not a normal
+            for singleKey in self.multiplaylists[key]["content"]["all_ids"]:
+                self.DelByKey(singleKey)
+            return True
+
+        nextFile = False
+        corrector = 0
+        for plIndex in range(len(self.playlist)):
+            if self.music[self.playlist[plIndex + corrector]]["key"] == key:
+                if plIndex == 0 + corrector:
+                    nextFile = True
+                del self.playlist[plIndex + corrector]
+                corrector -= 1
+
+        if nextFile:
+            self.next(True)
+
 
     def vol(self, vol):
         self.volume = vol
@@ -1114,22 +1151,26 @@ class MusicPlayer(threading.Thread):
 
         return outputList
 
-    def print_head_info(self):
+    def print_head_info(self, forcePrint=False):
+        if self.neverPrint and not forcePrint:
+            return False
         for line in self.return_head_info():
             print(line)
 
-    def print_head_noti(self):
+    def print_head_noti(self, forcePrint=False):
+        if self.neverPrint and not forcePrint:
+            return False
         for line in self.return_head_noti():
             print(line)
 
-    def print_head(self):
+    def print_head(self, forcePrint=False):
         # Info-Container
 
-        self.print_head_info()
+        self.print_head_info(forcePrint)
 
-        if self.return_head_noti():
+        if self.return_head_noti() and not self.neverPrint:
             print("\n" + EveconLib.Config.console_data["pixx"] * "-" + "\n")
-            self.print_head_noti()
+            self.print_head_noti(forcePrint)
 
         # sys.stdout.write(console_data[0]*"-")
 
@@ -1355,6 +1396,8 @@ class MusicPlayer(threading.Thread):
                                       str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeTypeNum"]))
 
             outputList.append("Filename: " + self.music[self.playlist[self.cur_Pos]]["name"])
+            outputList.append("Parantkey: " + self.music[self.playlist[self.cur_Pos]]["key"])
+            outputList.append("Filepath: " + self.music[self.playlist[self.cur_Pos]]["fullname"])
             outputList.append("Album: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.album.decode())
             outputList.append("Author: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.author.decode())
             outputList.append("Comment: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.comment.decode())
@@ -1612,7 +1655,9 @@ class MusicPlayer(threading.Thread):
                                 self.searchlist[word_num])
         return outputList
 
-    def print_body(self):
+    def print_body(self, forcePrint=False):
+        if self.neverPrint and not forcePrint:
+            return False
 
         for line in self.return_body():
             print(line)
@@ -1683,11 +1728,32 @@ class MusicPlayer(threading.Thread):
 
             outputList.append("Current: " + cur)
 
+            misStr = ""
+            for misPart in self.musicKeysLeft:
+                misStr += misPart + ", "
+            misStr = misStr.rstrip(", ")
+
+            outputList.append("Left: " + misStr)
+
+            outputList.append("\n" + self.cur_Input)
+
+        elif self.con_cont == "dekey":
+            outputList.append("Remove music through their key:\n")
+
+            cur = ""
+            for mus in self.music["active"]:
+                cur += mus + ", "
+            cur = cur.rstrip(", ")
+
+            outputList.append("Current: " + cur)
+
             outputList.append("\n" + self.cur_Input)
 
         return outputList
 
-    def print_foot(self):
+    def print_foot(self, forcePrint=False):
+        if self.neverPrint and not forcePrint:
+            return False
         for line in self.return_foot():
             print(line)
 
@@ -1712,7 +1778,10 @@ class MusicPlayer(threading.Thread):
 
         return outputList
 
-    def printit(self):
+    def printit(self, forcePrint=False):
+        if self.neverPrint and not forcePrint:
+            return False
+
         EveconLib.Tools.cls()
         for line in self.returnit():
             print(line)
@@ -1928,6 +1997,15 @@ class MusicPlayer(threading.Thread):
                 self.change = ""
                 self.con_cont = "set"
 
+        elif self.change == "dekey":
+            if inp == "return":
+                self.DelByKey(self.cur_Input)
+
+                self.cur_Input = ""
+                self.change = ""
+                self.con_cont = "set"
+
+
         elif inp == "arrowup" and self.cur_Pos > 0 and self.con_main == "pl":
             done = False
             for aS in self.arrowSetting:
@@ -2039,6 +2117,16 @@ class MusicPlayer(threading.Thread):
             self.cur_Input = ""
             self.change = "add"
             self.con_cont = "add"
+
+            # generating the missing MusicKeysList
+            self.musicKeysLeft = self.musiclist["keys"].copy()
+            for needToDel in self.music["active"]:
+                del self.musicKeysLeft[EveconLib.Tools.Search(needToDel, self.musicKeysLeft, exact=True, lower=False)[0]]
+
+        elif i == "dekey":
+            self.cur_Input = ""
+            self.change = "dekey"
+            self.con_cont = "dekey"
         elif i == "volw":
             self.cur_Input = ""
             self.change = "volw"

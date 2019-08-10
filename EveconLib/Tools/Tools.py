@@ -613,7 +613,16 @@ def MusicType(mType, exact=False):
 
 
 def Search(searchkeyU, searchlistU, exact=False, lower=True, onlyOnce=True):
+    """
 
+    :param searchkeyU: key
+    :param searchlistU: list
+    :param exact: key == part of list or key in one of the parts of the list
+    :param lower: lowers the key
+    :param onlyOnce: the key should only be once in the list
+    :return: list with indexs
+    :rtype: list
+    """
     if len(searchkeyU) == 0 or type(searchkeyU) != str:
         return []
 

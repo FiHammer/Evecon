@@ -1876,10 +1876,10 @@ def Arg():
             break
         if sys.argv[x] == "--l_dark":
             title("Load Argument", "Argument: Dark")
-            Tools.Color.change("07")
+            Tools.Windows.Color.change("07")
         if sys.argv[x] == "--l_bright":
             title("Load Argument", "Argument: Bright")
-            Tools.Color.change("F0")
+            Tools.Windows.Color.change("F0")
 
         if sys.argv[x] == "-fap":
             title("Load Argument", "foxi")
