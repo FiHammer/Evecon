@@ -2121,7 +2121,10 @@ class MusicPlayer(threading.Thread):
             # generating the missing MusicKeysList
             self.musicKeysLeft = self.musiclist["keys"].copy()
             for needToDel in self.music["active"]:
-                del self.musicKeysLeft[EveconLib.Tools.Search(needToDel, self.musicKeysLeft, exact=True, lower=False)[0]]
+                sol = EveconLib.Tools.Search(needToDel, self.musicKeysLeft, exact=True, lower=False)
+                if len(sol) == 0:
+                    continue  # maybe a mpl key
+                del self.musicKeysLeft[sol[0]]
 
         elif i == "dekey":
             self.cur_Input = ""
