@@ -591,11 +591,16 @@ class MusicPlayer(threading.Thread):
     def sortPL_name(self):
         pl_names = []
         for fileX in self.playlist:
-            pl_names.append(self.music[fileX]["name"])
+            fileName = EveconLib.Tools.StrPlusData(self.music[fileX]["name"])
+            fileName.additionalData = fileX
+            pl_names.append(fileName)
         pl_names.sort()
 
         new_playlist = []
         for name in pl_names:
+            new_playlist.append(name.additionalData)
+
+        """
             for num_file in range(1, self.music["all_files"] + 1):
                 if name == self.music["file" + str(num_file)]["name"]:
                     ok = True
@@ -604,7 +609,7 @@ class MusicPlayer(threading.Thread):
                             ok = False
                     if ok:
                         new_playlist.append("file" + str(num_file))
-
+        """
         self.playlist = new_playlist.copy()
         self.hardworktime = time.time()
 
@@ -837,16 +842,61 @@ class MusicPlayer(threading.Thread):
             self.hardworktime = time.time()
 
     def refreshSearch(self):
+
         self.cur_Pos = 0
 
         if self.cur_Search != "":
             namelist = []
 
             # for x in self.startlist:
-            if self.last_backspace:
+            if self.last_backspace:  # global search
+                for x in self.startlist:
+                    name = EveconLib.Tools.StrPlusData(self.music[x]["name"])
+                    name.additionalData = x
+                    namelist.append(name)
+            else:  # search in searchlist
+                for x in self.searchlist:
+                    name = EveconLib.Tools.StrPlusData(self.music[x]["name"])
+                    name.additionalData = x
+                    namelist.append(name)
+
+            found = EveconLib.Tools.Search(self.cur_Search, namelist)
+
+            searchlist_name = []
+            for x in found:
+                searchlist_name.append(namelist[x])
+            searchlist_name.sort()
+
+
+        else:
+            searchlist_name = []
+            for fileX in self.startlist:
+                name = EveconLib.Tools.StrPlusData(self.music[fileX]["name"])
+                name.additionalData = fileX
+
+                searchlist_name.append(name)
+            searchlist_name.sort()
+
+        # searchlist_name is the sorted list including name + file
+
+        new_playlist = []
+        for name in searchlist_name:
+            new_playlist.append(name.additionalData)
+
+        self.searchlist = new_playlist.copy()
+
+
+        """
+        self.cur_Pos = 0
+
+        if self.cur_Search != "":
+            namelist = []
+
+            # for x in self.startlist:
+            if self.last_backspace:  # global search
                 for x in self.startlist:
                     namelist.append(self.music[x]["name"])
-            else:
+            else:  # search in searchlist
                 for x in self.searchlist:
                     namelist.append(self.music[x]["name"])
 
@@ -917,6 +967,7 @@ class MusicPlayer(threading.Thread):
         np = EveconLib.Tools.DelDouble(new_playlist)
 
         self.searchlist = np.copy()
+        """
 
     def run(self):
         if not self.music:
@@ -2302,3 +2353,5 @@ class MusicPlayer(threading.Thread):
                     else:
                         self.server_java.send(data_send)
 
+
+# maybe a class for the music data

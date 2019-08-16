@@ -20,6 +20,16 @@ if sys.platform == "win32":
 from getpass import getuser as getpass_getuser
 
 
+def cls():
+    if EveconLib.Config.NEVERCLEAR:
+        return
+
+    if sys.platform == "win32":
+        #pass
+        os.system("cls")
+    elif sys.platform == "linux":
+        os.system("clear")
+
 def exit_now(killmex = False):
     try:
         EveconLib.Config.title_time.deac()
@@ -31,6 +41,8 @@ def exit_now(killmex = False):
 
     #if EveconLib.Config.myType = "python_file":
     #    exit()
+    if EveconLib.Config.ddbugger:
+        EveconLib.Config.ddbugger.work = False
 
     if killmex:
         time.sleep(0.5)

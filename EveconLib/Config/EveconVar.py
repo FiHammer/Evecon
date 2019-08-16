@@ -12,6 +12,8 @@ globalMPportsJava = None
 logServer = None
 logServerPort = 4222
 
+ddbugger = None
+
 # filePaths
 
 import sys

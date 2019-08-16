@@ -53,6 +53,9 @@ nhee = EveconLib.Programs.Flapi.Nhee
 ttime.start()
 title("Load first Programs")
 
+# Looking for debug
+
+EveconLib.Tools.Debugging.setupDebuggingExtreme()
 
 def InteractiveClient(host, port):
     def x(data):

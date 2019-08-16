@@ -5,12 +5,7 @@ import threading
 import random
 import subprocess
 
-def cls():
-    if sys.platform == "win32":
-        #pass
-        os.system("cls")
-    elif sys.platform == "linux":
-        os.system("clear")
+
 class ddbug(threading.Thread):
     def __init__(self):
         super().__init__()
@@ -19,6 +14,9 @@ class ddbug(threading.Thread):
     def run(self):
         while self.work:
             time.sleep(1)
+
+class StrPlusData(str):
+    additionalData = None
 
 def turnStr(word: str):
     wordfin = ""
