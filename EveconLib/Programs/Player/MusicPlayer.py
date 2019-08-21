@@ -2012,23 +2012,33 @@ class MusicPlayer(threading.Thread):
 
         elif self.change == "volp":
             if inp == "return":
-                self.volp(float(self.cur_Input))
+                try:
+                    self.volp(float(self.cur_Input))
+                except ValueError:
+                    pass
+
                 self.cur_Input = ""
                 self.change = ""
                 self.con_cont = "set"
 
         elif self.change == "volw":
             if inp == "return":
-                if len(self.cur_Input) > 4:
-                    self.cur_Input = EveconLib.Tools.getPartStr(self.cur_Input, begin=0, end=4)
-                self.vol(float(self.cur_Input))
+                try:
+                    self.vol(float(self.cur_Input))
+                except ValueError:
+                    pass
+
                 self.cur_Input = ""
                 self.change = ""
                 self.con_cont = "set"
 
         elif self.change == "spe":
             if inp == "return":
-                self.spl.ChEffect(int(self.cur_Input))
+                try:
+                    self.spl.ChEffect(int(self.cur_Input))
+                except ValueError:
+                    pass
+
                 self.cur_Input = ""
                 self.change = ""
                 self.con_cont = "set"
