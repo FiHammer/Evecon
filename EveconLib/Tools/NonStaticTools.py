@@ -117,6 +117,8 @@ def gettitle(part="all"):
             return "EVECON: %s%s%s%s%s%s%sTime: %s" % (status, space_status, versionX, space_pc, something, space_something, space_time, nowtime)
         elif part == "left":
             return "EVECON: %s%s" % (status, space_status)
+    else:
+        return "Hi"
 
 
 def title(status="OLD", something="OLD", version="OLD", deac=False):
