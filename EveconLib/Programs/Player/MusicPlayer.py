@@ -480,7 +480,7 @@ class MusicPlayer(threading.Thread):
 
         self.musiclist, self.multiplaylists, self.genre, self.musicDir = parse(unvalid)
         """
-
+        self.musicFileEditor.readFile()
         self.musiclist, self.multiplaylists, self.genre, self.musicDir = self.musicFileEditor.formatForMP()
 
 
@@ -490,7 +490,7 @@ class MusicPlayer(threading.Thread):
         self.cur_Input = ""
         self.cur_Pos = 0
         self.change = ""
-        self.notifications = [] # realy?
+        self.notifications = [] # really?
 
     def reloadMusic(self, tracknum):
         if type(tracknum) == int:
@@ -557,7 +557,7 @@ class MusicPlayer(threading.Thread):
     def refresh(self, title=False, printme=True):
         if title:
             self.refreshTitle()
-        elif printme:
+        if printme:
             self.printit()
 
     def showBalloonTip(self):
@@ -1031,6 +1031,7 @@ class MusicPlayer(threading.Thread):
         self.hardworktime = time.time()
         if self.scanner_active:
             self.scanner.start()
+
         while self.musicrun:
 
             if self.music[self.playlist[0]]["loaded"].is_queued:
@@ -1040,11 +1041,13 @@ class MusicPlayer(threading.Thread):
                 self.showBalloonTip()
 
             self.player.queue(self.music[self.playlist[0]]["loaded"])
-            self.player.play()
-
-            self.timer.start()
-
             self.player.volume = self.volumep
+
+
+            if not self.paused:
+                self.player.play()
+
+            self.timer.start()  # music timer
 
             self.running = True
             self.playing = True
@@ -1068,17 +1071,13 @@ class MusicPlayer(threading.Thread):
 
                 while self.paused:
                     self.timer.pause()
-                    # Vll. hier spl pause command einfügen
-                    # self.splmp.
+
                     while self.paused:
                         time.sleep(0.25)
 
                     self.timer.unpause()
                     self.refresh(title=True, printme=self.selfprint)
 
-                    # if self.spl:
-                    #    self.splmp.PlaytimeStart += time.time() - music_time_wait
-                    #    self.splmp.TimeLeftStart += time.time() - music_time_wait
 
             self.timer.reset()
             self.player.next_source()
