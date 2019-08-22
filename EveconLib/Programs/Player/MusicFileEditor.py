@@ -28,6 +28,23 @@ class MusicFileEditor:
         self.multiPls = None
         self.genre = None
 
+        # easily parsed lists (dirs)
+
+        self.keyToPath = {}  # all normal keys
+        self.multiKeyToKeyList = {}  # all multi keys (mpl, genre)
+
+    def formatEasy(self):
+        self.multiKeyToKeyList.clear()
+        self.keyToPath.clear()
+        for key in self.multiPls["keys"]:
+            self.multiKeyToKeyList[key] = self.multiPls[key]["content"]["all_ids"]
+        for genreKey in self.genre:
+            self.multiKeyToKeyList[genreKey] = []
+
+        for key in self.musicDirs["keys"]:
+            for genre in self.musicDirs[key]["genre"]:  # appending for genre search
+                self.multiKeyToKeyList[genre].append(key)
+            self.keyToPath[key] = self.musicDir + self.musicDirs[key]["path"]
 
     def readFile(self):
         if not self.setFilePath:
@@ -39,6 +56,7 @@ class MusicFileEditor:
         if result:
             self.data = data
             self.musicDirs, self.multiPls, self.genre, self.musicDir, self.version, self.pc = result
+            self.formatEasy()
 
     def vertifyFile(self, filePath):
         """

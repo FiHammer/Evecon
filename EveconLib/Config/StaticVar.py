@@ -37,3 +37,6 @@ title_oldstatus = "Loading"
 title_oldstart = "Error"
 title_oldversion = "Error"
 title_dead = False
+
+
+MP_ALLOWEDFILETYPES = ["mp3"]

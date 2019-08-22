@@ -219,6 +219,7 @@ class MusicPlayer(threading.Thread):
                 return False
 
         done = False
+        fullyLoad = False
         if type(key) == str:
             for x in self.musiclist["keys"]:
                 if x == key:
@@ -242,10 +243,11 @@ class MusicPlayer(threading.Thread):
         elif key == "all":
             for x in self.musiclist["keys"]:
                 self.addMusic(x, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
-            return True
+            fullyLoad = True
         elif EveconLib.Tools.Search(key, list(self.multiplaylists["keys"]), exact=True):
             self.addMusic(self.multiplaylists[key]["content"]["all_ids"], printStaMSG=False, printEndMSG=printEndMSG,
                           makeNoti=makeNoti)
+            fullyLoad = True
         elif EveconLib.Tools.Search(key, self.genre, exact=True):
             if isinstance(key, str):
                 for aDir in self.musiclist["keys"]:
@@ -258,43 +260,46 @@ class MusicPlayer(threading.Thread):
                             self.addMusic(aDir, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
             else:
                 pass
-            return True
+            fullyLoad = True
 
         else:
             return False
 
-        q = queue_Queue()
-        num_workers = EveconLib.Config.cores * 2
+        if not fullyLoad:
+            q = queue_Queue()
+            num_workers = EveconLib.Config.cores * 2
 
-        def do_work(data):
-            # cls()
-            # print("Loading (%s/%s)" % (data[0], self.find_music_out["all_files"]))
-            self.music["file" + str(data[1] + data[0])]["loaded"] = pyglet.media.load(
-                self.music["file" + str(data[1] + data[0])]["fullname"])
+            def do_work(data):
+                # cls()
+                # print("Loading (%s/%s)" % (data[0], self.find_music_out["all_files"]))
+                if not self.music["file" + str(data[1] + data[0])].get("loaded"):
+                    self.music["file" + str(data[1] + data[0])]["loaded"] = pyglet.media.load(self.music["file" + str(data[1] + data[0])]["fullname"])
+                else:
+                    EveconLib.Tools.Log("Musicplayer", "Tried to Load a music file twice (%s)" % "file" + str(data[1], data[0]), 1)
 
-        def worker():
-            while True:
-                data = q.get()
-                if data is None:
-                    break
-                do_work(data)
-                q.task_done()
+            def worker():
+                while True:
+                    data = q.get()
+                    if data is None:
+                        break
+                    do_work(data)
+                    q.task_done()
 
-        threads_used = []
+            threads_used = []
 
-        for i in range(num_workers):
-            t = threading.Thread(target=worker)
-            t.start()
-            threads_used.append(t)
+            for i in range(num_workers):
+                t = threading.Thread(target=worker)
+                t.start()
+                threads_used.append(t)
 
-        for numfile in range(1, self.find_music_out["all_files"] + 1):
-            q.put((numfile, old_Num))
+            for numfile in range(1, self.find_music_out["all_files"] + 1):
+                q.put((numfile, old_Num))
 
-        for i in range(num_workers):
-            q.put(None)
+            for i in range(num_workers):
+                q.put(None)
 
-        for i in threads_used:
-            i.join()
+            for i in threads_used:
+                i.join()
 
         # for numfile in range(1, self.find_music_out["all_files"] + 1):
         #    cls()
