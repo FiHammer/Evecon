@@ -272,6 +272,7 @@ class MusicPlayer(threading.Thread):
             def do_work(data):
                 # cls()
                 # print("Loading (%s/%s)" % (data[0], self.find_music_out["all_files"]))
+                # noinspection PyUnresolvedReferences
                 if not self.music["file" + str(data[1] + data[0])].get("loaded"):
                     self.music["file" + str(data[1] + data[0])]["loaded"] = pyglet.media.load(self.music["file" + str(data[1] + data[0])]["fullname"])
                 else:

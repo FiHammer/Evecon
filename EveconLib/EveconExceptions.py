@@ -25,6 +25,12 @@ class MegaNotLoggedIn(Exception):
         elif details == "logout":
             print("You are already logged out!")
 
+# Musicplayer
+
+class KeyNotIndexedError(Exception):
+    def __init__(self, key):
+        print("Key not indexed! First Index the key %s" % key)
+
 
 # !Console
 
