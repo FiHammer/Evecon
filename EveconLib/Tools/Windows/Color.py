@@ -47,7 +47,7 @@ def switch():
 
 def Man():
     global CurColor
-    EveconLib.Tools.Tools.cls()
+    EveconLib.Tools.cls()
     print("Color change")
     print("First is background")
     print("Second is foreground")

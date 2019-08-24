@@ -32,6 +32,7 @@ class MusicKey:
         self.keyType = -1   # -1: not done, 0: error, 1: single pl, 2: multi pl, 3: all, 4: cus, 5: us
                             # is this key a single playlist or multiPL/Genre/etc...
         self._active = False  # is this key in the active or deac lists
+
     def __str__(self):
         return self.key
 
@@ -614,10 +615,10 @@ class MusicFileLoader:
 
         keyOj = MusicKey(key, mfl=self, mfe=self.musicFileEditor, cusPath=cusPath, activeList=self.activeList)
         val = keyOj.validate()
-        keyOj.index()
-
         if not val:
             return False
+
+        keyOj.index()
 
         if printEndMSG and not self.neverPrint:
             print("Key %s indexed successful" % key.title())

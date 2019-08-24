@@ -11,12 +11,11 @@ class MegacmdC:
     def __init__(self, path):
         self.path = path + "\\MEGAclient.exe"
         self.MegacmdServer = EveconMiniDebug.MegaCmdServerTest()
-        #self.Running = False
         self.LoggedIn = False
         self.email = None
         self.pw = None
     def __start__(self, command): # the client for an action
-        if self.Running:
+        if self.running:
             subprocess.call([self.path] + list(command))
         else:
             self.startServer()
@@ -29,9 +28,9 @@ class MegacmdC:
             return True
         else:
             return False
-    Running = property(_running)
+    running = property(_running)
     def startServer(self):
-        if not self.Running:
+        if not self.running:
             if "MEGAcmdServer.exe" in (p.name() for p in psutil.process_iter()):
                 pass
             else:
@@ -50,15 +49,15 @@ class MegacmdC:
             pass
 
     def stopServer(self):
-        if self.Running:
+        if self.running:
             if not self.LoggedIn:
                 pass
                 #self.MegacmdServer.kill()
-                #self.Running = False
+                #self.running = False
             else:
                 self.logout()
                 #self.MegacmdServer.kill()
-                #self.Running = False
+                #self.running = False
             print("Stopped Server! (not really)")
         else:
             raise EveconExceptions.MegaNotRunning
@@ -119,10 +118,12 @@ class MegacmdC:
         self.LoggedIn = False
         self.email = None
         self.pw = None
-        if self.Running:
+        if self.running:
             self.stopServer()
         self.MegacmdServer = False
     def debug_start(self):
         self.LoggedIn = True
+
+
 
 MegaCMD = MegacmdC("Programs\\MEGAcmd")

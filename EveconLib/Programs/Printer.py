@@ -54,7 +54,7 @@ class Printer(threading.Thread):
 
         while self.running:
             while self.printing and self.waitUntil < time.time():
-                EveconLib.Tools.Tools.cls()
+                EveconLib.Tools.cls()
                 for printFunc in self.printitS:
                     printFunc()
                 time.sleep(self.waitTime)

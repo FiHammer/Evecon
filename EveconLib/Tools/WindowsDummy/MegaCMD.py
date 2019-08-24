@@ -2,7 +2,7 @@ class MegacmdC:
     def __init__(self, path):
         self.path = path + "NOTHING HERE"
         self.MegacmdServer = None
-        #self.Running = False
+        #self.running = False
         self.LoggedIn = False
         self.email = None
         self.pw = None

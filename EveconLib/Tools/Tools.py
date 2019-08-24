@@ -620,7 +620,9 @@ def Search(searchkeyU, searchlistU: list, exact=False, lower=True, onlyOnce=True
     :return: list with indexs
     :rtype: list
     """
-    if len(searchkeyU) == 0 or type(searchkeyU) != str:
+    if type(searchkeyU) != str:
+        searchkeyU = str(searchkeyU)
+    if len(searchkeyU) == 0:
         return []
 
     if lower:
@@ -849,7 +851,7 @@ def randompw(returnpw=False, length=150, printpw=True, exclude=None, noAscii=Fal
         return pw
 
     if printpw:
-        cls()
+        #cls()
         print("Password: (length: %s) \n\n%s" % (length, pw))
 
         input()

@@ -395,7 +395,7 @@ class ConnectionHandler(threading.Thread):
     def logStatus(self):
         self.writeLog("Status:")
         self.writeLog("StatusID: " + str(self.status))
-        self.writeLog("Running: " + str(self.running))
+        self.writeLog("running: " + str(self.running))
         self.writeLog("Connected with:")
         self.writeLog("IP: " + str(self.conData["ip"]))
         if not self.useAccount:

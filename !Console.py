@@ -1643,7 +1643,7 @@ def Timer():
             while self.Running:
                 time.sleep(0.8)
                 os.system("cls")
-                print("Running:")
+                print("running:")
                 print(self.t.getTimeFor())
         def stop(self):
             self.Running = False
@@ -1668,7 +1668,7 @@ def startStartupServer(serverport: int, ballonTIP=True):
     StartupServer = EveconLib.Networking.Server(ip=EveconLib.Config.thisIP, port=serverport, stdReact=StartupServerTasks)
     StartupServerJava = EveconLib.Networking.ServerJava(ip=thisIP, port=serverport + 2, react=StartupServerTasksJava, allowPrint=True, sendIP=False, giveJava=False)
     print("JAVA-SERVER port: " + str(StartupServerJava.port))
-    print("Server initialized!\nNow Running Systray")
+    print("Server initialized!\nNow running Systray")
 
     def quitFunc(x):
         StartupServer.exit()
