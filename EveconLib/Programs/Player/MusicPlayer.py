@@ -1,4 +1,3 @@
-import os
 import threading
 import pyglet
 import sys
@@ -13,7 +12,6 @@ import EveconLib.Programs.Scanner
 import EveconLib.Programs.SplWeapRand
 import EveconLib.Programs.Player.MusicFileEditor
 
-from queue import Queue as queue_Queue
 
 # noinspection PyTypeChecker
 class MusicPlayer(threading.Thread):
@@ -23,7 +21,6 @@ class MusicPlayer(threading.Thread):
 
         self.debug = False
 
-        self.music = {"all_files": 0, "all_dirs": 0, "active": []}
         self.find_music_out = {}
 
         self.systray = None
@@ -51,16 +48,13 @@ class MusicPlayer(threading.Thread):
         self.stop_del = stop_del
         self.randomizer = random
         self.scanner_active = scanner_active
-        # noinspection PyGlobalUndefined
-        global musicrun
-        musicrun = True
+        EveconLib.Config.musicrun = True
 
         self.starttime = 0
         self.hardworktime = 0
         self.musicrun = True
         self.playlist = []
         self.last_playlist = []
-        self.startlist = []  # all files which are loaded are in here!
         self.pershuffel = False
 
         self.running = False
@@ -111,66 +105,11 @@ class MusicPlayer(threading.Thread):
 
         self.lastPresses = [0, time.time(), "None"]
 
-        self.musiclist = {"names": []}
-        self.multiplaylists = {}
-        self.genre = []
-        self.musicDir = ""
+        self.mfl = EveconLib.Programs.Player.MusicFileLoader(self.notificate, self.neverPrint, self.playlist)
 
-        self.musicFileEditor = EveconLib.Programs.Player.MusicFileEditor(specialFilePath)
-
-
-    def findMusic(self, path, reset=True, key="cus"):
-        if reset:
-            self.find_music_out = {"all_files": 0, "all_dirs": 0}
-        content = []
-
-        for file in os.listdir(path):
-            fullname = path + EveconLib.Config.path_seg + file
-            if os.path.isdir(path + EveconLib.Config.path_seg + file):
-                self.music["all_dirs"] += 1
-                self.music["dir" + str(self.music["all_dirs"])] = {"file": file, "path": path, "fullname": fullname, "key": key}
-
-                thisDirID = self.music["all_dirs"]
-
-                self.find_music_out["all_dirs"] += 1
-                self.find_music_out["dir" + str(self.music["all_dirs"])] = {"file": file, "path": path,
-                                                                            "fullname": fullname, "key": key}
-                dir_content = self.findMusic(fullname, False, key=key)
-
-                self.music["dir" + str(thisDirID)]["content"] = dir_content
-                self.find_music_out["dir" + str(thisDirID)]["content"] = dir_content
-
-                content.append("dir" + str(thisDirID))  # ID of DIR
-
-            elif os.path.isfile(fullname) and EveconLib.Tools.MusicType(file):
-                name = file.rstrip(EveconLib.Tools.MusicType(file, True)).rstrip(".")
-
-                self.music["all_files"] += 1
-                self.find_music_out["all_files"] += 1
-
-                me = EveconLib.Tools.MusicEncode(file)
-                if me["valid"] and not me["noBrack"]:
-                    antype = True
-                    andata = me
-                else:
-                    antype = False
-                    andata = me # oops
-
-                self.music["file" + str(self.music["all_files"])] = {"name": name, "file": file, "path": path,
-                                                                     "fullname": fullname,
-                                                                     "antype": antype, "andata": andata, "key": key}
-
-                self.find_music_out["file" + str(self.music["all_files"])] = {"name": name, "file": file, "path": path,
-                                                                              "fullname": fullname,
-                                                                              "antype": antype, "andata": andata, "key": key}
-
-                content.append("file" + str(self.music["all_files"]))  # ID of FILE
-
-        return content
 
     def addMusic(self, key, cusPath=False, genre=False, noList=False, printStaMSG=True, printEndMSG=True,
-                 makeNoti=False):  # key (AN, LIS)
-
+                 makeNoti=False, loadForPyglet=True):  # key (AN, LIS)
         """
         :param key: the key of the id (normal id, mpl id)
         :param cusPath: defines the path for a custom path (ignores the key)
@@ -179,316 +118,15 @@ class MusicPlayer(threading.Thread):
         :param printStaMSG: clears the screen and prints the start msg
         :param printEndMSG: prints the finished msg
         :param makeNoti: make a notification after finishing
+        :param loadForPyglet: load for pyglet
         :return: success
         """
-        self.read_musiclist()
-        if noList and type(key) == str:
-            if EveconLib.Tools.Search(key, self.musiclist["keys"], exact=True):
-                return False
-        if printStaMSG and not self.neverPrint:
-            EveconLib.Tools.cls()
-            if EveconLib.Config.computer == "MiniPC":
-                print("Loading... (On Mini-PC)")
-            elif EveconLib.Config.computer == "BigPC":
-                print("Loading... (On Big-PC)")
-            else:
-                print("Loading...")
-
-        old_Num = self.music["all_files"]
-        if type(key) == str:
-            key = key.lower()
-
-        if EveconLib.Tools.Search(key, self.music["active"]):
-            return False
-
-        if cusPath:
-            key = "cus"
-        elif genre:
-            if EveconLib.Tools.Search(key, self.genre, exact=True):
-                if isinstance(key, str):
-                    for aDir in self.musiclist["keys"]:
-                        if EveconLib.Tools.Search(key, self.musiclist[aDir]["genre"], exact=True):
-                            self.addMusic(aDir, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
-                elif isinstance(key, list):
-                    for aGenre in key:
-                        for aDir in self.musiclist["keys"]:
-                            if EveconLib.Tools.Search(aGenre, self.musiclist[aDir]["genre"], exact=True):
-                                self.addMusic(aDir, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
-                return True
-            else:
-                return False
-
-        done = False
-        fullyLoad = False
-        if type(key) == str:
-            for x in self.musiclist["keys"]:
-                if x == key:
-                    self.findMusic(self.musicDir + EveconLib.Config.path_seg + self.musiclist[key]["path"], key=key)
-                    done = True
-                    break
-        elif type(key) == list:
-            for x in self.musiclist["keys"]:
-                for y in key:
-                    if x == y:
-                        self.addMusic(x, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
-                        break
-            return True
-
-        if done:
-            pass
-        elif key == "us":
-            self.findMusic("Music" + EveconLib.Config.path_seg + "User", key=key)
-        elif key == "cus" and cusPath:  # cusPath
-            self.findMusic(cusPath, key=key)
-        elif key == "all":
-            for x in self.musiclist["keys"]:
-                self.addMusic(x, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
-            fullyLoad = True
-        elif EveconLib.Tools.Search(key, list(self.multiplaylists["keys"]), exact=True):
-            self.addMusic(self.multiplaylists[key]["content"]["all_ids"], printStaMSG=False, printEndMSG=printEndMSG,
-                          makeNoti=makeNoti)
-            fullyLoad = True
-        elif EveconLib.Tools.Search(key, self.genre, exact=True):
-            if isinstance(key, str):
-                for aDir in self.musiclist["keys"]:
-                    if EveconLib.Tools.Search(key, self.musiclist[aDir]["genre"], exact=True):
-                        self.addMusic(aDir, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
-            elif isinstance(key, list):
-                for aGenre in key:
-                    for aDir in self.musiclist["keys"]:
-                        if EveconLib.Tools.Search(aGenre, self.musiclist[aDir]["genre"], exact=True):
-                            self.addMusic(aDir, printStaMSG=False, printEndMSG=printEndMSG, makeNoti=makeNoti)
-            else:
-                pass
-            fullyLoad = True
-
-        else:
-            return False
-
-        if not fullyLoad:
-            q = queue_Queue()
-            num_workers = EveconLib.Config.cores * 2
-
-            def do_work(data):
-                # cls()
-                # print("Loading (%s/%s)" % (data[0], self.find_music_out["all_files"]))
-                # noinspection PyUnresolvedReferences
-                if not self.music["file" + str(data[1] + data[0])].get("loaded"):
-                    self.music["file" + str(data[1] + data[0])]["loaded"] = pyglet.media.load(self.music["file" + str(data[1] + data[0])]["fullname"])
-                else:
-                    EveconLib.Tools.Log("Musicplayer", "Tried to Load a music file twice (%s)" % "file" + str(data[1], data[0]), 1)
-
-            def worker():
-                while True:
-                    data = q.get()
-                    if data is None:
-                        break
-                    do_work(data)
-                    q.task_done()
-
-            threads_used = []
-
-            for i in range(num_workers):
-                t = threading.Thread(target=worker)
-                t.start()
-                threads_used.append(t)
-
-            for numfile in range(1, self.find_music_out["all_files"] + 1):
-                q.put((numfile, old_Num))
-
-            for i in range(num_workers):
-                q.put(None)
-
-            for i in threads_used:
-                i.join()
-
-        # for numfile in range(1, self.find_music_out["all_files"] + 1):
-        #    cls()
-        #    print("Loading (%s/%s)" % (numfile, self.find_music_out["all_files"]))
-        #    self.music["file" + str(old_Num + numfile)]["loaded"] = pyglet.media.load(self.music["file" + str(old_Num + numfile)]["fullname"])
-
-        # self.music_playlists_active.append(key)
-        self.music["active"].append(key)
-        if printEndMSG and not self.neverPrint:
-            print("Finished: " + key)
-        if makeNoti:
-            self.notificate(key.title(), title="Finished loading", screentime=2.5)
-        return True
+        return self.mfl.addMusic(key=key, cusPath=cusPath, printStaMSG=printStaMSG,
+                                 printEndMSG=printEndMSG, makeNoti=makeNoti,
+                                 loadForPyglet=loadForPyglet)
 
     def read_musiclist(self):
-        """
-        def unvalid(error, key=False, remove=False):
-            nonlocal data
-            if not key:
-                print("Musicfile is not valid:\n" + error)
-            else:
-                print("Musicfile is not valid:\nKey not found! (" + error + ")")
-
-            if remove:
-                with open(EveconLib.Config.backupMusicFile) as jsonfile:
-                    data = json.load(jsonfile)
-
-            return False
-
-        def parse(unvaild):
-            version = "1.1"
-
-            if data.get("pc") != EveconLib.Config.computer:
-                if data.get("pc") != "global":
-                    unvaild("Wrong PC!", remove=True)
-                    return parse(unvalid)
-            if data.get("version"):
-                if not data["version"] == version:
-                    unvaild("Wrong Version! (" + version + " required)")
-                    return parse(unvalid)
-            else:
-                unvaild("version", True, remove=True)
-                return parse(unvalid)
-
-            if data.get("musicDir"):
-                if os.path.exists(data["musicDir"]):
-                    musicDir = data["musicDir"] + "\\"
-                else:
-                    unvaild("Wrong musicDir path", remove=True)
-                    return parse(unvalid)
-            else:
-                unvaild("musicDir", True, remove=True)
-                return parse(unvalid)
-
-            if not data.get("directories"):
-                unvaild("directories", True, remove=True)
-                return parse(unvalid)
-            if not data.get("multiplaylists"):
-                multiPls_deac = True
-                # unvaild("multiplaylists", True, remove=True)
-                # return parse(unvalid)
-            else:
-                multiPls_deac = False
-
-            musicDirs = {"names": []}
-            musicDirs_direct = data["directories"].copy()
-            multiPls = {"names": [], "keys": []}
-            multiPls_direct = data["multiplaylists"].copy()
-
-            dirIDs = []
-            dirIDs_direct = list(musicDirs_direct.keys())
-            mplIDs = []
-            mplIDs_direct = list(multiPls_direct.keys())
-            genre = []
-
-            # generate the music directories and genre!
-
-            for aDir in dirIDs_direct:
-                if aDir == musicDirs_direct[aDir].get("id"):
-                    if aDir.islower() and musicDirs_direct[aDir]["id"].islower():
-                        if EveconLib.Tools.Search(aDir, dirIDs, exact=True):
-                            unvalid("A Dir-ID was double (" + aDir + ")")
-                            continue
-                        if not os.path.exists(musicDir + musicDirs_direct[aDir].get("path")):
-                            unvalid("A Dir-Path does not exist (" + musicDirs_direct[aDir].get("path") + ")")
-                            continue
-                        dirIDs.append(aDir)
-
-                        musicDirs[aDir] = musicDirs_direct[aDir].copy()
-                        if musicDirs_direct[aDir].get("genre"):
-                            for aGenre in musicDirs_direct[aDir]["genre"]:
-                                if aGenre.islower():
-                                    if not EveconLib.Tools.Search(aGenre, genre, exact=True):
-                                        genre.append(aGenre)
-                                else:
-                                    unvalid("Genre is not low (" + aGenre + ")")
-                        else:
-                            musicDirs[aDir]["genre"] = []
-                        if not musicDirs_direct[aDir].get("name"):
-                            musicDirs[aDir]["name"] = musicDirs[aDir]["path"].split("\\")[-1].title()
-                        musicDirs["names"].append(musicDirs[aDir]["name"])
-                    else:
-                        unvalid("Dir-ID is not low (" + aDir + "/" + musicDirs_direct[aDir]["id"] + ")")
-                else:
-                    unvalid("Diffrent Dir-IDs (" + aDir + ")")
-
-            musicDirs["keys"] = dirIDs
-
-            # deleting genre
-            delGenre = []
-            for aGenre_ID in range(len(genre)):
-                for aID in dirIDs + mplIDs_direct:  # PROBLEM THE mpl ID arent valid => maybe a genre is deleted
-                    if aID == genre[aGenre_ID]:
-                        delGenre.append(aGenre_ID)
-
-            for x in delGenre:
-                del genre[x]
-
-
-            if not multiPls_deac:
-                for aMPl in mplIDs_direct:  # get a multiplaylist ID
-                    if aMPl == multiPls_direct[aMPl].get("id"):
-                        if aMPl.islower():
-                            if not EveconLib.Tools.Search(aMPl, dirIDs, exact=True):
-                                if EveconLib.Tools.Search(aMPl, mplIDs, exact=True):
-                                    unvalid("A MPl-ID was double (" + aMPl + ")")
-                                    continue
-                                mplIDs.append(aMPl)
-
-                                multiPls[aMPl] = multiPls_direct[aMPl].copy()
-
-                                if not multiPls[aMPl].get("name"):
-                                    multiPls[aMPl]["name"] = multiPls[aMPl]["id"]
-                                if not multiPls[aMPl]["content"].get("ids"):
-                                    multiPls[aMPl]["content"]["ids"] = []
-                                if not multiPls[aMPl]["content"].get("genre"):
-                                    multiPls[aMPl]["content"]["genre"] = []
-
-                                if multiPls[aMPl]["content"]["ids"]:
-                                    newIDlist = []
-                                    for aID in multiPls[aMPl]["content"]["ids"]:
-                                        if EveconLib.Tools.Search(aID, musicDirs["keys"], exact=True):
-                                            newIDlist.append(aID)
-                                    multiPls[aMPl]["content"]["ids"] = newIDlist
-                                multiPls[aMPl]["content"]["all_ids"] = multiPls[aMPl]["content"]["ids"].copy()
-
-                                if multiPls[aMPl]["content"]["genre"]:
-                                    newGenrelist = []
-                                    for aGenre in multiPls[aMPl]["content"]["ids"]:
-                                        if EveconLib.Tools.Search(aGenre, genre, exact=True):
-                                            newGenrelist.append(aGenre)
-                                    multiPls[aMPl]["content"]["genre"] = newGenrelist
-
-                                    for aGenre in multiPls_direct[aMPl]["content"]["genre"]:
-                                        for aDir in dirIDs:
-                                            if EveconLib.Tools.Search(aGenre, musicDirs[aDir]["genre"], exact=True) and not EveconLib.Tools.Search(aDir,
-                                                                                                                   multiPls[
-                                                                                                                       aMPl][
-                                                                                                                       "content"][
-                                                                                                                       "all_ids"],
-                                                                                                                   exact=True):
-                                                multiPls[aMPl]["content"]["all_ids"].append(aDir)
-
-                                if not multiPls[aMPl]["content"]["ids"] and not multiPls[aMPl]["content"]["genre"]:
-                                    del multiPls[aMPl]
-                                    unvalid("No Content in a MPl (" + aMPl + ")")
-                                    continue
-
-                                multiPls["names"].append(multiPls[aMPl]["name"])
-                                multiPls["keys"].append(multiPls[aMPl]["id"])
-
-                            else:
-                                unvalid("MPl-ID is used in the musicDirs (" + aMPl + ")")
-                        else:
-                            unvalid("MPl-ID is not low (" + aMPl + ")")
-                    else:
-                        unvalid("Diffrent MPl-IDs (" + aMPl + ")")
-
-            return musicDirs, multiPls, genre, musicDir
-
-        with open("data" + EveconLib.Config.path_seg + "Config" + EveconLib.Config.path_seg + "Music.json") as jsonfile:
-            data = json.load(jsonfile)
-
-        self.musiclist, self.multiplaylists, self.genre, self.musicDir = parse(unvalid)
-        """
-        self.musicFileEditor.readFile()
-        self.musiclist, self.multiplaylists, self.genre, self.musicDir = self.musicFileEditor.formatForMP()
-
+        self.mfl.refreshMusicList()
 
 
     def resetInterface(self):
@@ -498,40 +136,28 @@ class MusicPlayer(threading.Thread):
         self.change = ""
         self.notifications = [] # really?
 
-    def reloadMusic(self, tracknum):
-        if type(tracknum) == int:
-            self.music["file" + str(tracknum)]["loaded"] = pyglet.media.load(
-                self.music["file" + str(tracknum)]["fullname"])
-        elif type(tracknum) == str:
-            self.music[tracknum]["loaded"] = pyglet.media.load(self.music[tracknum]["fullname"])
+    def reloadMusic(self, tracknum: int):
+        self.mfl.reloadFile(tracknum)
 
     def make_playlist(self):
         # self.last_playlist = self.playlist.copy()
         if self.playing:
-            newPlaylist = []
-            for x in range(1, self.music["all_files"] + 1):
-                newPlaylist.append("file" + str(x))
-
-            ourID = EveconLib.Tools.Search(self.playlist[0], newPlaylist, exact=True, lower=False)
-            del newPlaylist[ourID[0]]
-            newPlaylist = [self.playlist[0]] + newPlaylist
-
-            self.playlist = newPlaylist.copy()
+            newPlaylist = self.mfl.files_allFiles.copy()
+            del newPlaylist[newPlaylist.index(self.playlist[0])]
+            self.playlist = [self.playlist[0]] + newPlaylist
         else:
-            self.playlist = []
-            for x in range(1, self.music["all_files"] + 1):
-                self.playlist.append("file" + str(x))
+            self.playlist = self.mfl.files_allFiles.copy()
 
+        self.mfl.activateAll(True, suppressActiveList=True)
         self.searchlist = self.playlist.copy()
-        self.startlist = self.playlist.copy()
         if self.randomizer:
             self.shufflePL()
         self.last_playlist = self.playlist.copy()
         self.resetInterface()
 
-    def shufflePL(self, first=False):
+    def shufflePL(self, shuffleFirst=False):
         self.last_playlist = self.playlist.copy()
-        if first:
+        if shuffleFirst:
             random.shuffle(self.playlist)
         else:
             oldPL = self.playlist.copy()
@@ -548,17 +174,17 @@ class MusicPlayer(threading.Thread):
         """
 
         if self.last_playlist == self.playlist:
-            return False
+            return
         else:
             lpl = self.playlist.copy()
             self.playlist = self.last_playlist.copy()
             self.last_playlist = lpl.copy()
 
     def refreshTitle(self):
-        if self.getCur()["antype"]:
-            EveconLib.Tools.title("OLD", self.getCur()["andata"]["title"], "Now Playing")
+        if self.getCur().anData["valid"]:
+            EveconLib.Tools.title("OLD", self.getCur().anData["title"], "Now Playing")
         else:
-            EveconLib.Tools.title("OLD", self.getCur()["name"], "Now Playing")
+            EveconLib.Tools.title("OLD", self.getCur().name, "Now Playing")
 
     def refresh(self, title=False, printme=True):
         if title:
@@ -567,115 +193,68 @@ class MusicPlayer(threading.Thread):
             self.printit()
 
     def showBalloonTip(self):
-        if self.getCur()["antype"]:
-            name = self.getCur()["andata"]["title"]
+        if self.getCur().anData["valid"]:
+            name = self.getCur().anData["title"]
         else:
-            name = self.getCur()["name"]
-        if sys.platform == "win32":
-            EveconLib.Tools.Windows.BalloonTip("Evecon: MusicPlayer", "Now playing: " + name)
+            name = self.getCur().name
+        EveconLib.Tools.Windows.BalloonTip("Evecon: MusicPlayer", "Now playing: " + name)
 
     def getCur(self):
-        # if len(self.playlist) == 0 and self.music["all_files"] > 0:
-        #    self.make_playlist()
-        # elif len(self.playlist) == 0 and self.music["all_files"] == 0:
-        #    self.stop()
         if len(self.playlist) == 0:
             self.stop()
-        return self.music[self.playlist[0]]
+        return self.playlist[0]
 
     def rerollThis(self):
+        self.rerollPos(self.cur_Pos)
+    def rerollPos(self, filePos):
         oldPL = self.playlist.copy()
-        del oldPL[self.cur_Pos]
-        self.playlist = oldPL + [self.playlist[self.cur_Pos]]
-        if self.cur_Pos == 0:
+        del oldPL[filePos]
+        self.playlist = oldPL + [self.playlist[filePos]]
+        if filePos == 0:
             self.next(True)
 
+    def rerollId(self, fileId):
+        oldPL = self.playlist.copy()
+        index = self.playlist.index(fileId)
+        del oldPL[index]
+        self.playlist = oldPL + [self.playlist[index]]
+        if index == 0:
+            self.next(True)
+
+
     def sortPL(self):
-        self.playlist.sort()
+        # returns in normal sort order
+        self.playlist = self.mfl.files_active_allFiles.copy()
         self.hardworktime = time.time() + 0.2
 
     def sortPL_name(self):
-        pl_names = []
-        for fileX in self.playlist:
-            fileName = EveconLib.Tools.StrPlusData(self.music[fileX]["name"])
-            fileName.additionalData = fileX
-            pl_names.append(fileName)
-        pl_names.sort()
-
-        new_playlist = []
-        for name in pl_names:
-            new_playlist.append(name.additionalData)
-
-        """
-            for num_file in range(1, self.music["all_files"] + 1):
-                if name == self.music["file" + str(num_file)]["name"]:
-                    ok = True
-                    for x in new_playlist:
-                        if x == "file" + str(num_file):
-                            ok = False
-                    if ok:
-                        new_playlist.append("file" + str(num_file))
-        """
-        self.playlist = new_playlist.copy()
-        self.hardworktime = time.time()
+        self.playlist.sort()
+        self.hardworktime = time.time() + 0.2
 
     def sortPL_an(self):
-        pl_an_file = []
         pl_nonan_file = []
+        pl_an_names = []
 
-        for fileX in self.playlist:
-            if self.music[fileX]["antype"]:
-                pl_an_file.append(fileX)
+        for file in self.playlist:
+            if file.anData["valid"]:
+                spd = EveconLib.Tools.StrPlusData(file.anData["animeName"])
+                spd.additionalData = file
+                pl_an_names.append(spd)
             else:
-                pl_nonan_file.append(fileX)
+                pl_nonan_file.append(file)
 
-        pl_an_file.sort()
+        pl_an_names.sort()
         pl_nonan_file.sort()
 
         new_playlist = []
-        pl_an_name = []
 
-        for an_file in pl_an_file:
-            ok = True
-            for x in pl_an_name:
-                if x == self.music[an_file]["andata"]["animeName"]:
-                    ok = False
-            if ok:
-                pl_an_name.append(self.music[an_file]["andata"]["animeName"])
-        pl_an_name.sort()
-
-        for an_name in pl_an_name:
-            this_an = []  # files unsortiert
-            this_an_name = []  # name unsortiert & sortiert
-            new_pl = []  # files sortiert
-
-            for num_file in range(1, self.music["all_files"] + 1):
-                if self.music["file" + str(num_file)]["antype"] and an_name == \
-                        self.music["file" + str(num_file)]["andata"]["animeName"]:
-                    this_an.append("file" + str(num_file))
-                    this_an_name.append(self.music["file" + str(num_file)]["name"])
-
-            this_an_name.sort()
-            for this_an_name2 in this_an_name:
-                for file in this_an:
-                    if this_an_name2 == self.music[file]["name"]:
-                        new_pl.append(file)
-                        break
-
-            new_playlist += new_pl
-
-        pl_nonan_name = []
-        for fileX in pl_nonan_file:
-            pl_nonan_name.append(self.music[fileX]["name"])
-        pl_nonan_name.sort()
-
-        for name in pl_nonan_name:
-            for num_file in range(1, self.music["all_files"] + 1):
-                if name == self.music["file" + str(num_file)]["name"]:
-                    new_playlist.append("file" + str(num_file))
+        for namePart in pl_an_names:
+            new_playlist.append(namePart.additionalData)
+        for noNamePart in pl_nonan_file:
+            new_playlist.append(pl_nonan_file)
 
         self.playlist = new_playlist.copy()
-        self.hardworktime = time.time()
+        self.hardworktime = time.time() + 0.5
 
     # Options
 
@@ -712,8 +291,7 @@ class MusicPlayer(threading.Thread):
 
     def stop(self):
         # noinspection PyGlobalUndefined
-        global musicrun
-        musicrun = True
+        EveconLib.Config.musicrun = False
 
         self.musicrun = False
         self.playing = False
@@ -759,32 +337,22 @@ class MusicPlayer(threading.Thread):
 
         if self.cur_Pos >= len(self.playlist) - 1:
             self.cur_Pos -= 1
-
-        del self.playlist[num]
+        self.playlist[num].active = False
 
         if num == 0:
             self.next(True)
 
     def DelByFile(self, plfile):
-        numList = EveconLib.Tools.Search(plfile, self.playlist)
-        if len(numList) == 0:
-            return False  # already deleted
-
-        num = numList[0]
+        num = self.playlist.index(plfile)
         if num == 0 and self.stop_del:
             self.stop()
-        if num > len(self.playlist) - 1:
-            return False
-
-        file = self.playlist[0]
-        file_del = self.playlist[num]
 
         if self.cur_Pos >= len(self.playlist) - 1:
             self.cur_Pos -= 1
 
-        del self.playlist[num]
+        plfile.active = False
 
-        if file == file_del:
+        if num == 0:
             self.next(True)
 
     def DelByKey(self, key):
@@ -795,22 +363,17 @@ class MusicPlayer(threading.Thread):
         :return:
         """
 
-        if not key in self.music["active"]:
-            return False  # key not loaded
+        keyObj = self.mfl.getK(key)
+        if not keyObj:
+            return  # not found
 
-        if self.multiplaylists.get(key):  # key is a multiPL and not a normal
-            for singleKey in self.multiplaylists[key]["content"]["all_ids"]:
-                self.DelByKey(singleKey)
-            return True
-
+        if not keyObj.active:
+            return  # already deleted
         nextFile = False
-        corrector = 0
-        for plIndex in range(len(self.playlist)):
-            if self.music[self.playlist[plIndex + corrector]]["key"] == key:
-                if plIndex == 0 + corrector:
-                    nextFile = True
-                del self.playlist[plIndex + corrector]
-                corrector -= 1
+        if self.getCur() in keyObj.getExtChildrenFiles():
+            nextFile = True
+
+        keyObj.active = False
 
         if nextFile:
             self.next(True)
@@ -818,14 +381,13 @@ class MusicPlayer(threading.Thread):
 
     def vol(self, vol):
         self.volume = vol
-        if sys.platform == "win32":
-            EveconLib.Tools.Windows.Volume.change(vol)
+        EveconLib.Tools.Windows.Volume.change(vol)
 
     def volp(self, vol):
         self.volumep = vol
         self.player.volume = self.volumep
 
-    def queueById(self, pos):
+    def queueByPos(self, pos):
         # ID OF THE self.playlist!
         oldPL = self.playlist.copy()
         del oldPL[pos]
@@ -834,21 +396,18 @@ class MusicPlayer(threading.Thread):
         self.hardworktime = time.time()
 
     def queueByFile(self, plfile):
-        res = EveconLib.Tools.Search(plfile, self.playlist)
-        if not res:
+        if not plfile in self.playlist:
             oldPL = self.playlist.copy()
             del oldPL[0]
             self.playlist = [self.playlist[0], plfile] + oldPL
-            self.hardworktime = time.time()
         else:
             oldPL = self.playlist.copy()
-            del oldPL[res[0]]
+            del oldPL[oldPL.index(plfile)]
             del oldPL[0]
             self.playlist = [self.playlist[0], plfile] + oldPL
-            self.hardworktime = time.time()
+        self.hardworktime = time.time()
 
     def refreshSearch(self):
-
         self.cur_Pos = 0
 
         if self.cur_Search != "":
@@ -856,28 +415,28 @@ class MusicPlayer(threading.Thread):
 
             # for x in self.startlist:
             if self.last_backspace:  # global search
-                for x in self.startlist:
-                    name = EveconLib.Tools.StrPlusData(self.music[x]["name"])
-                    name.additionalData = x
+                for plFiles in self.mfl.files_allFiles:
+                    name = EveconLib.Tools.StrPlusData(plFiles.name)
+                    name.additionalData = plFiles
                     namelist.append(name)
             else:  # search in searchlist
-                for x in self.searchlist:
-                    name = EveconLib.Tools.StrPlusData(self.music[x]["name"])
-                    name.additionalData = x
+                for plFiles in self.searchlist:
+                    name = EveconLib.Tools.StrPlusData(plFiles.name)
+                    name.additionalData = plFiles
                     namelist.append(name)
 
             found = EveconLib.Tools.Search(self.cur_Search, namelist)
 
             searchlist_name = []
-            for x in found:
-                searchlist_name.append(namelist[x])
+            for plFiles in found:
+                searchlist_name.append(namelist[plFiles])
             searchlist_name.sort()
 
 
         else:
             searchlist_name = []
-            for fileX in self.startlist:
-                name = EveconLib.Tools.StrPlusData(self.music[fileX]["name"])
+            for fileX in self.mfl.files_allFiles:
+                name = EveconLib.Tools.StrPlusData(fileX.name)
                 name.additionalData = fileX
 
                 searchlist_name.append(name)
@@ -891,92 +450,8 @@ class MusicPlayer(threading.Thread):
 
         self.searchlist = new_playlist.copy()
 
-
-        """
-        self.cur_Pos = 0
-
-        if self.cur_Search != "":
-            namelist = []
-
-            # for x in self.startlist:
-            if self.last_backspace:  # global search
-                for x in self.startlist:
-                    namelist.append(self.music[x]["name"])
-            else:  # search in searchlist
-                for x in self.searchlist:
-                    namelist.append(self.music[x]["name"])
-
-            found = EveconLib.Tools.Search(self.cur_Search, namelist)
-
-            searchlist_name = []
-            for x in found:
-                searchlist_name.append(namelist[x])
-            searchlist_name.sort()
-
-            # music_dir = self.music.copy()
-
-        else:
-            searchlist_name = []
-            for fileX in self.startlist:
-                searchlist_name.append(self.music[fileX]["name"])
-            searchlist_name.sort()
-
-        self.tmp_pl_input_1 = []
-        self.tmp_pl_input_2 = []
-        for name in searchlist_name:
-            if len(searchlist_name) / 2 > len(self.tmp_pl_input_1):
-                self.tmp_pl_input_1.append(name)
-            else:
-                self.tmp_pl_input_2.append(name)
-
-        def work1():
-            music_dir = self.music.copy()
-
-            new_playlist = []
-            for name in self.tmp_pl_input_1:
-                for num_file in range(1, music_dir["all_files"] + 1):
-                    try:
-                        if name == music_dir["file" + str(num_file)]["name"]:
-                            new_playlist.append("file" + str(num_file))
-                            del music_dir["file" + str(num_file)]
-                            break
-                    except KeyError:
-                        pass
-            self.tmp_pl_output_1 = new_playlist
-
-        def work2():
-            music_dir = self.music.copy()
-
-            new_playlist = []
-            for name in self.tmp_pl_input_2:
-                for num_file in range(1, music_dir["all_files"] + 1):
-                    try:
-                        if name == music_dir["file" + str(num_file)]["name"]:
-                            new_playlist.append("file" + str(num_file))
-                            del music_dir["file" + str(num_file)]
-                            break
-                    except KeyError:
-                        pass
-            self.tmp_pl_output_2 = new_playlist
-
-        t1 = threading.Thread(target=work1)
-        t2 = threading.Thread(target=work2)
-
-        t1.start()
-        t2.start()
-
-        t1.join()
-        t2.join()
-
-        new_playlist = self.tmp_pl_output_1 + self.tmp_pl_output_2
-
-        np = EveconLib.Tools.DelDouble(new_playlist)
-
-        self.searchlist = np.copy()
-        """
-
     def run(self):
-        if not self.music:
+        if not self.mfl.files_allFiles:
             return # empty playlist => first add something
         if self.systrayon and sys.platform == "win32":
             def quitFunc(x):
@@ -1039,14 +514,13 @@ class MusicPlayer(threading.Thread):
             self.scanner.start()
 
         while self.musicrun:
-
-            if self.music[self.playlist[0]]["loaded"].is_queued:
+            if self.getCur().pygletData._is_queued:
                 self.reloadMusic(self.playlist[0])
 
             if self.balloonTip:
                 self.showBalloonTip()
 
-            self.player.queue(self.music[self.playlist[0]]["loaded"])
+            self.player.queue(self.getCur().pygletData)
             self.player.volume = self.volumep
 
 
@@ -1069,7 +543,7 @@ class MusicPlayer(threading.Thread):
                 for x in range(5):
                     if self.player.time == 0:
                         self.playing = False
-                    elif round(self.getCur()["loaded"].duration) <= round(self.timer.getTime()):
+                    elif round(self.getCur().pygletData.duration) <= round(self.timer.getTime()):
                         self.playing = False
                     time.sleep(0.1)
 
@@ -1110,7 +584,7 @@ class MusicPlayer(threading.Thread):
                     found = True
                     noti["msgs"].append({
                         "msg": msg,
-                        "screentime": screentime + 100,
+                        "screentime": screentime,
                         "starttime": time.time()
                     })
                     break
@@ -1142,13 +616,13 @@ class MusicPlayer(threading.Thread):
                 con = self.remoteAddress
             outputList.append("Musicplayer: (%s connected)\n" % con)
 
-        if self.getCur()["antype"]:
+        if self.getCur().anData["valid"]:
             outputList.append(
-                "Playing: \n%s \nFrom %s" % (self.getCur()["andata"]["title"], self.getCur()["andata"]["animeName"]))
+                "Playing: \n%s \nFrom %s" % (self.getCur().anData["title"], self.getCur().anData["animeName"]))
         else:
-            outputList.append("Playing: \n%s" % self.getCur()["name"])
+            outputList.append("Playing: \n%s" % self.getCur().name)
 
-        outputList.append("Time: %s\\%s" % (self.timer.getTimeFor(), EveconLib.Tools.TimeFor(self.getCur()["loaded"].duration)))
+        outputList.append("Time: %s\\%s" % (self.timer.getTimeFor(), EveconLib.Tools.TimeFor(self.getCur().pygletData.duration)))
         if self.muted:
             # output.append(int((console_data["pixx"]/2)-3)*"|"+"Muted"+int((console_data["pixx"]/2)-2)*"|")
             l1 = ""
@@ -1254,31 +728,27 @@ class MusicPlayer(threading.Thread):
 
                                 if self.cur_Pos == word_num:
                                     if not self.debug:
-                                        if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                        if len(self.playlist[word_num].name) > 108:
                                             outputList.append(" " + word_num_str + " * " + EveconLib.Tools.getPartStr(
-                                                self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                                self.playlist[word_num].name, 0, 108) + "...")
                                         else:
                                             outputList.append(
-                                                " " + word_num_str + " * " + self.music[self.playlist[word_num]][
-                                                    "name"])
+                                                " " + word_num_str + " * " + self.playlist[word_num].name)
                                     else:
                                         outputList.append(
-                                            " " + word_num_str + " * " + self.music[self.playlist[word_num]][
-                                                "name"] + "0" +
+                                            " " + word_num_str + " * " + self.playlist[word_num].name + "0" +
                                             self.playlist[word_num])
                                 else:
                                     if not self.debug:
-                                        if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                        if len(self.playlist[word_num].name) > 108:
                                             outputList.append(" " + word_num_str + "   " + EveconLib.Tools.getPartStr(
-                                                self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                                self.playlist[word_num].name, 0, 108) + "...")
                                         else:
                                             outputList.append(
-                                                " " + word_num_str + "   " + self.music[self.playlist[word_num]][
-                                                    "name"])
+                                                " " + word_num_str + "   " + self.playlist[word_num].name)
                                     else:
                                         outputList.append(
-                                            " " + word_num_str + "   " + self.music[self.playlist[word_num]][
-                                                "name"] + "1" +
+                                            " " + word_num_str + "   " + self.playlist[word_num].name + "1" +
                                             self.playlist[word_num])
                         elif 2 * self.expandRange + 1 >= len(self.playlist):
                             for word_num in range(0, 2 * self.expandRange + 1):  # + 1?
@@ -1292,33 +762,30 @@ class MusicPlayer(threading.Thread):
                                 if self.cur_Pos == word_num:
                                     try:
                                         if not self.debug:
-                                            if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                            if len(self.playlist[word_num].name) > 108:
                                                 outputList.append(" " + word_num_str + " * " + EveconLib.Tools.getPartStr(
-                                                    self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                                    self.playlist[word_num].name, 0, 108) + "...")
                                             else:
                                                 outputList.append(
-                                                    " " + word_num_str + " * " + self.music[self.playlist[word_num]][
-                                                        "name"])
+                                                    " " + word_num_str + " * " + self.playlist[word_num].name)
                                         else:
                                             outputList.append(
-                                                " " + word_num_str + " * " + self.music[self.playlist[word_num]][
-                                                    "name"] + "2" + self.playlist[word_num])
+                                                " " + word_num_str + " * " + self.playlist[word_num].name
+                                                + "2" + self.playlist[word_num])
                                     except IndexError:
                                         pass
                                 else:
                                     try:
                                         if not self.debug:
-                                            if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                            if len(self.playlist[word_num].name) > 108:
                                                 outputList.append(" " + word_num_str + "   " + EveconLib.Tools.getPartStr(
-                                                    self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                                    self.playlist[word_num].name, 0, 108) + "...")
                                             else:
                                                 outputList.append(
-                                                    " " + word_num_str + "   " + self.music[self.playlist[word_num]][
-                                                        "name"])
+                                                    " " + word_num_str + "   " + self.playlist[word_num].name)
                                         else:
                                             outputList.append(
-                                                " " + word_num_str + "   " + self.music[self.playlist[word_num]][
-                                                    "name"] + "3" + self.playlist[word_num])
+                                                " " + word_num_str + "   " + self.playlist[word_num].name + "3" + self.playlist[word_num])
                                     except IndexError:
                                         pass
                         else:
@@ -1331,31 +798,27 @@ class MusicPlayer(threading.Thread):
                                     word_num_str = str(word_num + 1)
                                 if self.cur_Pos == word_num:
                                     if not self.debug:
-                                        if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                        if len(self.playlist[word_num].name) > 108:
                                             outputList.append(" " + word_num_str + " * " + EveconLib.Tools.getPartStr(
-                                                self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                                self.playlist[word_num].name, 0, 108) + "...")
                                         else:
                                             outputList.append(
-                                                " " + word_num_str + " * " + self.music[self.playlist[word_num]][
-                                                    "name"])
+                                                " " + word_num_str + " * " + self.playlist[word_num].name)
                                     else:
                                         outputList.append(
-                                            " " + word_num_str + " * " + self.music[self.playlist[word_num]][
-                                                "name"] + "4" +
+                                            " " + word_num_str + " * " + self.playlist[word_num].name + "4" +
                                             self.playlist[word_num])
                                 else:
                                     if not self.debug:
-                                        if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                        if len(self.playlist[word_num].name) > 108:
                                             outputList.append(" " + word_num_str + "   " + EveconLib.Tools.getPartStr(
-                                                self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                                self.playlist[word_num].name, 0, 108) + "...")
                                         else:
                                             outputList.append(
-                                                " " + word_num_str + "   " + self.music[self.playlist[word_num]][
-                                                    "name"])
+                                                " " + word_num_str + "   " + self.playlist[word_num].name)
                                     else:
                                         outputList.append(
-                                            " " + word_num_str + "   " + self.music[self.playlist[word_num]][
-                                                "name"] + "5" +
+                                            " " + word_num_str + "   " + self.playlist[word_num].name + "5" +
                                             self.playlist[word_num])
                         search_done = True
                         break
@@ -1373,27 +836,27 @@ class MusicPlayer(threading.Thread):
                                 word_num_str = str(word_num + 1)
                             if self.cur_Pos == word_num:
                                 if not self.debug:
-                                    if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                    if len(self.playlist[word_num].name) > 108:
                                         outputList.append(" " + word_num_str + " * " + EveconLib.Tools.getPartStr(
-                                            self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                            self.playlist[word_num].name, 0, 108) + "...")
                                     else:
                                         outputList.append(
-                                            " " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                            " " + word_num_str + " * " + self.playlist[word_num].name)
                                 else:
                                     outputList.append(
-                                        " " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"] + "6" +
+                                        " " + word_num_str + " * " + self.playlist[word_num].name + "6" +
                                         self.playlist[word_num])
                             else:
                                 if not self.debug:
-                                    if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                                    if len(self.playlist[word_num].name) > 108:
                                         outputList.append(" " + word_num_str + "   " + EveconLib.Tools.getPartStr(
-                                            self.music[self.playlist[word_num]]["name"], 0, 108) + "...")
+                                            self.playlist[word_num].name, 0, 108) + "...")
                                     else:
                                         outputList.append(
-                                            " " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                            " " + word_num_str + "   " + self.playlist[word_num].name)
                                 else:
                                     outputList.append(
-                                        " " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"] + "7" +
+                                        " " + word_num_str + "   " + self.playlist[word_num].name + "7" +
                                         self.playlist[word_num])
                         search_done = True
                         break
@@ -1408,60 +871,60 @@ class MusicPlayer(threading.Thread):
                         word_num_str = str(word_num + 1)
                     if self.cur_Pos == word_num:
                         if not self.debug:
-                            if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                            if len(self.playlist[word_num].name) > 108:
                                 outputList.append(
-                                    " " + word_num_str + " * " + EveconLib.Tools.getPartStr(self.music[self.playlist[word_num]]["name"],
+                                    " " + word_num_str + " * " + EveconLib.Tools.getPartStr(self.playlist[word_num].name,
                                                                             0,
                                                                             108) + "...")
                             else:
                                 outputList.append(
-                                    " " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"])
+                                    " " + word_num_str + " * " + self.playlist[word_num].name)
                         else:
                             outputList.append(
-                                " " + word_num_str + " * " + self.music[self.playlist[word_num]]["name"] + "10" +
+                                " " + word_num_str + " * " + self.playlist[word_num].name + "10" +
                                 self.playlist[word_num])
                     else:
                         if not self.debug:
-                            if len(self.music[self.playlist[word_num]]["name"]) > 108:
+                            if len(self.playlist[word_num].name) > 108:
                                 outputList.append(
-                                    " " + word_num_str + "   " + EveconLib.Tools.getPartStr(self.music[self.playlist[word_num]]["name"],
+                                    " " + word_num_str + "   " + EveconLib.Tools.getPartStr(self.playlist[word_num].name,
                                                                             0,
                                                                             108) + "...")
                             else:
                                 outputList.append(
-                                    " " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"])
+                                    " " + word_num_str + "   " + self.playlist[word_num].name)
                         else:
                             outputList.append(
-                                " " + word_num_str + "   " + self.music[self.playlist[word_num]]["name"] + "11" +
+                                " " + word_num_str + "   " + self.playlist[word_num].name + "11" +
                                 self.playlist[word_num])
 
         elif self.con_main == "details":
             outputList.append("Details:\n")
-            outputList.append("Duration: " + str(EveconLib.Tools.TimeFor(self.music["file1"]["loaded"].duration)))
+            outputList.append("Duration: " + str(EveconLib.Tools.TimeFor(self.playlist[self.cur_Pos].pygletData.duration)))
 
-            if self.music[self.playlist[self.cur_Pos]]["antype"]:
-                outputList.append("Title: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["title"]))
+            if self.playlist[self.cur_Pos].anData["valid"]:
+                outputList.append("Title: " + str(self.playlist[self.cur_Pos].anData["title"]))
                 outputList.append(
-                    "Interpreter: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["interpreter"]))
-                outputList.append("Musictype: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["musictype"]))
-                outputList.append("Animename: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeName"]))
-                if self.music[self.playlist[self.cur_Pos]]["andata"].get("animeSeason"):
-                    outputList.append("Season: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeSeason"]))
-                if self.music[self.playlist[self.cur_Pos]]["andata"].get("animeType"):
-                    outputList.append("Type: " + str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeType"]) +
-                                      str(self.music[self.playlist[self.cur_Pos]]["andata"]["animeTypeNum"]))
+                    "Interpreter: " + str(self.playlist[self.cur_Pos].anData["interpreter"]))
+                outputList.append("Musictype: " + str(self.playlist[self.cur_Pos].anData["musictype"]))
+                outputList.append("Animename: " + str(self.playlist[self.cur_Pos].anData["animeName"]))
+                if self.playlist[self.cur_Pos].anData.get("animeSeason"):
+                    outputList.append("Season: " + str(self.playlist[self.cur_Pos].anData["animeSeason"]))
+                if self.playlist[self.cur_Pos].anData.get("animeType"):
+                    outputList.append("Type: " + str(self.playlist[self.cur_Pos].anData["animeType"]) +
+                                      str(self.playlist[self.cur_Pos].anData["animeTypeNum"]))
 
-            outputList.append("Filename: " + self.music[self.playlist[self.cur_Pos]]["name"])
-            outputList.append("Parantkey: " + self.music[self.playlist[self.cur_Pos]]["key"])
-            outputList.append("Filepath: " + self.music[self.playlist[self.cur_Pos]]["fullname"])
-            outputList.append("Album: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.album.decode())
-            outputList.append("Author: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.author.decode())
-            outputList.append("Comment: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.comment.decode())
-            outputList.append("Copyright: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.copyright.decode())
-            outputList.append("Genre: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.genre.decode())
-            outputList.append("Title: " + self.music[self.playlist[self.cur_Pos]]["loaded"].info.title.decode())
-            outputList.append("Track: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.track))
-            outputList.append("Year: " + str(self.music[self.playlist[self.cur_Pos]]["loaded"].info.year))
+            outputList.append("Filename: " + self.playlist[self.cur_Pos].file)
+            outputList.append("Parantkey: " + self.playlist[self.cur_Pos].parentKey)
+            outputList.append("Filepath: " + self.playlist[self.cur_Pos].path)
+            outputList.append("Album: " + self.playlist[self.cur_Pos].pygletData.info.album.decode())
+            outputList.append("Author: " + self.playlist[self.cur_Pos].pygletData.info.author.decode())
+            outputList.append("Comment: " + self.playlist[self.cur_Pos].pygletData.info.comment.decode())
+            outputList.append("Copyright: " + self.playlist[self.cur_Pos].pygletData.info.copyright.decode())
+            outputList.append("Genre: " + self.playlist[self.cur_Pos].pygletData.info.genre.decode())
+            outputList.append("Title: " + self.playlist[self.cur_Pos].pygletData.info.title.decode())
+            outputList.append("Track: " + str(self.playlist[self.cur_Pos].pygletData.info.track))
+            outputList.append("Year: " + str(self.playlist[self.cur_Pos].pygletData.info.year))
 
         elif self.con_main == "info":
             outputList.append("Infos:\n")
@@ -1487,17 +950,13 @@ class MusicPlayer(threading.Thread):
             outputList.append("Muted: " + str(self.muted))
             outputList.append("Playing: " + str(self.playing))
             outputList.append("Paused: " + str(self.paused))
-            outputList.append("Loaded-Key: " + str(self.music["active"]))
+            outputList.append("Loaded-Key: " + str(self.mfl.loadedKeys))
 
             if self.debug:
                 outputList.append("\nDebugging Details:\n")
 
                 outputList.append("Cur-Pos: " + str(self.cur_Pos))
                 outputList.append("Autorefresh: " + str(self.autorefresh))
-
-                outputList.append("File:\n")
-                outputList.append("Filename: " + self.music[self.playlist[self.cur_Pos]]["file"])
-                outputList.append("Path: " + self.music[self.playlist[self.cur_Pos]]["path"])
 
                 outputList.append("\nOther:\n")
 
@@ -1533,30 +992,26 @@ class MusicPlayer(threading.Thread):
 
                                 if self.cur_Pos == word_num:
                                     if not self.debug:
-                                        if len(self.music[self.searchlist[word_num]]["name"]) > 108:
+                                        if len(self.searchlist[word_num].name) > 108:
                                             outputList.append(" " + word_num_str + " * " + EveconLib.Tools.getPartStr(
-                                                self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
+                                                self.searchlist[word_num].name, 0, 108) + "...")
                                         else:
                                             outputList.append(
-                                                " " + word_num_str + " * " + self.music[self.searchlist[word_num]][
-                                                    "name"])
+                                                " " + word_num_str + " * " + self.searchlist[word_num].name)
                                     else:
                                         outputList.append(
-                                            " " + word_num_str + " * " + self.music[self.searchlist[word_num]][
-                                                "name"] + "0" + self.searchlist[word_num])
+                                            " " + word_num_str + " * " + self.searchlist[word_num].name + "0" + self.searchlist[word_num])
                                 else:
                                     if not self.debug:
-                                        if len(self.music[self.searchlist[word_num]]["name"]) > 108:
+                                        if len(self.searchlist[word_num].name) > 108:
                                             outputList.append(" " + word_num_str + "   " + EveconLib.Tools.getPartStr(
-                                                self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
+                                                self.searchlist[word_num].name, 0, 108) + "...")
                                         else:
                                             outputList.append(
-                                                " " + word_num_str + "   " + self.music[self.searchlist[word_num]][
-                                                    "name"])
+                                                " " + word_num_str + "   " + self.searchlist[word_num].name)
                                     else:
                                         outputList.append(
-                                            " " + word_num_str + "   " + self.music[self.searchlist[word_num]][
-                                                "name"] + "1" + self.searchlist[word_num])
+                                            " " + word_num_str + "   " + self.searchlist[word_num].name + "1" + self.searchlist[word_num])
                         elif 2 * self.expandRange + 1 >= len(self.searchlist):
                             for word_num in range(0, 2 * self.expandRange + 1):  # + 1?
                                 if word_num + 1 < 10:
@@ -1569,33 +1024,29 @@ class MusicPlayer(threading.Thread):
                                 if self.cur_Pos == word_num:
                                     try:
                                         if not self.debug:
-                                            if len(self.music[self.searchlist[word_num]]["name"]) > 108:
+                                            if len(self.searchlist[word_num].name) > 108:
                                                 outputList.append(" " + word_num_str + " * " + EveconLib.Tools.getPartStr(
-                                                    self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
+                                                    self.searchlist[word_num].name, 0, 108) + "...")
                                             else:
                                                 outputList.append(
-                                                    " " + word_num_str + " * " + self.music[self.searchlist[word_num]][
-                                                        "name"])
+                                                    " " + word_num_str + " * " + self.searchlist[word_num].name)
                                         else:
                                             outputList.append(
-                                                " " + word_num_str + " * " + self.music[self.searchlist[word_num]][
-                                                    "name"] + "2" + self.searchlist[word_num])
+                                                " " + word_num_str + " * " + self.searchlist[word_num].name + "2" + self.searchlist[word_num])
                                     except IndexError:
                                         pass
                                 else:
                                     try:
                                         if not self.debug:
-                                            if len(self.music[self.searchlist[word_num]]["name"]) > 108:
+                                            if len(self.searchlist[word_num].name) > 108:
                                                 outputList.append(" " + word_num_str + "   " + EveconLib.Tools.getPartStr(
-                                                    self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
+                                                    self.searchlist[word_num].name, 0, 108) + "...")
                                             else:
                                                 outputList.append(
-                                                    " " + word_num_str + "   " + self.music[self.searchlist[word_num]][
-                                                        "name"])
+                                                    " " + word_num_str + "   " + self.searchlist[word_num].name)
                                         else:
                                             outputList.append(
-                                                " " + word_num_str + "   " + self.music[self.searchlist[word_num]][
-                                                    "name"] + "3" + self.searchlist[word_num])
+                                                " " + word_num_str + "   " + self.searchlist[word_num].name + "3" + self.searchlist[word_num])
                                     except IndexError:
                                         pass
                         else:
@@ -1608,30 +1059,26 @@ class MusicPlayer(threading.Thread):
                                     word_num_str = str(word_num + 1)
                                 if self.cur_Pos == word_num:
                                     if not self.debug:
-                                        if len(self.music[self.searchlist[word_num]]["name"]) > 108:
+                                        if len(self.searchlist[word_num].name) > 108:
                                             outputList.append(" " + word_num_str + " * " + EveconLib.Tools.getPartStr(
-                                                self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
+                                                self.searchlist[word_num].name, 0, 108) + "...")
                                         else:
                                             outputList.append(
-                                                " " + word_num_str + " * " + self.music[self.searchlist[word_num]][
-                                                    "name"])
+                                                " " + word_num_str + " * " + self.searchlist[word_num].name)
                                     else:
                                         outputList.append(
-                                            " " + word_num_str + " * " + self.music[self.searchlist[word_num]][
-                                                "name"] + "4" + self.searchlist[word_num])
+                                            " " + word_num_str + " * " + self.searchlist[word_num].name + "4" + self.searchlist[word_num])
                                 else:
                                     if not self.debug:
-                                        if len(self.music[self.searchlist[word_num]]["name"]) > 108:
+                                        if len(self.searchlist[word_num].name) > 108:
                                             outputList.append(" " + word_num_str + "   " + EveconLib.Tools.getPartStr(
-                                                self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
+                                                self.searchlist[word_num].name, 0, 108) + "...")
                                         else:
                                             outputList.append(
-                                                " " + word_num_str + "   " + self.music[self.searchlist[word_num]][
-                                                    "name"])
+                                                " " + word_num_str + "   " + self.searchlist[word_num].name)
                                     else:
                                         outputList.append(
-                                            " " + word_num_str + "   " + self.music[self.searchlist[word_num]][
-                                                "name"] + "5" + self.searchlist[word_num])
+                                            " " + word_num_str + "   " + self.searchlist[word_num].name + "5" + self.searchlist[word_num])
                         search_done = True
                         break
 
@@ -1648,28 +1095,26 @@ class MusicPlayer(threading.Thread):
                                 word_num_str = str(word_num + 1)
                             if self.cur_Pos == word_num:
                                 if not self.debug:
-                                    if len(self.music[self.searchlist[word_num]]["name"]) > 108:
+                                    if len(self.searchlist[word_num].name) > 108:
                                         outputList.append(" " + word_num_str + " * " + EveconLib.Tools.getPartStr(
-                                            self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
+                                            self.searchlist[word_num].name, 0, 108) + "...")
                                     else:
                                         outputList.append(
-                                            " " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"])
+                                            " " + word_num_str + " * " + self.searchlist[word_num].name)
                                 else:
                                     outputList.append(
-                                        " " + word_num_str + " * " + self.music[self.searchlist[word_num]][
-                                            "name"] + "6" + self.searchlist[word_num])
+                                        " " + word_num_str + " * " + self.searchlist[word_num].name + "6" + self.searchlist[word_num])
                             else:
                                 if not self.debug:
-                                    if len(self.music[self.searchlist[word_num]]["name"]) > 108:
+                                    if len(self.searchlist[word_num].name) > 108:
                                         outputList.append(" " + word_num_str + "   " + EveconLib.Tools.getPartStr(
-                                            self.music[self.searchlist[word_num]]["name"], 0, 108) + "...")
+                                            self.searchlist[word_num].name, 0, 108) + "...")
                                     else:
                                         outputList.append(
-                                            " " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"])
+                                            " " + word_num_str + "   " + self.searchlist[word_num].name)
                                 else:
                                     outputList.append(
-                                        " " + word_num_str + "   " + self.music[self.searchlist[word_num]][
-                                            "name"] + "7" + self.searchlist[word_num])
+                                        " " + word_num_str + "   " + self.searchlist[word_num].name + "7" + self.searchlist[word_num])
                         search_done = True
                         break
 
@@ -1683,31 +1128,31 @@ class MusicPlayer(threading.Thread):
                         word_num_str = str(word_num + 1)
                     if self.cur_Pos == word_num:
                         if not self.debug:
-                            if len(self.music[self.searchlist[word_num]]["name"]) > 108:
+                            if len(self.searchlist[word_num].name) > 108:
                                 outputList.append(
                                     " " + word_num_str + " * " + EveconLib.Tools.getPartStr(
-                                        self.music[self.searchlist[word_num]]["name"],
+                                        self.searchlist[word_num].name,
                                         0, 108) + "...")
                             else:
                                 outputList.append(
-                                    " " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"])
+                                    " " + word_num_str + " * " + self.searchlist[word_num].name)
                         else:
                             outputList.append(
-                                " " + word_num_str + " * " + self.music[self.searchlist[word_num]]["name"] + "10" +
+                                " " + word_num_str + " * " + self.searchlist[word_num].name + "10" +
                                 self.searchlist[word_num])
                     else:
                         if not self.debug:
-                            if len(self.music[self.searchlist[word_num]]["name"]) > 108:
+                            if len(self.searchlist[word_num].name) > 108:
                                 outputList.append(
                                     " " + word_num_str + "   " + EveconLib.Tools.getPartStr(
-                                        self.music[self.searchlist[word_num]]["name"],
+                                        self.searchlist[word_num].name,
                                         0, 108) + "...")
                             else:
                                 outputList.append(
-                                    " " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"])
+                                    " " + word_num_str + "   " + self.searchlist[word_num].name)
                         else:
                             outputList.append(
-                                " " + word_num_str + "   " + self.music[self.searchlist[word_num]]["name"] + "11" +
+                                " " + word_num_str + "   " + self.searchlist[word_num].name + "11" +
                                 self.searchlist[word_num])
         return outputList
 
@@ -1778,7 +1223,7 @@ class MusicPlayer(threading.Thread):
             outputList.append("Add new Music:\n")
 
             cur = ""
-            for mus in self.music["active"]:
+            for mus in self.mfl.loadedKeys:
                 cur += mus + ", "
             cur = cur.rstrip(", ")
 
@@ -1797,7 +1242,7 @@ class MusicPlayer(threading.Thread):
             outputList.append("Remove music through their key:\n")
 
             cur = ""
-            for mus in self.music["active"]:
+            for mus in self.mfl.loadedKeys:
                 cur += mus + ", "
             cur = cur.rstrip(", ")
 
@@ -1885,7 +1330,7 @@ class MusicPlayer(threading.Thread):
                 # Search commands
                 if i == "p":
                     oldPL = self.playlist.copy()
-                    del oldPL[EveconLib.Tools.Search(self.searchlist[self.cur_Pos], self.searchlist)[0]]
+                    del oldPL[oldPL.index(self.searchlist[self.cur_Pos])]
                     self.playlist = [self.searchlist[self.cur_Pos]] + oldPL
                     self.next(True)
 
@@ -1929,7 +1374,7 @@ class MusicPlayer(threading.Thread):
 
         elif inp == "return" and self.searching:
             oldPL = self.playlist.copy()
-            del oldPL[EveconLib.Tools.Search(self.searchlist[self.cur_Pos], self.searchlist)[0]]
+            del oldPL[oldPL.index(self.searchlist[self.cur_Pos])]
             self.playlist = [self.searchlist[self.cur_Pos]] + oldPL
             self.next(True)
 
@@ -2185,8 +1630,8 @@ class MusicPlayer(threading.Thread):
             self.con_cont = "add"
 
             # generating the missing MusicKeysList
-            self.musicKeysLeft = self.musiclist["keys"].copy()
-            for needToDel in self.music["active"]:
+            self.musicKeysLeft = self.mfl.musicFileEditor.musicDirs["keys"].copy()
+            for needToDel in self.mfl.loadedKeys:
                 sol = EveconLib.Tools.Search(needToDel, self.musicKeysLeft, exact=True, lower=False)
                 if len(sol) == 0:
                     continue  # maybe a mpl key
@@ -2233,7 +1678,7 @@ class MusicPlayer(threading.Thread):
             self.sortPL_an()
             self.next(True)
         elif i == "qu":
-            self.queueById(self.cur_Pos)
+            self.queueByPos(self.cur_Pos)
         elif i == "debug":
             if self.debug:
                 self.debug = False

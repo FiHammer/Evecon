@@ -205,16 +205,16 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
 
     muPlayer = EveconLib.Programs.Player.MusicPlayer(systray=systrayon, balloonTip=balloonTip, random=EveconLib.Config.musicrandom, killMeAfterEnd=killMeAfterEnd)
     muPlayer.read_musiclist()
-
+    somethingISloaded = True
     if not load:
         music_playlists_print = ""
-        for x, y in zip(muPlayer.musiclist["names"], muPlayer.musiclist["keys"]):
+        for x, y in zip(muPlayer.mfl.musicFileEditor.musicDirs["names"], muPlayer.mfl.musicFileEditor.musicDirs["keys"]):
             music_playlists_print += x.title() + " (" + y.upper() + "), "
         music_playlists_print = music_playlists_print.rstrip(", ")
 
 
         music_multiplaylists_print = ""
-        for x, y in zip(muPlayer.multiplaylists["names"], muPlayer.multiplaylists["keys"]):
+        for x, y in zip(muPlayer.mfl.musicFileEditor.multiPls["names"], muPlayer.mfl.musicFileEditor.multiPls["keys"]):
             music_multiplaylists_print += x.title() + " (" + y.upper() + "), "
         music_multiplaylists_print = music_multiplaylists_print.rstrip(", ")
 
@@ -233,30 +233,32 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
         muPlayer.addMusic(load)
 
     if music_user_input.lower() == "all":
-        for x in muPlayer.musiclist["keys"]:
+        for x in muPlayer.mfl.musicFileEditor.musicDirs["keys"]:
             muPlayer.addMusic(x)
 
     elif music_user_input.lower() == "mpl":
         musicman_search = True
 
-        muPlayer.musiclist["names"].append("User's List")
+        muPlayer.mfl.musicFileEditor.musicDirs["names"].append("User's List")
 
         musicman_list = []
         music_playlists_used = {}
 
-        for x in muPlayer.musiclist["keys"]:
+        for x in muPlayer.mfl.musicFileEditor.musicDirs["keys"]:
             music_playlists_used[x] = " "
 
         while musicman_search:
             music_playlists_used_List = []
-            for x in muPlayer.musiclist["keys"]:
+            for x in muPlayer.mfl.musicFileEditor.musicDirs["keys"]:
                 music_playlists_used_List.append(music_playlists_used[x])
             cls()
             print("Playlists:\n")
             #print(music_playlists_print)
             #print("User's list (US), User defined (UD)")
             #print("\nLoaded:")
-            for xl, x2, x3 in zip(music_playlists_used_List, muPlayer.musiclist["names"], muPlayer.musiclist["keys"]):
+            for xl, x2, x3 in zip(music_playlists_used_List,
+                                  muPlayer.mfl.musicFileEditor.musicDirs["names"],
+                                  muPlayer.mfl.musicFileEditor.musicDirs["keys"]):
                 print(" " + xl + " " + x2 + " (" + x3.upper() + ")")
             for x in musicman_list:
                 print(" X " + x)
@@ -266,7 +268,8 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
 
             if musicman_user_input.lower() == "fin":
                 musicman_search = False
-            elif not EveconLib.Tools.Search(musicman_user_input, muPlayer.musiclist["keys"], exact=True):
+            elif not EveconLib.Tools.Search(musicman_user_input,
+                                            muPlayer.mfl.musicFileEditor.musicDirs["keys"], exact=True):
                 continue
 
             else:
@@ -277,91 +280,32 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
                 elif x == "ul":
                     musicman_list.append("unkown list")
 
-    #elif music_user_input.lower() == "search":
-    #    for x in muPlayer.playlists_key:
-    #        muPlayer.addMusic(x, False)
-
-    #    cls()
-    #    print("What do you want to hear?")
-
-    #    user_input_search = input()
-
-    #    searchdir = Search(user_input_search, muPlayer.musiclistdirname)
-    #    searchtrack = Search(user_input_search, muPlayer.musiclistname)
-
-    #    musiclistpathold = muPlayer.musiclistpath
-    #    muPlayer.musiclistpath = []
-    #    musiclistnameold = muPlayer.musiclistname
-    #    muPlayer.musiclistname = []
-
-    #    for x in searchdir:
-    #        muPlayer.searchMusic(muPlayer.musiclistdirnamefull[x])
-
-    #    for x in searchtrack:
-    #        muPlayer.musiclist.append(pyglet.media.load(musiclistpathold[x]))
-    #        muPlayer.musiclistpath.append(musiclistpathold[x])
-    #        muPlayer.musiclistname.append(musiclistnameold[x])
-
-
     elif music_user_input.lower() == "search":
-        muPlayer.addMusic("all")
+        muPlayer.addMusic("all", loadForPyglet=False)
 
         cls()
         print("What do you want to hear?")
 
         user_input_search = input().lower()
 
-        all_music = []
-        all_dir = []
 
-        for x in range(1, muPlayer.music["all_files"] + 1):
-            all_music.append(muPlayer.music["file" + str(x)]["name"])
-        for x in range(1, muPlayer.music["all_dirs"] + 1):
-            all_dir.append(muPlayer.music["dir" + str(x)]["file"])
-
-        found_music = Tools.Search(user_input_search, all_music)
-        found_dir = Tools.Search(user_input_search, all_dir)
+        found_music = Tools.Search(user_input_search, muPlayer.mfl.files_allFiles)
+        found_dir = Tools.Search(user_input_search, muPlayer.mfl.files_allDirs)
 
         for x in found_music:
-            muPlayer.playlist.append("file" + str(x + 1))
-
-        def funcx(dirID):
-            for x in muPlayer.music["dir" + str(dirID)]["content"]:
-                if EveconLib.Tools.lsame(x, "dir"):
-                    funcx(int(x.lstrip("dir"))) # weitergabe: XX
-                else:
-                    doit = True
-                    for file in muPlayer.playlist:
-                        if file == x:
-                            doit = False
-                            break
-
-                    if doit:
-                        muPlayer.playlist.append(x)
+            muPlayer.mfl.files_allFiles[x].active = True
 
         for x in found_dir:
-            funcx(x + 1)  # weitergabe: int XX + 1
+            muPlayer.mfl.files_allDirs[x].active = True
 
-        # ist etwas doppeltes in der PL ?
+        muPlayer.mfl.reloadThingsInThreads(muPlayer.mfl.files_active_allFiles, specTyp=2, onlyFirstLoad=True)
 
-        oldPL1 = muPlayer.playlist.copy()
-        oldPL2 = muPlayer.playlist.copy()
-
-        for x in range(len(oldPL1)):
-            for y in oldPL2:
-                found = 0
-                if oldPL1[x] == y and found == 0:
-                    found += 1
-                elif oldPL1[x] == y and found > 0:
-                    del oldPL2[x]
-
-        muPlayer.playlist = oldPL2.copy()
-
+        somethingISloaded = True
 
     else:
         muPlayer.addMusic(music_user_input.lower())
 
-    if muPlayer.music["active"]:
+    if muPlayer.mfl.loadedKeys or somethingISloaded:
         muPlayer.start()
         Play()
     else:

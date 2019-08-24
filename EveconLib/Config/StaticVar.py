@@ -10,7 +10,7 @@ vivaldi_path = "C:\\Program Files (x86)\\Vivaldi\\Application\\vivaldi.exe"
 code_version = "0.9.9.2"
 
 
-DEBUGGING = False
+DEBUGGING = True
 
 NEVERCLEAR = False
 

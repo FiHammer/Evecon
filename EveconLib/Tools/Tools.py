@@ -1,6 +1,5 @@
 import time
 import os
-import sys
 import threading
 import random
 import subprocess
@@ -610,7 +609,7 @@ def MusicType(mType, exact=False):
         return False
 
 
-def Search(searchkeyU, searchlistU, exact=False, lower=True, onlyOnce=True):
+def Search(searchkeyU, searchlistU: list, exact=False, lower=True, onlyOnce=True):
     """
 
     :param searchkeyU: key
@@ -628,12 +627,17 @@ def Search(searchkeyU, searchlistU, exact=False, lower=True, onlyOnce=True):
         searchkey = searchkeyU.lower()
         searchlist = []
         for x in searchlistU:
-            searchlist.append(x.lower())
+            searchlist.append(str(x).lower())
     else:
         searchkey = searchkeyU
         searchlist = []
         for x in searchlistU:
             searchlist.append(x)
+    if exact and onlyOnce:  # using .index meth of list
+        if searchkey in searchlist:
+            return [searchlist.index(searchkey)]
+        else:
+            return []
 
     OutputNum = []
 
@@ -1079,7 +1083,7 @@ def MusicEncode(fileName: str):
         output["animeName"] = ""
         for part in spaceParts:
             output["animeName"] += part + " "
-        output["animeName"].rstrip()
+        output["animeName"] = output["animeName"].strip()
         return output
 
 def killme():
