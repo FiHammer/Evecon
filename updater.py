@@ -335,9 +335,9 @@ def makeSingleFile():
     subprocess.call(["pyinstaller.exe", "!Console.py", "--onefile"])
     time.sleep(1)
     os.chdir(d)
+    EveconLib.Config.refreshVersion()
 
-    shutil.move("!Evecon\\dev\\dist\\!Console.exe", "!Evecon\\Exe\\!Console-%s.exe" % this_version[1])
-
+    shutil.move("!Evecon\\dev\\dist\\!Console.exe", "!Evecon\\Exe\\!Console-%s.exe" % EveconLib.Config.file_versions[1])
 
 skiparg = []
 

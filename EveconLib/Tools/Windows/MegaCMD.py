@@ -44,7 +44,7 @@ class MegacmdC:
 
                 time.sleep(1)
 
-                EveconLib.Tools.Tools.cls()
+                EveconLib.Tools.cls()
                 print("Started Server!")
         else:
             pass
