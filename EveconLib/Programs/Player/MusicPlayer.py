@@ -105,7 +105,7 @@ class MusicPlayer(threading.Thread):
 
         self.lastPresses = [0, time.time(), "None"]
 
-        self.mfl = EveconLib.Programs.Player.MusicFileLoader(self.notificate, self.neverPrint, self.playlist)
+        self.mfl = EveconLib.Programs.Player.MusicFileLoader(self.notificate, self.neverPrint, musicPlayer=self)
 
 
     def addMusic(self, key, cusPath=False, genre=False, noList=False, printStaMSG=True, printEndMSG=True,
@@ -337,10 +337,14 @@ class MusicPlayer(threading.Thread):
 
         if self.cur_Pos >= len(self.playlist) - 1:
             self.cur_Pos -= 1
+        print(self.playlist)
+        print(self.playlist[num].activeList)
+        print(self.playlist == self.playlist[num].activeList)
         self.playlist[num].active = False
 
         if num == 0:
             self.next(True)
+        return True
 
     def DelByFile(self, plfile):
         num = self.playlist.index(plfile)
@@ -354,6 +358,7 @@ class MusicPlayer(threading.Thread):
 
         if num == 0:
             self.next(True)
+        return True
 
     def DelByKey(self, key):
         """
@@ -514,6 +519,8 @@ class MusicPlayer(threading.Thread):
             self.scanner.start()
 
         while self.musicrun:
+            if not self.getCur().pygletData:
+                self.getCur().loadForPyglet(threadLoad=False)
             if self.getCur().pygletData._is_queued:
                 self.reloadMusic(self.playlist[0])
 
@@ -915,7 +922,7 @@ class MusicPlayer(threading.Thread):
                                       str(self.playlist[self.cur_Pos].anData["animeTypeNum"]))
 
             outputList.append("Filename: " + self.playlist[self.cur_Pos].file)
-            outputList.append("Parantkey: " + self.playlist[self.cur_Pos].parentKey)
+            outputList.append("Parantkey: " + str(self.playlist[self.cur_Pos].parentKey))
             outputList.append("Filepath: " + self.playlist[self.cur_Pos].path)
             outputList.append("Album: " + self.playlist[self.cur_Pos].pygletData.info.album.decode())
             outputList.append("Author: " + self.playlist[self.cur_Pos].pygletData.info.author.decode())
@@ -950,7 +957,12 @@ class MusicPlayer(threading.Thread):
             outputList.append("Muted: " + str(self.muted))
             outputList.append("Playing: " + str(self.playing))
             outputList.append("Paused: " + str(self.paused))
-            outputList.append("Loaded-Key: " + str(self.mfl.loadedKeys))
+
+            files_loadedKeys = ""
+            for k in self.mfl.files_loadedKeys:
+                files_loadedKeys += str(k) + ", "
+            files_loadedKeys.rstrip(", ")
+            outputList.append("Loaded-Key: " + files_loadedKeys)
 
             if self.debug:
                 outputList.append("\nDebugging Details:\n")
@@ -1223,8 +1235,8 @@ class MusicPlayer(threading.Thread):
             outputList.append("Add new Music:\n")
 
             cur = ""
-            for mus in self.mfl.loadedKeys:
-                cur += mus + ", "
+            for mus in self.mfl.files_loadedKeys:
+                cur += mus.key + ", "
             cur = cur.rstrip(", ")
 
             outputList.append("Current: " + cur)
@@ -1242,8 +1254,8 @@ class MusicPlayer(threading.Thread):
             outputList.append("Remove music through their key:\n")
 
             cur = ""
-            for mus in self.mfl.loadedKeys:
-                cur += mus + ", "
+            for mus in self.mfl.files_loadedKeys:
+                cur += mus.key + ", "
             cur = cur.rstrip(", ")
 
             outputList.append("Current: " + cur)
@@ -1631,8 +1643,8 @@ class MusicPlayer(threading.Thread):
 
             # generating the missing MusicKeysList
             self.musicKeysLeft = self.mfl.musicFileEditor.musicDirs["keys"].copy()
-            for needToDel in self.mfl.loadedKeys:
-                sol = EveconLib.Tools.Search(needToDel, self.musicKeysLeft, exact=True, lower=False)
+            for needToDel in self.mfl.files_loadedKeys:
+                sol = EveconLib.Tools.Search(needToDel.key, self.musicKeysLeft, exact=True, lower=False)
                 if len(sol) == 0:
                     continue  # maybe a mpl key
                 del self.musicKeysLeft[sol[0]]

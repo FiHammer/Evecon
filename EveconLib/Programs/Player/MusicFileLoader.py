@@ -31,9 +31,12 @@ class MusicKey:
 
         self.keyType = -1   # -1: not done, 0: error, 1: single pl, 2: multi pl, 3: all, 4: cus, 5: us
                             # is this key a single playlist or multiPL/Genre/etc...
-
+        self._active = False  # is this key in the active or deac lists
     def __str__(self):
-        return "MusicKey: " + self.key
+        return self.key
+
+    def __add__(self, other):
+        return self.key + other
 
     def getActiveStatus(self):
         """
@@ -68,7 +71,7 @@ class MusicKey:
 
         :param activeStatus: activate: True, deac: False
         """
-        if activeStatus == bool(self.active):
+        if activeStatus == self._active:
             return
 
         if activeStatus:  # activate
@@ -97,6 +100,7 @@ class MusicKey:
             self.mfl.files_inactive_allKeys.append(self)
             self.mfl.files_inactive_allKeysStatic[self.id] = self
 
+        self._active = activeStatus
         for children in self.children:
             children.setActiveStatus(activeStatus, suppressActiveList)
 
@@ -186,6 +190,8 @@ class MusicKey:
         elif indis == len(self.children):
             self.loaded = 2
 
+        self.mfl.files_indexedKeys.append(self)
+
         # adding to mfl lists
 
         self.mfl.files_allList.append(self)
@@ -204,7 +210,12 @@ class MusicKey:
         return self.loaded
 
     def loadForPyglet(self, onlyFirstLoad=False, threadLoad=True):  # meaning: loadChildrenForPyglet
+        self.mfl.files_loadedKeys.append(self)
         if threadLoad:  # loads the things in multi threads
+
+            if self.keyType == 2 or self.keyType == 3:  # here normally it will not be appended
+                self.mfl.files_loadedKeys += self.children
+
             self.mfl.reloadThingsInThreads(self.getExtChildrenFiles(), specTyp=2,
                                        onlyFirstLoad=onlyFirstLoad)
             return
@@ -233,7 +244,7 @@ class MusicFileDir:
         self.loaded = False
 
     def __str__(self):
-        return "MusicFileDir: " + self.dirName
+        return self.dirName
 
     def getActiveStatus(self):
         """
@@ -385,7 +396,10 @@ class MusicFile:
         self.loadedPygletData = False
 
     def __str__(self):
-        return "MusicFile: " + self.name
+        return self.name
+
+    def __add__(self, other):
+        return self.name + other
 
     def __lt__(self, other):
         return self.name.capitalize() < other.name.capitalize()
@@ -397,7 +411,10 @@ class MusicFile:
         else:
             return super().__eq__(other)
     def __ne__(self, other):
-        return self.name.capitalize() != other.name.capitalize()
+        if type(other) == MusicFile:
+            return self.name.capitalize() != other.name.capitalize()
+        else:
+            return super().__ne__(other)
     def __gt__(self, other):
         return self.name.capitalize() > other.name.capitalize()
     def __ge__(self, other):
@@ -433,6 +450,10 @@ class MusicFile:
             if self.activeList is not None and not suppressActiveList:
                 self.activeList.append(self)
 
+            if self.mfl.musicPlayer and not suppressActiveList:
+                print("Adding myself to Pl")
+                self.mfl.musicPlayer.playlist.append(self)
+
         else:  # deactivate
             del self.mfl.files_active_allList[self.mfl.files_active_allList.index(self)]
             del self.mfl.files_active_allListStatic["file" + str(self.id)]
@@ -449,6 +470,9 @@ class MusicFile:
 
             if self.activeList is not None and not suppressActiveList:
                 del self.activeList[self.activeList.index(self)]
+
+            if self.mfl.musicPlayer:
+                self.mfl.musicPlayer.playlist.remove(self)
 
         self._active = activeStatus
 
@@ -516,12 +540,13 @@ class MusicFile:
 
 
 class MusicFileLoader:
-    def __init__(self, notificationFunc=None, neverPrint=False, activeList=None):
+    def __init__(self, notificationFunc=None, neverPrint=False, activeList=None, musicPlayer=None):
         self.musicFileEditor = EveconLib.Programs.Player.MusicFileEditor()
 
         self.notificationFunc = notificationFunc
         self.neverPrint = neverPrint
         self.activeList = activeList
+        self.musicPlayer = musicPlayer
 
         self.refreshMusicList()
 
@@ -561,8 +586,8 @@ class MusicFileLoader:
         self.files_inactive_allKeysStatic = {}  # same static
 
 
-        self.loadedKeys = []  # pygletLoaded
-        self.indexedKeys = []  # indexed
+        self.files_loadedKeys = []  # pygletLoaded
+        self.files_indexedKeys = []  # indexed
 
     def getNewDirId(self):
         self.files_dirQuan += 1
@@ -597,13 +622,10 @@ class MusicFileLoader:
         if printEndMSG and not self.neverPrint:
             print("Key %s indexed successful" % key.title())
 
-        self.indexedKeys.append(keyOj)
         if loadForPyglet:
             EveconLib.Tools.Log("MusicFileLoader (addMusic)", "Begin to load files for pyglet from the key %s" % key)
 
             keyOj.loadForPyglet(onlyFirstLoad=True, threadLoad=True)
-
-            self.loadedKeys.append(keyOj)
 
         if printEndMSG and not self.neverPrint:
             print("Finished: " + key)
@@ -705,7 +727,7 @@ class MusicFileLoader:
         self.files_allDirsStatic[dirId].setActiveStatus(status, suppressActiveList)
 
     def activateThing(self, thingId: str, status: bool, suppressActiveList=False):
-        self.files_allListStatic[thingId].active = status
+        self.files_allListStatic[thingId].setActiveStatus(status, suppressActiveList)
 
     def activateKey(self, keyId: str, status: bool, suppressActiveList=False):
         if type(keyId) != int:
@@ -714,12 +736,8 @@ class MusicFileLoader:
         self.files_allKeysStatic[keyId].setActiveStatus(status, suppressActiveList)
 
     def activateAll(self, status: bool, suppressActiveList=False):
-        if status:
-            for file in self.files_inactive_allFiles:
-                file.setActiveStatus(status, suppressActiveList)
-        else:
-            for file in self.files_active_allFiles:
-                file.setActiveStatus(status, suppressActiveList)
+        for key in self.files_allKeys:
+            key.setActiveStatus(status, suppressActiveList)
 
     def getF(self, file):
         """

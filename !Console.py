@@ -170,7 +170,7 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
     def Play():
         title("Musicplayer")
         class Printerr(threading.Thread):
-            def __init__(self, refreshtime=1):
+            def __init__(self, refreshtime=1.0):
                 super().__init__()
                 self.started = False
                 self.refreshTime = refreshtime
@@ -189,7 +189,7 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
                         time.sleep(1)
 
 
-        Printer = Printerr()
+        Printer = Printerr(refreshtime=1.6)
         Printer.start()
 
         muPlayer.join()
@@ -305,7 +305,7 @@ def Music(load=None, systrayon=True, balloonTip=True, killMeAfterEnd=True):
     else:
         muPlayer.addMusic(music_user_input.lower())
 
-    if muPlayer.mfl.loadedKeys or somethingISloaded:
+    if muPlayer.mfl.files_loadedKeys or somethingISloaded:
         muPlayer.start()
         Play()
     else:
