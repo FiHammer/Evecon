@@ -337,9 +337,6 @@ class MusicPlayer(threading.Thread):
 
         if self.cur_Pos >= len(self.playlist) - 1:
             self.cur_Pos -= 1
-        print(self.playlist)
-        print(self.playlist[num].activeList)
-        print(self.playlist == self.playlist[num].activeList)
         self.playlist[num].active = False
 
         if num == 0:
