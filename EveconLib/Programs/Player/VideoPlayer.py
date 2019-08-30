@@ -5,7 +5,7 @@ import time
 
 class VideoPlayer:
     def __init__(self, musicFile: str, enableWindowControl=True, enableServer=False, port=-1, forcePort=False,
-                 server_sendFirstStartAndWaitForClient=False):
+                 server_sendFirstStartAndWaitForClient=False, subs=True):
         self.musicFilePath = musicFile
         self.musicFile = MusicFile(musicFile, None)
 
@@ -13,6 +13,8 @@ class VideoPlayer:
         self.enableWindowControl = enableWindowControl
 
         self.window = pyglet.window.Window(visible=False, resizable=True)
+        self.subtitleBox = pyglet.text.Label(y=50, font_size=32, width=50, multiline=True)
+
         self.player = pyglet.media.Player()
 
         self.musicData = None
@@ -29,6 +31,11 @@ class VideoPlayer:
 
         self.player.volume = self.volume
 
+        self.showSubs = subs
+        self.subChanger = None
+        self.musicFile.loadInfo()
+        if self.musicFile.subAvail and self.showSubs:
+            self.subChanger = EveconLib.Programs.Player.SubTitleParserChanger(self.setSub, self.musicFile.subFile, self.timer)
 
         if enableServer:
             if port == -1:
@@ -57,6 +64,8 @@ class VideoPlayer:
             self.mute(fromServer=True)
         elif msg == "unmute":
             self.unmute(fromServer=True)
+        elif msg == "msg":
+            self.setSub("Hallo Ich bin toll")
 
     def validate(self):
         if not self.musicFile.loaded:
@@ -89,6 +98,18 @@ class VideoPlayer:
         def on_draw():
             self.player.get_texture().blit(self.window.width/2 - self.musicFile.pygletData.video_format.width/2,
                                            self.window.height/2 - self.musicFile.pygletData.video_format.height/2)
+            if self.showSubs and self.subtitleBox and self.subChanger:
+                #sb = self.subBoxes.copy()
+                #for box in :
+                self.subtitleBox.x = self.window.width // 2 - self.subtitleBox.width // 2 - 20
+                self.subtitleBox.draw()
+
+                x = self.subChanger.canChange()
+                if x:
+                    self.setSub(x)
+                #print(self.subtitleBox, self.window.width, self.subtitleBox.width)
+                #self.subtitleBox.x = self.window.width//2 - self.subtitleBox.width//2 - 20
+                #self.subtitleBox.draw()
 
         @self.window.event
         def on_close():
@@ -138,6 +159,9 @@ class VideoPlayer:
         self.window.set_fullscreen(False)
         self.window.set_visible(True)
 
+        if self.showSubs and self.subChanger:
+            pass #self.subChanger.start()
+        self.setSub("Haklo")
 
         if self.server and self.server_sendFirstStartAndWaitForClient:
             while not self.server.hasActiveConnections():
@@ -151,6 +175,17 @@ class VideoPlayer:
         pyglet.app.run()
 
         self.exit(fromServer=True)
+
+    def setSub(self, text):
+        width = len(text) * 20
+        y = 75
+        #print(width, y, text)
+        label = pyglet.text.Label(text, y=y, font_size=32, width=width)
+        self.subtitleBox = label
+
+        #self.subtitleBox.
+        #self.subtitleBox.delete_text()
+        #self.subtitleBox.text.insert_text(text)
 
     def switch(self):
         if self.playing:
@@ -177,6 +212,18 @@ class VideoPlayer:
 
         if self.server and not fromServer: # server react
             self.server.sendToAll("play")
+
+    def switchSubs(self):
+        if self.showSubs:
+            self.unhideSubs()
+        else:
+            self.hideSubs()
+
+    def unhideSubs(self):
+        self.showSubs = True
+
+    def hideSubs(self):
+        self.showSubs = False
 
     def windowVis(self, status):
         if not self.running:

@@ -383,6 +383,7 @@ class MusicFile:
 
 
         self.file = fullPath.split(PS)[-1]
+        self.dir = self.path.rstrip(self.file)  # WITH \\
         self.fileExt = self.file.split(".")[-1]
         self.fileName = ""
         self.name = ""
@@ -399,6 +400,9 @@ class MusicFile:
         self._active = False
 
         self.videoAvail = False
+        self.subAvail = False
+        self.subFile = ""
+
         self.loadedPygletData = False
 
     def __str__(self):
@@ -532,6 +536,10 @@ class MusicFile:
         elif self.fileExt in AVFT:
             self.type = "video"
             self.videoAvail = True
+
+        if os.path.exists(self.dir + self.fileName + "." + EveconLib.Programs.Player.SubTitleParser.VALID_TYPES[0]):
+            self.subAvail = True
+            self.subFile = self.dir + self.fileName + "." + EveconLib.Programs.Player.SubTitleParser.VALID_TYPES[0]
 
 
         self.anData = EveconLib.Tools.MusicEncode(self.fileName)
