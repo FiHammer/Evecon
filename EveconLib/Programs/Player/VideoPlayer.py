@@ -150,7 +150,7 @@ class VideoPlayer:
 
         pyglet.app.run()
 
-        self.exit()
+        self.exit(fromServer=True)
 
     def switch(self):
         if self.playing:

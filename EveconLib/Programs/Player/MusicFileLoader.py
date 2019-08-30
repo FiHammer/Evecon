@@ -398,6 +398,7 @@ class MusicFile:
         self.loaded = False
         self._active = False
 
+        self.videoAvail = False
         self.loadedPygletData = False
 
     def __str__(self):
@@ -530,6 +531,7 @@ class MusicFile:
             self.type = "music"
         elif self.fileExt in AVFT:
             self.type = "video"
+            self.videoAvail = True
 
 
         self.anData = EveconLib.Tools.MusicEncode(self.fileName)

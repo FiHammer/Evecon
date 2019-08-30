@@ -329,7 +329,10 @@ class MusicPlayer(threading.Thread):
             EveconLib.Tools.killme()
 
     def __del__(self):
+        print("NOOO")
+
         if self.videoPlayerIsPlaying:
+            print("Ok then it is Ok")
             self.videoPlayerProcess.kill()
 
         try:
@@ -339,6 +342,8 @@ class MusicPlayer(threading.Thread):
             pass
 
     def next(self, skipthis=False, fromServer=False):
+        if self.waitForVPstart:
+            return
         if self.videoPlayerIsPlaying: # server react
             self.stopVideoPlayer(fromServer)
 
@@ -580,9 +585,9 @@ class MusicPlayer(threading.Thread):
                 time.sleep(0.15)
                 for x in range(5):
                     if self.videoPlayerIsPlaying:
-                        time.sleep(0.1)  # easy continue
                         if round(self.getCur().pygletData.duration) <= round(self.timer.getTime()) - 3: # three seconds wait time for async
                             self.playing = False
+                        time.sleep(0.1)  # easy continue
 
                     elif self.player.time == 0:
                         self.playing = False
@@ -960,6 +965,7 @@ class MusicPlayer(threading.Thread):
                                       str(self.playlist[self.cur_Pos].anData["animeTypeNum"]))
 
             outputList.append("Filename: " + self.playlist[self.cur_Pos].file)
+            outputList.append("Musictype: " + self.playlist[self.cur_Pos].type)
             outputList.append("Parantkey: " + str(self.playlist[self.cur_Pos].parentKey))
             outputList.append("Filepath: " + self.playlist[self.cur_Pos].path)
             outputList.append("Album: " + self.playlist[self.cur_Pos].pygletData.info.album.decode())
@@ -1338,7 +1344,13 @@ class MusicPlayer(threading.Thread):
             print(line)
         self.last_print = time.time()
 
-    def react(self, inp):
+    def react(self, inp, debug_directMulti=False):
+        if debug_directMulti:
+            self.cur_Input += inp
+            x = self.input(self.cur_Input)
+            self.printit()
+            return x
+
         if self.lastPresses[1] + 0.2 >= time.time() and self.lastPresses[2] == inp:  # DOUBLE PRESS
             mulPress = self.lastPresses[0] + 1
             self.lastPresses = [mulPress, time.time(), inp]
@@ -1656,6 +1668,13 @@ class MusicPlayer(threading.Thread):
         else:
             upper = False
 
+        if self.waitForVPstart:
+            self.notificate("WAIT FOR VIDEO START", "Error")
+
+        while self.waitForVPstart:  # wait loop
+            time.sleep(0.4)
+
+
         i = i.lower()
         if i == "play" or i == "pau" or i == "pause" or i == "p":
             self.switch()
@@ -1753,18 +1772,33 @@ class MusicPlayer(threading.Thread):
             self.refreshSearch()
 
         elif i == "vid":  # deac video for this session and play normal
-            self.getCur().type = "music"
-            self.stopVideoPlayer()
+            print("vidGlobal")
+            if self.cur_Pos == 0:
+                if self.getCur().type == "music":
+                    return False
+                print("vid")
 
-            time.sleep(3)
-            self.player.pause()
-            if self.getCur().pygletData._is_queued:
-                self.getCur().loadForPyglet()
+                self.getCur().type = "music"
+                self.stopVideoPlayer(debug_vPIP=True)
 
-            self.player.queue(self.getCur().pygletData)
-            self.timer.reset()
-            self.timer.start()
-            self.player.play()
+                time.sleep(3)
+                self.player.pause()
+                self.timer.reset()
+                if self.getCur().pygletData._is_queued:
+                    self.getCur().loadForPyglet()
+
+                self.player.next_source()
+                self.player.queue(self.getCur().pygletData)
+                self.player.play()
+                self.timer.start()
+                time.sleep(1.5)
+
+                self.videoPlayerIsPlaying = False
+            else:
+                if self.playlist[self.cur_Pos].type == "music" and self.playlist[self.cur_Pos].videoAvail:
+                    self.playlist[self.cur_Pos].type = "video"
+                else:
+                    self.playlist[self.cur_Pos].type = "music"
 
 
         elif i == "spl":
@@ -1879,6 +1913,10 @@ class MusicPlayer(threading.Thread):
 
     def callVideoPlayer(self):
         # starts a videoPlayer
+        self.stopVideoPlayer()
+
+        self.waitForVPstart = True
+
         self.player.pause()
         newPort = EveconLib.Tools.UsedPorts.givePort()
         self.videoPlayerClient = EveconLib.Networking.Client(socket.gethostbyname(socket.gethostname()), newPort, react=self.reactVideoPlayer)
@@ -1891,16 +1929,18 @@ class MusicPlayer(threading.Thread):
         self.videoPlayerClient.start()
         self.videoPlayerClient.send("vol_"+str(self.volumep))
         self.videoPlayerIsPlaying = True
-        self.waitForVPstart = True
 
-    def stopVideoPlayer(self, fromServer=False):
+    def stopVideoPlayer(self, fromServer=False, debug_vPIP=False):  # debug_vPIP do not chance vpip in this method
         if not self.videoPlayerIsPlaying:
             return
         if not fromServer:
-            self.videoPlayerClient.send("exit")
+            pass #self.videoPlayerClient.send("exit")  # maybe kill this programm not through exit, because this could throw a error
         self.videoPlayerClient.exit(sendM=False)
-        self.videoPlayerIsPlaying = False
-        #self.videoPlayerProcess.kill()
+        if not debug_vPIP:
+            self.videoPlayerIsPlaying = False
+            self.waitForVPstart = False # maybe debug
+        #self.videoPlayerProcess.terminate()  # do not need
+        self.videoPlayerProcess.kill()
 
     def reactVideoPlayer(self, msg):
         if msg == "firstStart":
@@ -1920,3 +1960,6 @@ class MusicPlayer(threading.Thread):
             self.mute(fromServer=True)
         elif msg == "unmute":
             self.unmute(fromServer=True)
+        else:
+            return
+        self.refresh(title=False, printme=self.selfprint)
