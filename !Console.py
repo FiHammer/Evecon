@@ -1930,14 +1930,16 @@ def Arg():
             EveconLib.Programs.Klakum.relays[4].switch()
             EveconLib.Programs.Klakum.disconnect()
             exit_now()
-        """
+
         if sys.argv[x] == "--vp":
-            title("Load Argument", "Video Player")
-            print(sys.argv)
-            vp = EveconLib.Programs.Player.VideoPlayer(sys.argv[x + 1])
+            EveconLib.Config.title_time.deac()
+            if sys.argv[x + 2] is None:  # no port avai
+                vp = EveconLib.Programs.Player.VideoPlayer(sys.argv[x + 1])
+            else:
+                vp = EveconLib.Programs.Player.VideoPlayer(sys.argv[x + 1], port=int(sys.argv[x + 2]), enableServer=True, server_sendFirstStartAndWaitForClient=True, forcePort=True)
             vp.start()
             exit_now()
-        """
+
 def debug_startup():
     """
     def x(x):

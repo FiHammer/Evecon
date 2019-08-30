@@ -3,20 +3,16 @@ import pyglet
 import sys
 import random
 import time
+import subprocess
+import socket
 
-import EveconLib.Networking
-import EveconLib.Config
-import EveconLib.Tools
-
-import EveconLib.Programs.Scanner
-import EveconLib.Programs.SplWeapRand
-import EveconLib.Programs.Player.MusicFileEditor
-
+import EveconLib
 
 # noinspection PyTypeChecker
 class MusicPlayer(threading.Thread):
     def __init__(self, systray=True, random=True, expandRange=2, stop_del=False, scanner_active=True, balloonTip=True,
-                 killMeAfterEnd=True, remote=True, remotePort=4554, selfprint=False, specialFilePath=None, neverPrint=False):
+                 killMeAfterEnd=True, remote=True, remotePort=4554, selfprint=False, specialFilePath=None, neverPrint=False,
+                 autoPlayVideo=True):
         super().__init__()
 
         self.debug = False
@@ -90,7 +86,7 @@ class MusicPlayer(threading.Thread):
         self.searchlist = []
         self.cur_Search = ""
 
-        self.arrowSetting = [(3, 10, 3), (11, -1, 6)]  # (minPress, maxPress (-1 = infinite), Plus)
+        self.arrowSetting = [(3, 15, 3), (16, -1, 6)]  # (minPress, maxPress (-1 = infinite), Plus)
 
         self.notifications = []
 
@@ -106,6 +102,12 @@ class MusicPlayer(threading.Thread):
         self.lastPresses = [0, time.time(), "None"]
 
         self.mfl = EveconLib.Programs.Player.MusicFileLoader(self.notificate, self.neverPrint, musicPlayer=self)
+
+        self.videoPlayerClient = None  # client for videoPlayer
+        self.autoPlayVideo = autoPlayVideo
+        self.videoPlayerIsPlaying = False
+        self.videoPlayerProcess = None
+        self.waitForVPstart = False
 
 
     def addMusic(self, key, cusPath=False, genre=False, noList=False, printStaMSG=True, printEndMSG=True,
@@ -258,12 +260,18 @@ class MusicPlayer(threading.Thread):
 
     # Options
 
-    def play(self):
+    def play(self, fromServer=False):
+        if self.videoPlayerIsPlaying and not fromServer: # server react
+            self.videoPlayerClient.send("play")
+
         self.paused = False
         self.player.play()
         self.hardworktime = time.time() + 0.2
 
-    def pause(self):
+    def pause(self, fromServer=False):
+        if self.videoPlayerIsPlaying and not fromServer: # server react
+            self.videoPlayerClient.send("pause")
+
         self.paused = True
         self.player.pause()
         self.hardworktime = time.time() + 0.2
@@ -280,12 +288,16 @@ class MusicPlayer(threading.Thread):
         else:
             self.mute()
 
-    def mute(self):
+    def mute(self, fromServer=False):
+        if self.videoPlayerIsPlaying and not fromServer: # server react
+            self.videoPlayerClient.send("mute")
         self.muted = True
         self.mute_vol = self.volumep
         self.volp(0)
 
-    def unmute(self):
+    def unmute(self, fromServer=False):
+        if self.videoPlayerIsPlaying and not fromServer: # server react
+            self.videoPlayerClient.send("unmute")
         self.muted = False
         self.volp(self.mute_vol)
 
@@ -293,11 +305,15 @@ class MusicPlayer(threading.Thread):
         # noinspection PyGlobalUndefined
         EveconLib.Config.musicrun = False
 
+        if self.videoPlayerIsPlaying:
+            self.stopVideoPlayer()
+
         self.musicrun = False
         self.playing = False
         self.paused = False
         self.running = False
         self.scanner.running = False
+        self.player.delete()
 
         if self.remote:
             self.server.exit()
@@ -313,19 +329,25 @@ class MusicPlayer(threading.Thread):
             EveconLib.Tools.killme()
 
     def __del__(self):
+        if self.videoPlayerIsPlaying:
+            self.videoPlayerProcess.kill()
+
         try:
             #EveconLib.Config.globalMPports.remPort(self.server.port)  # autodelete
             EveconLib.Config.globalMPportsJava.remPort(self.server_java.port)
         except AttributeError:
             pass
 
-    def next(self, skipthis=False):
+    def next(self, skipthis=False, fromServer=False):
+        if self.videoPlayerIsPlaying: # server react
+            self.stopVideoPlayer(fromServer)
+
         if skipthis:
             self.skip_del = True
         self.playing = False
         if self.paused:
             self.paused = False
-            self.player.play()
+            # self.player.play()  # TODO HERE COULD BE A MISSTAKE (COMMENTED TO TRY IF THIS CAUSES ERRORS)
         self.hardworktime = time.time() + 0.2
 
     def DelById(self, num):
@@ -385,7 +407,10 @@ class MusicPlayer(threading.Thread):
         self.volume = vol
         EveconLib.Tools.Windows.Volume.change(vol)
 
-    def volp(self, vol):
+    def volp(self, vol, fromServer=False):
+        if self.videoPlayerIsPlaying and not fromServer: # server react
+            self.videoPlayerClient.send("vol_"+str(vol))
+
         self.volumep = vol
         self.player.volume = self.volumep
 
@@ -515,21 +540,30 @@ class MusicPlayer(threading.Thread):
         if self.scanner_active:
             self.scanner.start()
 
+        self.player.volume = self.volumep
+
         while self.musicrun:
             if not self.getCur().pygletData:
                 self.getCur().loadForPyglet(threadLoad=False)
             if self.getCur().pygletData._is_queued:
-                self.reloadMusic(self.playlist[0])
+                self.reloadMusic(self.playlist[0].id)
 
             if self.balloonTip:
                 self.showBalloonTip()
 
-            self.player.queue(self.getCur().pygletData)
-            self.player.volume = self.volumep
+            # VIDEO PLAYER TEST
+            if self.playlist[0].type == "video" and self.autoPlayVideo:
+                self.callVideoPlayer()  # ATTENTION: THE VIDEO IS NOW PLAYING SO NORMAL PLAYER IS PAUSED
+
+                while self.waitForVPstart:
+                    time.sleep(0.5)
+
+            else:
+                self.player.queue(self.getCur().pygletData)
 
 
-            if not self.paused:
-                self.player.play()
+                if not self.paused:
+                    self.player.play()
 
             self.timer.start()  # music timer
 
@@ -545,11 +579,16 @@ class MusicPlayer(threading.Thread):
 
                 time.sleep(0.15)
                 for x in range(5):
-                    if self.player.time == 0:
+                    if self.videoPlayerIsPlaying:
+                        time.sleep(0.1)  # easy continue
+                        if round(self.getCur().pygletData.duration) <= round(self.timer.getTime()) - 3: # three seconds wait time for async
+                            self.playing = False
+
+                    elif self.player.time == 0:
                         self.playing = False
                     elif round(self.getCur().pygletData.duration) <= round(self.timer.getTime()):
                         self.playing = False
-                    time.sleep(0.1)
+                    time.sleep(0.2)
 
                     self.refresh(title=False, printme=self.selfprint)
 
@@ -562,6 +601,8 @@ class MusicPlayer(threading.Thread):
                     self.timer.unpause()
                     self.refresh(title=True, printme=self.selfprint)
 
+            if self.videoPlayerIsPlaying:
+                self.stopVideoPlayer()
 
             self.timer.reset()
             self.player.next_source()
@@ -1823,4 +1864,46 @@ class MusicPlayer(threading.Thread):
                         self.server_java.send(data_send)
 
 
-# maybe a class for the music data
+    def callVideoPlayer(self):
+        # starts a videoPlayer
+        self.player.pause()
+        newPort = EveconLib.Tools.UsedPorts.givePort()
+        self.videoPlayerClient = EveconLib.Networking.Client(socket.gethostbyname(socket.gethostname()), newPort, react=self.reactVideoPlayer)
+        sp = EveconLib.Config.startProgramm
+        self.videoPlayerProcess = subprocess.Popen(["python", sp, "--vp", self.getCur().path, str(newPort)])
+
+        #print(sp)
+
+        time.sleep(5)
+        self.videoPlayerClient.start()
+        self.videoPlayerClient.send("vol_"+str(self.volumep))
+        self.videoPlayerIsPlaying = True
+        self.waitForVPstart = True
+
+    def stopVideoPlayer(self, fromServer=False):
+        if not self.videoPlayerIsPlaying:
+            return
+        if not fromServer:
+            self.videoPlayerClient.send("exit")
+        self.videoPlayerClient.exit(sendM=False)
+        self.videoPlayerIsPlaying = False
+        self.videoPlayerProcess.kill()
+
+    def reactVideoPlayer(self, msg):
+        if msg == "firstStart":
+            self.waitForVPstart = False
+        elif msg == "play":
+            self.play(fromServer=True)
+        elif msg == "pause":
+            self.pause(fromServer=True)
+        elif msg == "exit":
+            self.next(fromServer=True)  # stop this video skip to next track
+        elif EveconLib.Tools.lsame(msg, "vol_"):
+            try:
+                self.volp(float(msg.lstrip("vol_")), fromServer=True)
+            except ValueError:
+                pass
+        elif msg == "mute":
+            self.mute(fromServer=True)
+        elif msg == "unmute":
+            self.unmute(fromServer=True)

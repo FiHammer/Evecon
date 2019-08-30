@@ -1,45 +1,239 @@
+import EveconLib
+from EveconLib.Programs.Player.MusicFileLoader import MusicFile
 import pyglet
-import os
+import time
 
 class VideoPlayer:
-    def __init__(self, filepath, subtitle=True):
+    def __init__(self, musicFile: str, enableWindowControl=True, enableServer=False, port=-1, forcePort=False,
+                 server_sendFirstStartAndWaitForClient=False):
+        self.musicFilePath = musicFile
+        self.musicFile = MusicFile(musicFile, None)
+
+
+        self.enableWindowControl = enableWindowControl
+
+        self.window = pyglet.window.Window(visible=False, resizable=True)
         self.player = pyglet.media.Player()
-        self.vid = pyglet.media.load(filepath)
-        self.filepath = filepath
-        self.player.queue(self.vid)
 
-        # player setup finished, label setup
-        subpath = ""
-        fpspl = filepath.split(".")
-        for a in range(len(fpspl) - 1):
-            subpath += fpspl[a] + "."
+        self.musicData = None
+        self.validation = None
 
-        subpath += "srt"
+        self.timer = EveconLib.Tools.Timer()
 
-        if subtitle:
-            subtitle = os.path.exists(subpath)
+        self.playing = False  # playing music
+        self.running = False  # started the playback
 
-        if subtitle:
-            pass  # parse subtitle here
+        self.prevVolume = 0.0  # prev Vol save for mute
+        self.volume = 0.5  # volume
+        self.muted = False  #is player muted
 
-        self.win = pyglet.window.Window(resizable=True)
+        self.player.volume = self.volume
 
-        self.win.set_visible(False)
 
-        @self.win.event
-        def on_draw():
-            self.player.get_texture().blit(self.win.width/2 - self.vid.video_format.width/2, self.win.height/2 - self.vid.video_format.height/2)
+        if enableServer:
+            if port == -1:
+                self.port = EveconLib.Tools.UsedPorts.givePort()
+            else:
+                self.port = port
+            self.server = EveconLib.Networking.Server(port=self.port, forcePort=forcePort, stdReact=self.serverReact, printLog=False)
+        else:
+            self.server = None
 
-        @self.win.event
-        def on_close():
-            self.player.delete()
+        self.server_sendFirstStartAndWaitForClient = server_sendFirstStartAndWaitForClient
+
+    def serverReact(self, msg, connectionId):
+        if msg == "play":
+            self.play(fromServer=True)
+        elif msg == "pause":
+            self.pause(fromServer=True)
+        elif EveconLib.Tools.lsame(msg, "vol_"):
+            try:
+                self.setVol(float(msg.lstrip("vol_")), fromServer=True)
+            except ValueError:
+                pass
+        elif msg == "exit":
+            self.exit(fromServer=True)
+        elif msg == "mute":
+            self.mute(fromServer=True)
+        elif msg == "unmute":
+            self.unmute(fromServer=True)
+
+    def validate(self):
+        if not self.musicFile.loaded:
+            self.musicFile.loadInfo()
+
+        if self.musicFile.type != "video":
+            self.validation = False
+            return False
+
+        self.validation = self.musicFile.validate()
+        return self.validation
+
 
     def start(self):
-        self.win.set_visible(True)
-        self.player.play()
-        pyglet.app.run()
-    def exit(self):
-        self.player.delete()
-        self.win.close()
+        if self.validation is None:
+            self.validate()
+        if not self.validation:
+            return   # not valid
+        # generating player & window
+        self.running = True
+        self.musicFile.loadForPyglet(onlyFirstLoad=True)
 
+        if self.musicFile.anData["valid"]:
+            self.window.set_caption("Evecon: VideoPlayer        Now Playing      " + self.musicFile.anData["title"])
+        else:
+            self.window.set_caption("Evecon: VideoPlayer        Now Playing            " + self.musicFile.name)
+
+
+        @self.window.event
+        def on_draw():
+            self.player.get_texture().blit(self.window.width/2 - self.musicFile.pygletData.video_format.width/2,
+                                           self.window.height/2 - self.musicFile.pygletData.video_format.height/2)
+
+        @self.window.event
+        def on_close():
+            self.exit()
+
+        @self.window.event
+        def on_key_press(symbol, modifiers):
+            if not self.enableWindowControl:
+                return
+
+            if symbol == 32:  # space => pause/play
+                self.switch()
+            elif symbol == 65480:  # F11 => switchfullscreen
+                self.fullscreenSwitch()
+            elif symbol == 65364:  # arrow down => vol-
+                self.setVol(self.volume - 0.1)
+            elif symbol == 65362:  # arrow up => vol+
+                self.setVol(self.volume + 0.1)
+            elif symbol == 109:  # m => mute
+                self.muteSwitch()
+            elif symbol == 101:  # e => exit
+                self.exit()
+            #print(symbol, modifiers)
+
+        @self.player.event
+        def on_player_eos():
+            print(0)
+            self.exit()
+
+        @self.player.event
+        def on_eos():
+            print(1)
+            self.exit()
+
+        @self.player.event
+        def on_source_group_eos():
+            print(2)
+            self.exit()
+
+
+
+        if self.server:
+            self.server.start()
+
+        self.player.queue(self.musicFile.pygletData)
+
+        self.window.set_fullscreen(False)
+        self.window.set_visible(True)
+
+
+        if self.server and self.server_sendFirstStartAndWaitForClient:
+            while not self.server.hasActiveConnections():
+                time.sleep(1)
+            self.server.sendToAll("firstStart")
+
+        self.timer.start()
+        self.playing = True
+        self.player.play()
+
+        pyglet.app.run()
+
+        self.exit()
+
+    def switch(self):
+        if self.playing:
+            self.pause()
+        else:
+            self.play()
+
+    def pause(self, fromServer=False):
+        if not self.running:
+            return
+        self.timer.pause()
+        self.playing = False
+        self.player.pause()
+
+        if self.server and not fromServer: # server react
+            self.server.sendToAll("pause")
+
+    def play(self, fromServer=False):
+        if not self.running:
+            return
+        self.timer.start()
+        self.playing = True
+        self.player.play()
+
+        if self.server and not fromServer: # server react
+            self.server.sendToAll("play")
+
+    def windowVis(self, status):
+        if not self.running:
+            return
+        self.window.set_visible(status)
+
+    def fullscreenSwitch(self):
+        if not self.running:
+            return
+
+        if self.window.fullscreen:
+            self.window.set_fullscreen(False, screen=self.window.screen)
+        else:
+            self.window.set_fullscreen(True, screen=self.window.screen)
+
+    def muteSwitch(self):
+        if self.muted:
+            self.unmute()
+        else:
+            self.mute()
+
+    def setVol(self, vol: float, fromServer=False):
+        if vol < 0.0:  # min
+            vol = 0.0
+        elif vol > 1.0:  # max
+            vol = 1.0
+        self.volume = vol
+        self.player.volume = vol
+
+        if self.server and not fromServer: # server react
+            self.server.sendToAll("vol_" + str(self.volume))
+
+    def mute(self, fromServer=False):
+        if self.server and not fromServer: # server react
+            self.server.sendToAll("mute")
+
+        self.prevVolume = self.volume
+        self.muted = True
+        self.volume = 0.0
+        self.player.volume = 0.0
+
+    def unmute(self, fromServer=False):
+        if self.server and not fromServer: # server react
+            self.server.sendToAll("unmute")
+
+        self.muted = False
+
+        self.volume = self.prevVolume
+        self.player.volume = self.prevVolume
+
+    def exit(self, fromServer=False):
+        if self.server and not fromServer: # server react
+            self.server.sendToAll("exit")
+            self.server.exit()
+
+        self.playing = False  # playing music
+        self.running = False  # started the playback
+        self.window.close()
+        self.player.delete()
         pyglet.app.exit()

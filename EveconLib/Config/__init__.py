@@ -2,6 +2,7 @@ from EveconLib.Config.StaticVar import *
 from EveconLib.Config.EveconVar import *
 
 
+
 loadFull = False
 
 # user debug config
@@ -12,6 +13,10 @@ alwaysPrintLog = False
 # startup
 import configparser
 import os
+
+
+startProgramm = os.getcwd() + path_seg + "!Evecon" + path_seg + "dev" + path_seg + "!Console.py"  # TODO MAKE THIS AUTOMATIC
+
 
 file_versions = []
 file_version = code_version

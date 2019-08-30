@@ -10,7 +10,7 @@ vivaldi_path = "C:\\Program Files (x86)\\Vivaldi\\Application\\vivaldi.exe"
 code_version = "0.9.10.0"
 
 
-DEBUGGING = False
+DEBUGGING = True
 
 NEVERCLEAR = False
 
@@ -39,4 +39,7 @@ title_oldversion = "Error"
 title_dead = False
 
 
-MP_ALLOWEDFILETYPES = ["mp3"]
+MP_ALLOWEDMUSICFILETYPES = ["mp3"]
+MP_ALLOWEDVIDEOFILETYPES = ["mp4"]
+
+MP_ALLOWEDFILETYPES = MP_ALLOWEDMUSICFILETYPES + MP_ALLOWEDVIDEOFILETYPES

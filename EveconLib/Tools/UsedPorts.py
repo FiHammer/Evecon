@@ -87,11 +87,14 @@ def addPort(port):
 def remPort(port):
     global ports, programs
     found = EveconLib.Tools.Tools.Search(str(port), ports)
-    if not found:
+    if not found or len(found) == 0:
         return
+
     del ports[found[0]]
 
     found = EveconLib.Tools.Tools.Search(str(port), usePorts)
+    if not found or len(found) == 0:
+        return
     del usePorts[found[0]]
     if not usePorts:
         programs -= 1

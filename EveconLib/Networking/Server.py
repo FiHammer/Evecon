@@ -122,6 +122,13 @@ class Server(threading.Thread):
 
         self.writeLog("Current connections: " + str(len(self.connections)))
 
+    def hasActiveConnections(self):
+        for con in self.connections:
+            if self.connections[con]["running"]:
+                return True
+        return False
+
+
     def run(self):
         self.running = True
         self.status = 1

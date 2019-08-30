@@ -9,6 +9,8 @@ from queue import Queue as queue_Queue
 
 PS = EveconLib.Config.path_seg  # shortcut
 AFT = EveconLib.Config.MP_ALLOWEDFILETYPES  # file types to accept
+AMFT = EveconLib.Config.MP_ALLOWEDMUSICFILETYPES  # file types to accept
+AVFT = EveconLib.Config.MP_ALLOWEDVIDEOFILETYPES  # file types to accept
 
 class MusicKey:
     def __init__(self, key: str, mfl, mfe, parentKey=None, cusPath="", activeList=None):
@@ -373,7 +375,7 @@ class MusicFileDir:
 class MusicFile:
     def __init__(self, fullPath, mfl, parent=None, parentKey=None, activeList=None):
         self.path = fullPath
-        self.mfl = mfl
+        self.mfl = mfl  # use mfl = None to use a dummy
         self.activeList = activeList
 
         self.parent = parent
@@ -384,6 +386,8 @@ class MusicFile:
         self.fileExt = self.file.split(".")[-1]
         self.fileName = ""
         self.name = ""
+        self.type = ""
+
 
         self.anData = None
         self.pygletData = None
@@ -434,6 +438,17 @@ class MusicFile:
         if activeStatus == self._active or not self.validation:
             return
 
+        if self.mfl is None:  # dummy
+            if activeStatus:
+                if self.activeList is not None and not suppressActiveList:
+                    self.activeList.append(self)
+            else:
+                if self.activeList is not None and not suppressActiveList:
+                    del self.activeList[self.activeList.index(self)]
+
+            self._active = activeStatus
+            return
+
         if activeStatus:  # activate
             self.mfl.files_active_allList.append(self)
             self.mfl.files_active_allListStatic["file" + str(self.id)] = self
@@ -452,7 +467,7 @@ class MusicFile:
                 self.activeList.append(self)
 
             if self.mfl.musicPlayer and not suppressActiveList:
-                print("Adding myself to Pl")
+                # print("Adding myself to Pl")
                 self.mfl.musicPlayer.playlist.append(self)
 
         else:  # deactivate
@@ -499,7 +514,10 @@ class MusicFile:
         if not self.validation:
             return False  # not a valid file => will not load for info
 
-        self.id = self.mfl.getNewFileId()
+        if self.mfl is None:  # mfl dummy
+            self.id = -1
+        else:
+            self.id = self.mfl.getNewFileId()
 
         self.fileName = ""
         splits = self.file.split(".")
@@ -508,22 +526,29 @@ class MusicFile:
         self.fileName = self.fileName.rstrip(".")
         self.name = self.fileName
 
+        if self.fileExt in AMFT:
+            self.type = "music"
+        elif self.fileExt in AVFT:
+            self.type = "video"
+
+
         self.anData = EveconLib.Tools.MusicEncode(self.fileName)
 
-        # adding to mfl lists
+        if not self.mfl is None:
+            # adding to mfl lists
 
-        self.mfl.files_allList.append(self)
-        self.mfl.files_allListStatic["file" + str(self.id)] = self
+            self.mfl.files_allList.append(self)
+            self.mfl.files_allListStatic["file" + str(self.id)] = self
 
-        self.mfl.files_allFiles.append(self)
-        self.mfl.files_allFilesStatic[self.id] = self
+            self.mfl.files_allFiles.append(self)
+            self.mfl.files_allFilesStatic[self.id] = self
 
 
-        self.mfl.files_inactive_allList.append(self)
-        self.mfl.files_inactive_allListStatic["file" + str(self.id)] = self
+            self.mfl.files_inactive_allList.append(self)
+            self.mfl.files_inactive_allListStatic["file" + str(self.id)] = self
 
-        self.mfl.files_inactive_allFiles.append(self)
-        self.mfl.files_inactive_allFilesStatic["file" + str(self.id)] = self
+            self.mfl.files_inactive_allFiles.append(self)
+            self.mfl.files_inactive_allFilesStatic["file" + str(self.id)] = self
 
 
         self.loaded = True

@@ -8,7 +8,7 @@ import EveconLib.Tools
 
 class Client(threading.Thread):
     def __init__(self, ip: str, port: int, react, buffersize=1024, accountName="", accountPW="", accountKey="",
-                 secuLevel=0, printLog=False, java=False, forcePort=False):
+                 secuLevel=0, printLog=False, java=False):
         """
         a fantastic client
 
@@ -21,14 +21,10 @@ class Client(threading.Thread):
         :param accountKey: login encryption key
         :param secuLevel: seculevel
         :param printLog: prints the log in the console
-        :param forcePort: forces the use of the port (no usedPorts)
         """
         super().__init__()
 
-        if forcePort:
-            self.port = port
-        else:
-            self.port = EveconLib.Tools.UsedPorts.givePort(port)
+        self.port = port
         self.react = react
         self.ip = ip
         self.buffersize = buffersize
@@ -83,7 +79,7 @@ class Client(threading.Thread):
 
         except ConnectionRefusedError:
             # wrong port
-            self.writeLog("Can not connect to port, ConnectionRefused")
+            self.writeLog("Can not connect to port %s, ConnectionRefused" % self.port)
             raise EveconExceptions.ClientWrongPort
 
         self.writeLog("Connected with Server")
@@ -107,8 +103,10 @@ class Client(threading.Thread):
         if self.useAccount:
             self.secu["key"] += self.accountKey
 
-
-        infoServer = self.recieve(0, direct=True).decode("UTF-8").split("!")
+        data = self.recieve(0, direct=True)
+        #print(data)
+        #input()
+        infoServer = data.decode("UTF-8").split("!")
 
         if not infoServer[0] == "#T":
             self.writeLog("Server send wrong Infoconnection")
