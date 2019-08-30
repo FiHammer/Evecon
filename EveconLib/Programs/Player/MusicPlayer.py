@@ -1752,6 +1752,20 @@ class MusicPlayer(threading.Thread):
             self.cur_Input = ""  # need this ?
             self.refreshSearch()
 
+        elif i == "vid":  # deac video for this session and play normal
+            self.getCur().type = "music"
+            self.stopVideoPlayer()
+
+            time.sleep(3)
+            self.player.pause()
+            if self.getCur().pygletData._is_queued:
+                self.getCur().loadForPyglet()
+
+            self.player.queue(self.getCur().pygletData)
+            self.timer.reset()
+            self.timer.start()
+            self.player.play()
+
 
         elif i == "spl":
             if self.con_main == "spl":
@@ -1786,7 +1800,6 @@ class MusicPlayer(threading.Thread):
 
         elif self.con_main == "rhy":
             self.rhy.newPress()
-
 
         else:
             return False
@@ -1887,7 +1900,7 @@ class MusicPlayer(threading.Thread):
             self.videoPlayerClient.send("exit")
         self.videoPlayerClient.exit(sendM=False)
         self.videoPlayerIsPlaying = False
-        self.videoPlayerProcess.kill()
+        #self.videoPlayerProcess.kill()
 
     def reactVideoPlayer(self, msg):
         if msg == "firstStart":
