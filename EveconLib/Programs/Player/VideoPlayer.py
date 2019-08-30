@@ -161,7 +161,7 @@ class VideoPlayer:
 
         if self.showSubs and self.subChanger:
             pass #self.subChanger.start()
-        self.setSub("Haklo")
+        #self.setSub("Haklo")
 
         if self.server and self.server_sendFirstStartAndWaitForClient:
             while not self.server.hasActiveConnections():

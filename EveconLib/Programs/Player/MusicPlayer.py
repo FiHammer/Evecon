@@ -109,6 +109,8 @@ class MusicPlayer(threading.Thread):
         self.videoPlayerProcess = None
         self.waitForVPstart = False
 
+        self.sub = None
+
 
     def addMusic(self, key, cusPath=False, genre=False, noList=False, printStaMSG=True, printEndMSG=True,
                  makeNoti=False, loadForPyglet=True):  # key (AN, LIS)
@@ -555,6 +557,11 @@ class MusicPlayer(threading.Thread):
 
             if self.balloonTip:
                 self.showBalloonTip()
+
+            if self.playlist[0].subAvail:
+                self.sub = EveconLib.Programs.Player.SubTitleParser(self.playlist[0].subFile)
+            else:
+                self.sub = None
 
             # VIDEO PLAYER TEST
             if self.playlist[0].type == "video" and self.autoPlayVideo:
@@ -1029,6 +1036,11 @@ class MusicPlayer(threading.Thread):
         elif self.con_main == "rhy":
             outputList += self.rhy.getPrint()
 
+        elif self.con_main == "sub":
+            if self.sub:
+                outputList.append(self.sub.getSub(self.timer.getTime()))
+            else:
+                outputList.append("No sub available")
         elif self.con_main == "search":
             # outputList.append(self.searchlist)
             outputList.append("Search: (%s)\n" % str(len(self.searchlist)))
@@ -1684,12 +1696,6 @@ class MusicPlayer(threading.Thread):
             self.switchmute()
         elif i == "stop" or i == "exit":
             self.stop()
-        # elif i == "del":
-        #    self.playing = False
-        #    if self.paused:
-        #        self.play()
-        #    time.sleep(0.5)
-        #    self.Del(self.playlist[-1])
         elif i == "del":
             self.DelById(self.cur_Pos)
 
@@ -1770,6 +1776,13 @@ class MusicPlayer(threading.Thread):
             self.cur_Search = ""
             self.cur_Input = ""  # need this ?
             self.refreshSearch()
+
+        elif i == "sub":
+            if self.con_main == "sub":
+                self.con_main = self.con_main_last
+            else:
+                self.con_main_last = self.con_main
+                self.con_main = "sub"
 
         elif i == "vid":  # deac video for this session and play normal
             print("vidGlobal")
