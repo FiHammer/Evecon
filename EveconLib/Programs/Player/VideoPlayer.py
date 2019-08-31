@@ -96,6 +96,7 @@ class VideoPlayer:
 
         @self.window.event
         def on_draw():
+            self.window.clear()
             self.player.get_texture().blit(self.window.width/2 - self.musicFile.pygletData.video_format.width/2,
                                            self.window.height/2 - self.musicFile.pygletData.video_format.height/2)
             if self.showSubs and self.subtitleBox and self.subChanger:

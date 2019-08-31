@@ -8,7 +8,7 @@ import EveconLib.Tools
 
 class Client(threading.Thread):
     def __init__(self, ip: str, port: int, react, buffersize=1024, accountName="", accountPW="", accountKey="",
-                 secuLevel=0, printLog=False, java=False):
+                 secuLevel=0, printLog=False, java=False, waitForConnection=False, description=""):
         """
         a fantastic client
 
@@ -21,6 +21,8 @@ class Client(threading.Thread):
         :param accountKey: login encryption key
         :param secuLevel: seculevel
         :param printLog: prints the log in the console
+        :param waitForConnection: if hostcomputer has no open port the client will try it again
+        :param description: a client description
         """
         super().__init__()
 
@@ -29,6 +31,8 @@ class Client(threading.Thread):
         self.ip = ip
         self.buffersize = buffersize
         self.printLog = printLog
+        self.waitForConnection = waitForConnection
+        self.description = description
 
         self.java = java
 
@@ -69,18 +73,34 @@ class Client(threading.Thread):
     def run(self):
         self.status = 1
 
-        try:
-            self.socket.connect((self.ip, self.port))
+        if not self.waitForConnection:
+            try:
+                self.socket.connect((self.ip, self.port))
 
-        except TimeoutError:
-            # wrong ip
-            self.writeLog("Can not find IP, Timeout")
-            raise EveconExceptions.ClientWrongPort
+            except TimeoutError:
+                # wrong ip
+                self.writeLog("Can not find IP, Timeout")
+                raise EveconExceptions.ClientWrongPort
 
-        except ConnectionRefusedError:
-            # wrong port
-            self.writeLog("Can not connect to port %s, ConnectionRefused" % self.port)
-            raise EveconExceptions.ClientWrongPort
+            except ConnectionRefusedError:
+                # wrong port
+                self.writeLog("Can not connect to port %s, ConnectionRefused" % self.port)
+                raise EveconExceptions.ClientWrongPort
+        else:  # wait
+            while self.waitForConnection:
+                try:
+                    self.socket.connect((self.ip, self.port))
+
+                except TimeoutError:
+                    # wrong ip
+                    self.writeLog("Can not find IP, Timeout, Retrying")
+
+                except ConnectionRefusedError:
+                    # wrong port
+                    self.writeLog("Can not connect to port %s, ConnectionRefused, Retrying" % self.port)
+                finally:
+                    self.writeLog("Connection established")
+                    self.waitForConnection = False
 
         self.writeLog("Connected with Server")
 
@@ -154,7 +174,7 @@ class Client(threading.Thread):
 
         :return: success
         """
-        if self.running and self.status == 2 or direct:
+        if self.running and self.status == 2 or direct:  # make this to a while and wait loop to prevent message loss
             # self.status = 3
 
             if type(data) == str:
@@ -225,7 +245,14 @@ class Client(threading.Thread):
                 if self.java:
                     data_send_de += b'\r\n'
 
-                self.socket.send(data_send_de)
+                send = False
+                while not send:
+                    try:
+                        self.socket.send(data_send_de)
+                    except OSError:
+                        self.writeLog("Message tried to send failed (OSError)")  # retry
+                    finally:
+                        send = True
 
     def recieve(self, encrypt=999, direct=False):
         if not self.running:
@@ -356,12 +383,17 @@ class Client(threading.Thread):
         else:
             prefixx = decrypted
 
+        if self.description:
+            des = " " + self.description
+        else:
+            des = ""
+
         try:
             # noinspection PyTypeChecker
-            EveconLib.Tools.Log("Client", prefixx + data, prio, self.printLog)
+            EveconLib.Tools.Log("Client"+des, prefixx + data, prio, self.printLog)
         except NameError:
             # noinspection PyTypeChecker
-            EveconLib.Tools.LogServerless("Client", prefixx + data, prio, self.printLog)
+            EveconLib.Tools.LogServerless("Client"+des, prefixx + data, prio, self.printLog)
 
     def exit(self, sendM=True, sendErr=0):
         if sendM:

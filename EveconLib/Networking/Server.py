@@ -7,7 +7,7 @@ import EveconLib.Tools
 
 class Server(threading.Thread):
     def __init__(self, port: int, stdReact=None, ip=socket.gethostbyname(socket.gethostname()), buffersize=1024,
-                 maxConnections=10, accounts=None, forcePort=False, printLog=True, secuLevel=0, java=False):
+                 maxConnections=10, accounts=None, forcePort=False, printLog=True, secuLevel=0, java=False, description=""):
         """
         Init the Variables
 
@@ -35,6 +35,8 @@ class Server(threading.Thread):
         :param printLog: prints the log
         :type printLog: bool
 
+        :param description: server describiton
+        :type description: str
         """
         super().__init__()
 
@@ -49,6 +51,7 @@ class Server(threading.Thread):
         self.printLog = printLog
         self.secuLevel = secuLevel
         self.java = java
+        self.description = description
 
         okAccs = []
         if accounts:  # validating
@@ -84,10 +87,15 @@ class Server(threading.Thread):
         EveconLib.Tools.UsedPorts.remPort(self.port)
 
     def writeLog(self, data, connectionID=-1, prio=0, dataType=0, decrypted=False):
-        if connectionID == -1:
-            prefix = "Server"
+        if self.description:
+            des = " " + self.description
         else:
-            prefix = "ConnectionHandler (%s)" % connectionID
+            des = ""
+
+        if connectionID == -1:
+            prefix = "Server" + des
+        else:
+            prefix = "ConnectionHandler (%s)" % connectionID + des
         if decrypted:
             decrypted = "Decryptedly "
         else:

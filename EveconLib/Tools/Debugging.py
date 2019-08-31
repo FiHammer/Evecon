@@ -21,3 +21,4 @@ def setupDebuggingExtreme(force=False):
         setupDDbugger()
         EveconLib.Config.DEBUGGING = True
         EveconLib.Config.NEVERCLEAR = True
+        EveconLib.Config.alwaysPrintLog = True

@@ -1932,14 +1932,23 @@ class MusicPlayer(threading.Thread):
 
         self.player.pause()
         newPort = EveconLib.Tools.UsedPorts.givePort()
-        self.videoPlayerClient = EveconLib.Networking.Client(socket.gethostbyname(socket.gethostname()), newPort, react=self.reactVideoPlayer)
+        self.videoPlayerClient = EveconLib.Networking.Client(socket.gethostbyname(socket.gethostname()), newPort,
+                                                             react=self.reactVideoPlayer, waitForConnection=True,
+                                                             description="for VP from MP")
         sp = EveconLib.Config.startProgramm
         self.videoPlayerProcess = subprocess.Popen(["python", sp, "--vp", self.getCur().path, str(newPort)])
 
         #print(sp)
 
         time.sleep(5)
+
         self.videoPlayerClient.start()
+
+        while self.videoPlayerClient.waitForConnection:  # catches all thread which want to send msg while client try to connect
+            time.sleep(1)
+
+        time.sleep(1)
+        print(self.videoPlayerClient.status, "\n\n")
         self.videoPlayerClient.send("vol_"+str(self.volumep))
         self.videoPlayerIsPlaying = True
 
