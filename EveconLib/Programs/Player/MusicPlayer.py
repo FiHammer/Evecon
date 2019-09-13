@@ -110,6 +110,7 @@ class MusicPlayer(threading.Thread):
         self.waitForVPstart = False
 
         self.sub = None
+        self.breakThisPlay = False  # this is a debug var to stop the main thread from waiting, normaly done with playing
 
 
     def addMusic(self, key, cusPath=False, genre=False, noList=False, printStaMSG=True, printEndMSG=True,
@@ -331,10 +332,8 @@ class MusicPlayer(threading.Thread):
             EveconLib.Tools.killme()
 
     def __del__(self):
-        print("NOOO")
 
         if self.videoPlayerIsPlaying:
-            print("Ok then it is Ok")
             self.videoPlayerProcess.kill()
 
         try:
@@ -343,10 +342,12 @@ class MusicPlayer(threading.Thread):
         except AttributeError:
             pass
 
-    def next(self, skipthis=False, fromServer=False):
-        if self.waitForVPstart:
+    def next(self, skipthis=False, fromServer=False, forceKillVideo=False):
+        if self.waitForVPstart and forceKillVideo:
+            self.stopVideoPlayer(fromServer=True, force=True)  # do as a server to terminate the vp completly
+        elif self.waitForVPstart:
             return
-        if self.videoPlayerIsPlaying: # server react
+        elif self.videoPlayerIsPlaying: # server react
             self.stopVideoPlayer(fromServer)
 
         if skipthis:
@@ -356,6 +357,9 @@ class MusicPlayer(threading.Thread):
             self.paused = False
             # self.player.play()  # TODO HERE COULD BE A MISSTAKE (COMMENTED TO TRY IF THIS CAUSES ERRORS)
         self.hardworktime = time.time() + 0.2
+
+        if self.waitForVPstart and forceKillVideo:  # doing things, normally the main thread would do
+            self.breakThisPlay = True
 
     def DelById(self, num):
         # num = Search(plfile, self.playlist)[0]
@@ -535,7 +539,6 @@ class MusicPlayer(threading.Thread):
 
         if self.remote:
             try:
-                EveconLib.Config.globalMPports.addPort(self.server.port)
                 EveconLib.Config.globalMPportsJava.addPort(self.server_java.port)
             except AttributeError:
                 pass
@@ -567,7 +570,7 @@ class MusicPlayer(threading.Thread):
             if self.playlist[0].type == "video" and self.autoPlayVideo:
                 self.callVideoPlayer()  # ATTENTION: THE VIDEO IS NOW PLAYING SO NORMAL PLAYER IS PAUSED
 
-                while self.waitForVPstart:
+                while self.waitForVPstart: # wait loop for main player thread
                     time.sleep(0.5)
 
             else:
@@ -588,6 +591,9 @@ class MusicPlayer(threading.Thread):
             self.printit()
             self.last_print_auto = time.time()
             while self.playing:
+                if self.breakThisPlay:
+                    self.breakThisPlay = False
+                    break
 
                 time.sleep(0.15)
                 for x in range(5):
@@ -615,9 +621,10 @@ class MusicPlayer(threading.Thread):
 
             if self.videoPlayerIsPlaying:
                 self.stopVideoPlayer()
+            else:
+                self.player.next_source()
 
             self.timer.reset()
-            self.player.next_source()
 
             if self.skip_del:
                 self.skip_del = False
@@ -673,11 +680,16 @@ class MusicPlayer(threading.Thread):
                 con = self.remoteAddress
             outputList.append("Musicplayer: (%s connected)\n" % con)
 
+        playword = "Playing"
+
+        if self.getCur().type == "video":
+            playword = "Playing video"
+
         if self.getCur().anData["valid"]:
             outputList.append(
-                "Playing: \n%s \nFrom %s" % (self.getCur().anData["title"], self.getCur().anData["animeName"]))
+                playword + ": \n%s \nFrom %s" % (self.getCur().anData["title"], self.getCur().anData["animeName"]))
         else:
-            outputList.append("Playing: \n%s" % self.getCur().name)
+            outputList.append(playword + ": \n%s" % self.getCur().name)
 
         outputList.append("Time: %s\\%s" % (self.timer.getTimeFor(), EveconLib.Tools.TimeFor(self.getCur().pygletData.duration)))
         if self.muted:
@@ -971,9 +983,13 @@ class MusicPlayer(threading.Thread):
                     outputList.append("Type: " + str(self.playlist[self.cur_Pos].anData["animeType"]) +
                                       str(self.playlist[self.cur_Pos].anData["animeTypeNum"]))
 
+
             outputList.append("Filename: " + self.playlist[self.cur_Pos].file)
             outputList.append("Musictype: " + self.playlist[self.cur_Pos].type)
             outputList.append("Parantkey: " + str(self.playlist[self.cur_Pos].parentKey))
+            outputList.append("Filepath: " + self.playlist[self.cur_Pos].path)
+            if self.playlist[self.cur_Pos].subAvail:
+                outputList.append("Subtitlepath: " + self.playlist[self.cur_Pos].subFile)
             outputList.append("Filepath: " + self.playlist[self.cur_Pos].path)
             outputList.append("Album: " + self.playlist[self.cur_Pos].pygletData.info.album.decode())
             outputList.append("Author: " + self.playlist[self.cur_Pos].pygletData.info.author.decode())
@@ -1680,14 +1696,19 @@ class MusicPlayer(threading.Thread):
         else:
             upper = False
 
+        i = i.lower()
         if self.waitForVPstart:
             self.notificate("WAIT FOR VIDEO START", "Error")
+            #input()
 
-        while self.waitForVPstart:  # wait loop
-            time.sleep(0.4)
+            # some options for debug
+            if i == "next" or i == "n": # to exit from the video if something crashes
+                self.next(forceKillVideo=True)
+
+            self.cur_Input = ""
+            return
 
 
-        i = i.lower()
         if i == "play" or i == "pau" or i == "pause" or i == "p":
             self.switch()
         elif i == "next" or i == "n":
@@ -1785,11 +1806,9 @@ class MusicPlayer(threading.Thread):
                 self.con_main = "sub"
 
         elif i == "vid":  # deac video for this session and play normal
-            print("vidGlobal")
             if self.cur_Pos == 0:
                 if self.getCur().type == "music":
                     return False
-                print("vid")
 
                 self.getCur().type = "music"
                 self.stopVideoPlayer(debug_vPIP=True)
@@ -1948,22 +1967,27 @@ class MusicPlayer(threading.Thread):
             time.sleep(1)
 
         time.sleep(1)
-        print(self.videoPlayerClient.status, "\n\n")
-        self.videoPlayerClient.send("vol_"+str(self.volumep))
-        self.videoPlayerIsPlaying = True
+        if self.videoPlayerClient.status == 2:
+            self.videoPlayerClient.send("vol_"+str(self.volumep))
+            self.videoPlayerIsPlaying = True
+        else:
+            EveconLib.Tools.Log("MusicPlayer", "Tried to start video player: Something crashed")
+            self.notificate("The video is corrupted", "ERROR")
+            self.getCur().type = "music"
+            self.replay(forceKillVideo=True)
 
-    def stopVideoPlayer(self, fromServer=False, debug_vPIP=False):  # debug_vPIP do not chance vpip in this method
-        if not self.videoPlayerIsPlaying:
+    def stopVideoPlayer(self, fromServer=False, debug_vPIP=False, force=False):  # debug_vPIP do not chance vpip in this method
+        if not self.videoPlayerIsPlaying and not force:
             return
         if not fromServer:
             pass #self.videoPlayerClient.send("exit")  # maybe kill this programm not through exit, because this could throw a error
         self.videoPlayerClient.exit(sendM=False)
+
         if not debug_vPIP:
             self.videoPlayerIsPlaying = False
             self.waitForVPstart = False # maybe debug
         #self.videoPlayerProcess.terminate()  # do not need
         self.videoPlayerProcess.kill()
-
     def reactVideoPlayer(self, msg):
         if msg == "firstStart":
             self.waitForVPstart = False
@@ -1985,3 +2009,6 @@ class MusicPlayer(threading.Thread):
         else:
             return
         self.refresh(title=False, printme=self.selfprint)
+
+    def replay(self, forceKillVideo=False):  # should be a meth to replay the current (id: 0) file
+        self.next(skipthis=True, forceKillVideo=forceKillVideo)

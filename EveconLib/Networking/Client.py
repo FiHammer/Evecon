@@ -79,12 +79,12 @@ class Client(threading.Thread):
 
             except TimeoutError:
                 # wrong ip
-                self.writeLog("Can not find IP, Timeout")
+                self.writeLog("Can not find IP, Timeout", 2)
                 raise EveconExceptions.ClientWrongPort
 
             except ConnectionRefusedError:
                 # wrong port
-                self.writeLog("Can not connect to port %s, ConnectionRefused" % self.port)
+                self.writeLog("Can not connect to port %s, ConnectionRefused" % self.port, 2)
                 raise EveconExceptions.ClientWrongPort
         else:  # wait
             while self.waitForConnection:
@@ -93,11 +93,11 @@ class Client(threading.Thread):
 
                 except TimeoutError:
                     # wrong ip
-                    self.writeLog("Can not find IP, Timeout, Retrying")
+                    self.writeLog("Can not find IP, Timeout, Retrying", 2)
 
                 except ConnectionRefusedError:
                     # wrong port
-                    self.writeLog("Can not connect to port %s, ConnectionRefused, Retrying" % self.port)
+                    self.writeLog("Can not connect to port %s, ConnectionRefused, Retrying" % self.port, 2)
                 finally:
                     self.writeLog("Connection established")
                     self.waitForConnection = False
@@ -126,22 +126,26 @@ class Client(threading.Thread):
         data = self.recieve(0, direct=True)
         #print(data)
         #input()
+        if type(data) == bool:  # uhh something happend
+            self.writeLog("OH GOD, I got a boolean ERROR", 2)
+            return False
+
         infoServer = data.decode("UTF-8").split("!")
 
         if not infoServer[0] == "#T":
-            self.writeLog("Server send wrong Infoconnection")
+            self.writeLog("Server send wrong Infoconnection", 2)
             raise EveconExceptions.ClientWrongServer()
         else:
             if infoServer[1] == "exit":
-                self.writeLog("Server had an error! Code: " + str(infoServer[2]))
+                self.writeLog("Server had an error! Code: " + str(infoServer[2]), 2)
                 return False
             elif infoServer[1] == "0":
-                self.writeLog("Cannot connect to server!")
+                self.writeLog("Cannot connect to server!", 2)
                 return False
             elif infoServer[1] == "1" or infoServer[1] == "-1":
                 self.secu["status"] = int(infoServer[1])
             else:
-                self.writeLog("Server send wrong Infoconnection")
+                self.writeLog("Server send wrong Infoconnection", 2)
                 raise EveconExceptions.ClientWrongServer()
 
         self.status = 2
@@ -250,7 +254,7 @@ class Client(threading.Thread):
                     try:
                         self.socket.send(data_send_de)
                     except OSError:
-                        self.writeLog("Message tried to send failed (OSError)")  # retry
+                        self.writeLog("Message tried to send failed (OSError)", 2)  # retry
                     finally:
                         send = True
 
@@ -264,10 +268,10 @@ class Client(threading.Thread):
         try:
             data = self.socket.recv(self.buffersize)
         except ConnectionResetError:
-            self.writeLog("Server disconnected without warning")
+            self.writeLog("Server disconnected without warning", 2)
             return False
         except ConnectionAbortedError:
-            self.writeLog("Connection aborted")
+            self.writeLog("Connection aborted", 2)
             return False
         except OSError:
             return False
@@ -282,7 +286,7 @@ class Client(threading.Thread):
                 return False
 
         if not data:
-            self.writeLog("Server disconnected. If this happens the Server send something courious")
+            self.writeLog("Server disconnected. If this happens the Server send something courious", 1)
             return False
 
         return data
@@ -404,6 +408,7 @@ class Client(threading.Thread):
 
         self.status = 4
         self.running = False
+        self.waitForConnection = False
         self.socket.close()
 
     def __del__(self):

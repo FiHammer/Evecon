@@ -131,7 +131,7 @@ class VideoPlayer:
                 self.setVol(self.volume + 0.1)
             elif symbol == 109:  # m => mute
                 self.muteSwitch()
-            elif symbol == 101:  # e => exit
+            elif symbol == 101 or symbol == 110:  # e or n => exit
                 self.exit()
             #print(symbol, modifiers)
 
@@ -236,9 +236,9 @@ class VideoPlayer:
             return
 
         if self.window.fullscreen:
-            self.window.set_fullscreen(False, screen=self.window.screen)
+            self.window.set_fullscreen(False)
         else:
-            self.window.set_fullscreen(True, screen=self.window.screen)
+            self.window.set_fullscreen(True)
 
     def muteSwitch(self):
         if self.muted:
