@@ -122,6 +122,8 @@ def gettitle(part="all"):
 
 
 def title(status="OLD", something="OLD", version="OLD", deac=False):
+    if not EveconLib.Config.enableTitleChange:
+        return  # title deactive
     if sys.platform == "win32":
         if deac:
             EveconLib.Config.title_dead = True

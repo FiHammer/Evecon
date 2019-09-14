@@ -22,3 +22,5 @@ def setupDebuggingExtreme(force=False):
         EveconLib.Config.DEBUGGING = True
         EveconLib.Config.NEVERCLEAR = True
         EveconLib.Config.alwaysPrintLog = True
+
+        EveconLib.Tools.Log("Debugstarter", "Running the debugging enviroment!")

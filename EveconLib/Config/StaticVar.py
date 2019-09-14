@@ -15,6 +15,9 @@ DEBUGGING = False
 NEVERCLEAR = False
 
 
+enableTitleChange = True
+
+
 ss_active = False
 exitnow = 0
 pausetime = 180

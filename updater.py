@@ -20,6 +20,10 @@ else:
 
 import EveconLib
 
+EveconLib.Programs.Startup.StartupEvecon.startup(titleTime=False, klakumStartup=False) # start logserver
+
+# Looking for debug
+
 Megacmd = EveconLib.Tools.Windows.MegaCMD
 szip = EveconLib.Tools.Windows.SZip
 title = EveconLib.Tools.title
@@ -252,7 +256,7 @@ def backup():
     shutil.copy("data\\Info\\Changelog.txt", "data\\Backup\\data\\Info")
 
 def upgrade():
-    subprocess.call(["taskkill", "/IM", "!Console.exe", "/f"])
+    #subprocess.call(["taskkill", "/IM", "!Console.exe", "/f"], stdout=None, stderr=None)
     cls()
     if EveconLib.Config.computer == "MiniPC":
         title("Upgrade", "Changelog")
