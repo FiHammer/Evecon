@@ -113,7 +113,21 @@ else:
 
 
 refreshVersion()
-testEnv()
+# test environment
+if not testEnv():
+    newEnv = None
+    if os.path.exists("stdenv"):  # config file (for linux) EveconLib/Config/stdenv contains path to std env
+        with open("stdenv") as file:
+            lines = file.readlines()
+            if lines:
+                if os.path.exists(lines[0]):
+                    newEnv = lines[0]
+
+    if newEnv:
+        environmentPath = newEnv.rsplit(path_seg) + path_seg
+
+# TODO make the current path independent! => load the path in var environPath and use it every time!!
+
 # read config
 
 readConfig()

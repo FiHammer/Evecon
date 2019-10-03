@@ -22,6 +22,8 @@ if sys.platform == "win32":
 else:
     path_seg = "/"
 
+environmentPath = ""  # standard path
+
 infoPath = "data" + path_seg + "Info"
 versionFile = infoPath + path_seg + "version"
 changelogFile = infoPath + path_seg + "Changelog.txt"
