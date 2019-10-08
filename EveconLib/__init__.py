@@ -5,6 +5,8 @@ orgDir = os.getcwd()
 
 if sys.platform == "win32":
     path_seg = "\\"
+    # adding here (for pyglet) the ffmpeg libs
+    os.environ["PATH"] += r";C:\Dev\ffmpeg\bin"
 else:
     path_seg = "/"
 

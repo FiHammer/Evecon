@@ -555,8 +555,11 @@ class MusicPlayer(threading.Thread):
         while self.musicrun:
             if not self.getCur().pygletData:
                 self.getCur().loadForPyglet(threadLoad=False)
-            if self.getCur().pygletData._is_queued:
-                self.reloadMusic(self.playlist[0].id)
+            try:
+                if self.getCur().pygletData._is_queued:
+                    self.getCur().loadForPyglet()
+            except AttributeError:
+                pass
 
             if self.balloonTip:
                 self.showBalloonTip()
@@ -1816,8 +1819,11 @@ class MusicPlayer(threading.Thread):
                 time.sleep(3)
                 self.player.pause()
                 self.timer.reset()
-                if self.getCur().pygletData._is_queued:
-                    self.getCur().loadForPyglet()
+                try:
+                    if self.getCur().pygletData._is_queued:
+                        self.getCur().loadForPyglet()
+                except AttributeError:
+                    pass
 
                 self.player.next_source()
                 self.player.queue(self.getCur().pygletData)
